@@ -1,17 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
-  Search,
   Heart,
-  ShoppingBag,
-  Menu,
   ArrowRight,
   Gift,
   Sparkles,
   Shirt,
   Coffee,
   Star,
-  Instagram,
-  Facebook,
   Mail,
   Truck,
   PackageCheck,
@@ -26,6 +22,7 @@ import p1 from "@/assets/p1.jpg";
 import p2 from "@/assets/p2.jpg";
 import p3 from "@/assets/p3.jpg";
 import p4 from "@/assets/p4.jpg";
+import { Announcement, Header, Footer } from "@/components/site/SiteChrome";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,16 +44,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Index,
 });
-
-const NAV = [
-  { label: "Home", href: "#top" },
-  { label: "Faith", href: "#shop" },
-  { label: "Customs", href: "#services" },
-  { label: "Accessories", href: "#shop" },
-  { label: "Gift Sets", href: "#new" },
-  { label: "About", href: "#about" },
-  { label: "Contact", href: "#contact" },
-];
 
 const MARQUEE = [
   "Inspired by Faith",
