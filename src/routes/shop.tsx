@@ -1,15 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Heart, Star, ArrowRight, SlidersHorizontal } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Heart, SlidersHorizontal } from "lucide-react";
 import { Announcement, Header, Footer, PageHero } from "@/components/site/SiteChrome";
+import { useProducts } from "@/lib/products";
+import { resolveImages } from "@/lib/product-images";
+import { useWishlist, useCart, useUI } from "@/lib/stores";
+import { toast } from "sonner";
 import heroImg from "@/assets/hero.jpg";
-import catFaith from "@/assets/cat-faith.jpg";
-import catMugs from "@/assets/cat-mugs.jpg";
-import catAccessories from "@/assets/cat-accessories.jpg";
-import catGifts from "@/assets/cat-gifts.jpg";
-import p1 from "@/assets/p1.jpg";
-import p2 from "@/assets/p2.jpg";
-import p3 from "@/assets/p3.jpg";
-import p4 from "@/assets/p4.jpg";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -31,20 +29,26 @@ export const Route = createFileRoute("/shop")({
   component: ShopPage,
 });
 
-const FILTERS = ["All", "Faith Apparel", "Mugs", "Accessories", "Gift Sets"];
-
-const PRODUCTS = [
-  { name: "Faith Over Fear Sweatshirt", price: "$48.00", tag: "Faith Apparel", img: p1, rating: 32 },
-  { name: "Blessed Mom 15oz Mug", price: "$22.00", tag: "Mugs", img: p2, rating: 47 },
-  { name: "Grateful Canvas Tote", price: "$28.00", tag: "Accessories", img: p3, rating: 19 },
-  { name: "Signature Navy Gift Box", price: "$85.00", tag: "Gift Sets", img: p4, rating: 12 },
-  { name: "Walk by Faith Hoodie", price: "$54.00", tag: "Faith Apparel", img: catFaith, rating: 24 },
-  { name: "Custom Name Coffee Mug", price: "$24.00", tag: "Mugs", img: catMugs, rating: 38 },
-  { name: "Embroidered Day Tote", price: "$32.00", tag: "Accessories", img: catAccessories, rating: 16 },
-  { name: "Mother's Day Curated Box", price: "$95.00", tag: "Gift Sets", img: catGifts, rating: 21 },
-];
-
 function ShopPage() {
+  const { data: products = [], isLoading } = useProducts();
+  const [category, setCategory] = useState("All");
+  const [sort, setSort] = useState<"new" | "price-asc" | "price-desc" | "name">("new");
+  const wish = useWishlist();
+  const add = useCart((s) => s.add);
+  const openCart = useUI((s) => s.openCart);
+
+  const categories = useMemo(() => ["All", ...Array.from(new Set(products.map((p) => p.category)))], [products]);
+  const filtered = useMemo(() => {
+    let list = category === "All" ? products : products.filter((p) => p.category === category);
+    list = [...list].sort((a, b) => {
+      if (sort === "price-asc") return Number(a.price) - Number(b.price);
+      if (sort === "price-desc") return Number(b.price) - Number(a.price);
+      if (sort === "name") return a.name.localeCompare(b.name);
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    return list;
+  }, [products, category, sort]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Announcement />
@@ -60,11 +64,12 @@ function ShopPage() {
       <section className="mx-auto max-w-7xl px-4 py-14 md:px-8 md:py-20">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
           <div className="flex flex-wrap gap-2">
-            {FILTERS.map((f, i) => (
+            {categories.map((f) => (
               <button
                 key={f}
+                onClick={() => setCategory(f)}
                 className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.22em] transition ${
-                  i === 0
+                  category === f
                     ? "border-ink bg-ink text-background"
                     : "border-border text-foreground/70 hover:border-gold hover:text-gold"
                 }`}
@@ -73,48 +78,62 @@ function ShopPage() {
               </button>
             ))}
           </div>
-          <button className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-foreground/70 hover:border-gold hover:text-gold">
-            <SlidersHorizontal className="h-3.5 w-3.5" /> Sort
-          </button>
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+            <select value={sort} onChange={(e) => setSort(e.target.value as any)} className="rounded-full border border-border bg-background px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-foreground/70">
+              <option value="new">Newest</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="name">A–Z</option>
+            </select>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-          {PRODUCTS.map((p) => (
-            <article key={p.name} className="group">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted">
-                <img
-                  src={p.img}
-                  alt={p.name}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
-                />
-                <button
-                  aria-label="Add to wishlist"
-                  className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/90 text-ink transition hover:bg-gold"
-                >
-                  <Heart className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="mt-4 flex flex-col gap-1">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{p.tag}</span>
-                <h3 className="font-display text-lg leading-tight text-ink">{p.name}</h3>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="text-sm font-medium text-ink">{p.price}</span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Star className="h-3.5 w-3.5 fill-gold text-gold" /> ({p.rating})
-                  </span>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-16 flex justify-center">
-          <button className="group inline-flex items-center gap-3 rounded-full border border-ink px-6 py-3.5 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-ink hover:text-background">
-            Load More
-            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-          </button>
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="aspect-[4/5] animate-pulse rounded-sm bg-muted" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+            {filtered.map((p) => {
+              const img = resolveImages(p.images)[0];
+              const isWished = wish.has(p.id);
+              return (
+                <article key={p.id} className="group">
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted">
+                    <Link to="/product/$slug" params={{ slug: p.slug }}>
+                      <img src={img} alt={p.name} loading="lazy" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+                    </Link>
+                    <button
+                      onClick={() => wish.toggle(p.id)}
+                      aria-label="Add to wishlist"
+                      className={`absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/90 text-ink transition hover:bg-gold ${isWished ? "text-gold" : ""}`}
+                    >
+                      <Heart className={`h-4 w-4 ${isWished ? "fill-gold" : ""}`} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        add({ productId: p.id, slug: p.slug, name: p.name, price: Number(p.price), image: img });
+                        toast.success("Added to bag");
+                        openCart();
+                      }}
+                      className="absolute inset-x-3 bottom-3 rounded-full bg-ink py-2 text-[10px] uppercase tracking-[0.22em] text-background opacity-0 transition group-hover:opacity-100"
+                    >
+                      Quick Add
+                    </button>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-1">
+                    <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{p.category}</span>
+                    <Link to="/product/$slug" params={{ slug: p.slug }} className="font-display text-lg leading-tight text-ink hover:text-gold">{p.name}</Link>
+                    <span className="text-sm font-medium text-ink">${Number(p.price).toFixed(2)}</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <Footer />
