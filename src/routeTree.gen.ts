@@ -9,25 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as HomeBoldRouteImport } from './routes/home-bold'
 import { Route as CustomRouteImport } from './routes/custom'
 import { Route as ContactRouteImport } from './routes/contact'
-import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as CartRouteImport } from './routes/cart'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProductSlugRouteImport } from './routes/product.$slug'
-import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 
-const WishlistRoute = WishlistRouteImport.update({
-  id: '/wishlist',
-  path: '/wishlist',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ShopRoute = ShopRouteImport.update({
   id: '/shop',
   path: '/shop',
@@ -48,26 +36,6 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CheckoutRoute = CheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CartRoute = CartRouteImport.update({
-  id: '/cart',
-  path: '/cart',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -78,135 +46,58 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductSlugRoute = ProductSlugRouteImport.update({
-  id: '/product/$slug',
-  path: '/product/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
-  id: '/success',
-  path: '/success',
-  getParentRoute: () => CheckoutRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
-  '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRoute
   '/home-bold': typeof HomeBoldRoute
   '/shop': typeof ShopRoute
-  '/wishlist': typeof WishlistRoute
-  '/checkout/success': typeof CheckoutSuccessRoute
-  '/product/$slug': typeof ProductSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
-  '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRoute
   '/home-bold': typeof HomeBoldRoute
   '/shop': typeof ShopRoute
-  '/wishlist': typeof WishlistRoute
-  '/checkout/success': typeof CheckoutSuccessRoute
-  '/product/$slug': typeof ProductSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
-  '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRoute
   '/home-bold': typeof HomeBoldRoute
   '/shop': typeof ShopRoute
-  '/wishlist': typeof WishlistRoute
-  '/checkout/success': typeof CheckoutSuccessRoute
-  '/product/$slug': typeof ProductSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/about'
-    | '/admin'
-    | '/auth'
-    | '/cart'
-    | '/checkout'
-    | '/contact'
-    | '/custom'
-    | '/home-bold'
-    | '/shop'
-    | '/wishlist'
-    | '/checkout/success'
-    | '/product/$slug'
+  fullPaths: '/' | '/about' | '/contact' | '/custom' | '/home-bold' | '/shop'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/about'
-    | '/admin'
-    | '/auth'
-    | '/cart'
-    | '/checkout'
-    | '/contact'
-    | '/custom'
-    | '/home-bold'
-    | '/shop'
-    | '/wishlist'
-    | '/checkout/success'
-    | '/product/$slug'
+  to: '/' | '/about' | '/contact' | '/custom' | '/home-bold' | '/shop'
   id:
     | '__root__'
     | '/'
     | '/about'
-    | '/admin'
-    | '/auth'
-    | '/cart'
-    | '/checkout'
     | '/contact'
     | '/custom'
     | '/home-bold'
     | '/shop'
-    | '/wishlist'
-    | '/checkout/success'
-    | '/product/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  AdminRoute: typeof AdminRoute
-  AuthRoute: typeof AuthRoute
-  CartRoute: typeof CartRoute
-  CheckoutRoute: typeof CheckoutRouteWithChildren
   ContactRoute: typeof ContactRoute
   CustomRoute: typeof CustomRoute
   HomeBoldRoute: typeof HomeBoldRoute
   ShopRoute: typeof ShopRoute
-  WishlistRoute: typeof WishlistRoute
-  ProductSlugRoute: typeof ProductSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/wishlist': {
-      id: '/wishlist'
-      path: '/wishlist'
-      fullPath: '/wishlist'
-      preLoaderRoute: typeof WishlistRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/shop': {
       id: '/shop'
       path: '/shop'
@@ -235,34 +126,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/checkout': {
-      id: '/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof CheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cart': {
-      id: '/cart'
-      path: '/cart'
-      fullPath: '/cart'
-      preLoaderRoute: typeof CartRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -277,48 +140,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/product/$slug': {
-      id: '/product/$slug'
-      path: '/product/$slug'
-      fullPath: '/product/$slug'
-      preLoaderRoute: typeof ProductSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkout/success': {
-      id: '/checkout/success'
-      path: '/success'
-      fullPath: '/checkout/success'
-      preLoaderRoute: typeof CheckoutSuccessRouteImport
-      parentRoute: typeof CheckoutRoute
-    }
   }
 }
-
-interface CheckoutRouteChildren {
-  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
-}
-
-const CheckoutRouteChildren: CheckoutRouteChildren = {
-  CheckoutSuccessRoute: CheckoutSuccessRoute,
-}
-
-const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
-  CheckoutRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  AdminRoute: AdminRoute,
-  AuthRoute: AuthRoute,
-  CartRoute: CartRoute,
-  CheckoutRoute: CheckoutRouteWithChildren,
   ContactRoute: ContactRoute,
   CustomRoute: CustomRoute,
   HomeBoldRoute: HomeBoldRoute,
   ShopRoute: ShopRoute,
-  WishlistRoute: WishlistRoute,
-  ProductSlugRoute: ProductSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

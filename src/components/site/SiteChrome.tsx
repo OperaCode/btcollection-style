@@ -9,8 +9,6 @@ import {
   Mail,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useCart, useUI } from "@/lib/stores";
-import { CartDrawer } from "@/components/site/CartDrawer";
 
 export const NAV = [
   { label: "Home", to: "/" as const },
@@ -43,17 +41,14 @@ function IconBtn({
   children,
   label,
   className = "",
-  onClick,
 }: {
   children: ReactNode;
   label: string;
   className?: string;
-  onClick?: () => void;
 }) {
   return (
     <button
       aria-label={label}
-      onClick={onClick}
       className={`grid h-10 w-10 place-items-center rounded-full text-foreground/80 transition hover:bg-muted hover:text-foreground ${className}`}
     >
       {children}
@@ -62,10 +57,7 @@ function IconBtn({
 }
 
 export function Header() {
-  const openCart = useUI((s) => s.openCart);
-  const count = useCart((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   return (
-    <>
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-4 md:px-8">
         <Link to="/" className="flex min-w-0 items-center gap-3">
@@ -95,28 +87,20 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-1 text-foreground">
-          <Link to="/shop" aria-label="Search" className="grid h-10 w-10 place-items-center rounded-full text-foreground/80 hover:bg-muted">
-            <Search className="h-[18px] w-[18px]" />
-          </Link>
-          <Link to="/wishlist" aria-label="Wishlist" className="grid h-10 w-10 place-items-center rounded-full text-foreground/80 hover:bg-muted">
-            <Heart className="h-[18px] w-[18px]" />
-          </Link>
-          <IconBtn label="Cart" onClick={openCart}>
+          <IconBtn label="Search"><Search className="h-[18px] w-[18px]" /></IconBtn>
+          <IconBtn label="Wishlist"><Heart className="h-[18px] w-[18px]" /></IconBtn>
+          <IconBtn label="Cart">
             <span className="relative">
               <ShoppingBag className="h-[18px] w-[18px]" />
-              {count > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-gold text-[10px] font-semibold text-ink">
-                  {count}
-                </span>
-              )}
+              <span className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-gold text-[10px] font-semibold text-ink">
+                2
+              </span>
             </span>
           </IconBtn>
           <IconBtn label="Menu" className="lg:hidden"><Menu className="h-[18px] w-[18px]" /></IconBtn>
         </div>
       </div>
     </header>
-    <CartDrawer />
-    </>
   );
 }
 
