@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShopRouteImport } from './routes/shop'
-import { Route as HomeBoldRouteImport } from './routes/home-bold'
 import { Route as CustomRouteImport } from './routes/custom'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AboutRouteImport } from './routes/about'
@@ -19,11 +18,6 @@ import { Route as IndexRouteImport } from './routes/index'
 const ShopRoute = ShopRouteImport.update({
   id: '/shop',
   path: '/shop',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HomeBoldRoute = HomeBoldRouteImport.update({
-  id: '/home-bold',
-  path: '/home-bold',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomRoute = CustomRouteImport.update({
@@ -52,7 +46,6 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRoute
-  '/home-bold': typeof HomeBoldRoute
   '/shop': typeof ShopRoute
 }
 export interface FileRoutesByTo {
@@ -60,7 +53,6 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRoute
-  '/home-bold': typeof HomeBoldRoute
   '/shop': typeof ShopRoute
 }
 export interface FileRoutesById {
@@ -69,22 +61,14 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRoute
-  '/home-bold': typeof HomeBoldRoute
   '/shop': typeof ShopRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/contact' | '/custom' | '/home-bold' | '/shop'
+  fullPaths: '/' | '/about' | '/contact' | '/custom' | '/shop'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/contact' | '/custom' | '/home-bold' | '/shop'
-  id:
-    | '__root__'
-    | '/'
-    | '/about'
-    | '/contact'
-    | '/custom'
-    | '/home-bold'
-    | '/shop'
+  to: '/' | '/about' | '/contact' | '/custom' | '/shop'
+  id: '__root__' | '/' | '/about' | '/contact' | '/custom' | '/shop'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -92,7 +76,6 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   ContactRoute: typeof ContactRoute
   CustomRoute: typeof CustomRoute
-  HomeBoldRoute: typeof HomeBoldRoute
   ShopRoute: typeof ShopRoute
 }
 
@@ -103,13 +86,6 @@ declare module '@tanstack/react-router' {
       path: '/shop'
       fullPath: '/shop'
       preLoaderRoute: typeof ShopRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/home-bold': {
-      id: '/home-bold'
-      path: '/home-bold'
-      fullPath: '/home-bold'
-      preLoaderRoute: typeof HomeBoldRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/custom': {
@@ -148,7 +124,6 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   ContactRoute: ContactRoute,
   CustomRoute: CustomRoute,
-  HomeBoldRoute: HomeBoldRoute,
   ShopRoute: ShopRoute,
 }
 export const routeTree = rootRouteImport
