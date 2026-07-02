@@ -9,6 +9,7 @@ import {
   Mail,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useCart } from "@/lib/cart";
 
 export const NAV = [
   { label: "Home", to: "/" as const },
@@ -41,13 +42,16 @@ function IconBtn({
   children,
   label,
   className = "",
+  onClick,
 }: {
   children: ReactNode;
   label: string;
   className?: string;
+  onClick?: () => void;
 }) {
   return (
     <button
+      onClick={onClick}
       aria-label={label}
       className={`grid h-10 w-10 place-items-center rounded-full text-foreground/80 transition hover:bg-muted hover:text-foreground ${className}`}
     >
@@ -57,6 +61,7 @@ function IconBtn({
 }
 
 export function Header() {
+  const { count, openDrawer } = useCart();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-4 md:px-8">
@@ -89,12 +94,14 @@ export function Header() {
         <div className="flex items-center gap-1 text-foreground">
           <IconBtn label="Search"><Search className="h-[18px] w-[18px]" /></IconBtn>
           <IconBtn label="Wishlist"><Heart className="h-[18px] w-[18px]" /></IconBtn>
-          <IconBtn label="Cart">
+          <IconBtn label="Cart" onClick={openDrawer}>
             <span className="relative">
               <ShoppingBag className="h-[18px] w-[18px]" />
-              <span className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-gold text-[10px] font-semibold text-ink">
-                2
-              </span>
+              {count > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-gold text-[10px] font-semibold text-ink">
+                  {count}
+                </span>
+              )}
             </span>
           </IconBtn>
           <IconBtn label="Menu" className="lg:hidden"><Menu className="h-[18px] w-[18px]" /></IconBtn>
@@ -219,6 +226,33 @@ export function PageHero({
         </h1>
         {blurb && (
           <p className="mt-6 max-w-xl text-base/relaxed text-background/85">{blurb}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export function PageHeader({
+  kicker,
+  title,
+  italic,
+  blurb,
+}: {
+  kicker: string;
+  title: string;
+  italic?: string;
+  blurb?: string;
+}) {
+  return (
+    <section className="border-b border-border bg-cream/60">
+      <div className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16">
+        <p className="text-[11px] uppercase tracking-[0.32em] text-gold">{kicker}</p>
+        <h1 className="mt-3 max-w-3xl font-display text-4xl leading-[1.05] text-ink md:text-5xl">
+          {title}
+          {italic && <> <span className="italic text-gold">{italic}</span></>}
+        </h1>
+        {blurb && (
+          <p className="mt-4 max-w-2xl text-sm/relaxed text-foreground/75 md:text-base">{blurb}</p>
         )}
       </div>
     </section>

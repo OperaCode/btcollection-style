@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Sparkles, Shirt, Coffee, Gift, Check, ArrowRight } from "lucide-react";
-import { Announcement, Header, Footer, PageHero } from "@/components/site/SiteChrome";
-import heroImg from "@/assets/hero.jpg";
+import { Header, Footer, PageHeader } from "@/components/site/SiteChrome";
 import catMugs from "@/assets/cat-mugs.jpg";
 
 export const Route = createFileRoute("/custom")({
@@ -51,14 +50,12 @@ function CustomPage() {
   const [sent, setSent] = useState(false);
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Announcement />
       <Header />
-      <PageHero
+      <PageHeader
         kicker="Custom Orders"
         title="Design your"
         italic="own story."
         blurb="From bridal parties to ministry retreats, corporate gifting to milestone moments — we’ll help you create pieces that feel made just for them."
-        image={catMugs}
       />
 
       <section className="mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-28">

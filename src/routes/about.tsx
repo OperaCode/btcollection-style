@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, HandHeart, Sparkles, PackageCheck, Truck } from "lucide-react";
-import { Announcement, Header, Footer, PageHero } from "@/components/site/SiteChrome";
+import { Header, Footer, PageHeader } from "@/components/site/SiteChrome";
 import heroImg from "@/assets/hero.jpg";
 import catFaith from "@/assets/cat-faith.jpg";
 import catGifts from "@/assets/cat-gifts.jpg";
@@ -32,14 +32,12 @@ const VALUES = [
 function AboutPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Announcement />
       <Header />
-      <PageHero
+      <PageHeader
         kicker="Our Story"
         title="Inspired by Faith,"
         italic="made with love."
         blurb="A small studio with a big heart — creating heartfelt, faith-rooted pieces for the people you love most."
-        image={heroImg}
       />
 
       <section className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 md:grid-cols-2 md:px-8 md:py-28">
