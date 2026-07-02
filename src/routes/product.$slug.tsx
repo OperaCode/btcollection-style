@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { Heart, Minus, Plus, ShoppingBag, Truck, PackageCheck, Sparkles, Star } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
-import { PRODUCTS, findProduct } from "@/data/products";
+import { PRODUCTS, findProduct, type Product } from "@/data/products";
 import { useCart, formatUSD } from "@/lib/cart";
 
 export const Route = createFileRoute("/product/$slug")({
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
+  const { product } = Route.useLoaderData() as { product: Product };
   const { add } = useCart();
   const [size, setSize] = useState(product.sizes?.[1] ?? product.sizes?.[0]);
   const [qty, setQty] = useState(1);
