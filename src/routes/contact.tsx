@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Mail, MapPin, Clock, Instagram, Facebook, ArrowRight } from "lucide-react";
-import { Announcement, Header, Footer, PageHero } from "@/components/site/SiteChrome";
+import { Header, Footer, PageHeader } from "@/components/site/SiteChrome";
 import heroImg from "@/assets/hero.jpg";
 
 export const Route = createFileRoute("/contact")({
@@ -31,14 +31,12 @@ function ContactPage() {
   const [sent, setSent] = useState(false);
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Announcement />
       <Header />
-      <PageHero
+      <PageHeader
         kicker="Say Hello"
         title="We’d love to"
         italic="hear from you."
         blurb="Whether it’s a custom order, a wholesale inquiry, or simply a hello — our inbox is open."
-        image={heroImg}
       />
 
       <section className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-20 md:grid-cols-[1fr_1.2fr] md:px-8 md:py-28">
