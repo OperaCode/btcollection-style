@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   Heart,
   ArrowRight,
@@ -11,6 +12,8 @@ import {
   Truck,
   PackageCheck,
   HandHeart,
+  Instagram,
+  ChevronDown,
 } from "lucide-react";
 import heroImg from "@/assets/hero.jpg";
 import catFaith from "@/assets/cat-faith.jpg";
@@ -22,6 +25,7 @@ import p2 from "@/assets/p2.jpg";
 import p3 from "@/assets/p3.jpg";
 import p4 from "@/assets/p4.jpg";
 import { Announcement, Header, Footer } from "@/components/site/SiteChrome";
+import { SOCIAL_LINKS } from "@/lib/site-config";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -97,8 +101,11 @@ function Index() {
       <Categories />
       <Services />
       <NewArrivals />
-      <About />
+      {/* <About /> */}
+      <CustomCTA />
       <Testimonials />
+      <FollowAlong />
+      <FAQ />
       <Newsletter />
       <Footer />
     </div>
@@ -109,7 +116,7 @@ function Index() {
 
 function Hero() {
   return (
-    <section className="relative isolate overflow-hidden">
+    <section className="relative isolate overflow-hidden h-screen">
       <img
         src={heroImg}
         alt="Faith-inspired sweatshirt, ceramic mug, open bible and canvas tote arranged on a warm linen surface"
@@ -119,7 +126,7 @@ function Hero() {
       />
       <div className="absolute inset-0 -z-10 bg-gradient-to-r from-ink/75 via-ink/55 to-transparent" />
 
-      <div className="mx-auto max-w-7xl px-4 py-24 md:px-8 md:py-36 lg:py-44">
+      <div className="mx-auto max-w-7xl px-4 py-24 md:px-8 md:py-36 lg:py-28">
         <div className="max-w-xl text-background">
           <p className="mb-5 text-[11px] uppercase tracking-[0.32em] text-gold">
             Faith · Family · Personalization
@@ -127,8 +134,7 @@ function Hero() {
           <h1 className="font-display text-5xl leading-[0.95] md:text-7xl">
             Every Stitch
             <br />
-            Tells a{" "}
-            <span className="italic text-gold-soft">Story</span>
+            Tells a <span className="italic text-gold-soft">Story</span>
           </h1>
           <p className="mt-6 max-w-md text-base/relaxed text-background/85">
             Faith-inspired apparel, personalized mugs, and beautifully curated gift sets —
@@ -159,7 +165,7 @@ function Hero() {
 function Marquee() {
   const items = [...MARQUEE, ...MARQUEE];
   return (
-    <div className="overflow-hidden border-y border-border bg-cream">
+    <div className="overflow-hidden border-y border-border bg-cream pt-6">
       <div className="animate-marquee flex w-max gap-12 py-5 text-[12px] uppercase tracking-[0.28em] text-ink/80">
         {items.map((t, i) => (
           <span key={i} className="flex items-center gap-12">
@@ -256,7 +262,10 @@ function Services() {
 
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-sm border border-white/10 bg-white/10 md:grid-cols-2 lg:grid-cols-4">
           {SERVICES.map(({ icon: Icon, title, body, cta }) => (
-            <div key={title} className="group flex flex-col bg-primary p-8 transition hover:bg-primary/80">
+            <div
+              key={title}
+              className="group flex flex-col bg-primary p-8 transition hover:bg-primary/80"
+            >
               <Icon className="h-7 w-7 text-gold" />
               <h3 className="mt-6 font-display text-2xl text-primary-foreground">{title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-primary-foreground/75">{body}</p>
@@ -313,7 +322,9 @@ function NewArrivals() {
               </button>
             </div>
             <div className="mt-4 flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{p.tag}</span>
+              <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                {p.tag}
+              </span>
               <h3 className="font-display text-lg leading-tight text-ink">{p.name}</h3>
               <div className="mt-1 flex items-center justify-between">
                 <span className="text-sm font-medium text-ink">{p.price}</span>
@@ -329,48 +340,120 @@ function NewArrivals() {
   );
 }
 
-function About() {
+// function About() {
+//   return (
+//     <section id="about" className="bg-cream">
+//       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 md:grid-cols-2 md:px-8 md:py-28">
+//         <div className="relative">
+//           <img
+//             src={catFaith}
+//             alt="Cream Faith sweatshirt folded in warm sunlight"
+//             width={800}
+//             height={1000}
+//             loading="lazy"
+//             className="aspect-[4/5] w-full rounded-sm object-cover"
+//           />
+//           <div className="absolute -bottom-6 -right-6 hidden h-40 w-40 rounded-sm border border-gold bg-background p-6 shadow-sm md:block">
+//             <div className="font-display text-3xl italic text-gold">5★</div>
+//             <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+//               Loved by hundreds of customers
+//             </div>
+//           </div>
+//         </div>
+
+//         <div>
+//           <span className="text-[11px] uppercase tracking-[0.32em] text-gold">Our Story</span>
+//           <h2 className="mt-3 font-display text-4xl md:text-5xl">
+//             Inspired by <span className="italic">faith</span>,<br />
+//             made with <span className="italic">love</span>.
+//           </h2>
+//           <p className="mt-6 text-base leading-relaxed text-foreground/80">
+//             BT Collection LLC began as a labor of love — a small studio creating heartfelt,
+//             faith-rooted pieces for the people we love most. Today, every sweatshirt, mug, and
+//             gift box we ship still passes through caring hands and a prayerful heart.
+//           </p>
+//           <p className="mt-4 text-base leading-relaxed text-foreground/80">
+//             We believe a gift should feel personal — that it should carry meaning long after
+//             the wrapping is gone. That’s why every detail, from our hand-finished embroidery
+//             to our gold-ribboned packaging, is made with intention.
+//           </p>
+
+//           <div className="mt-8 grid grid-cols-3 gap-6 border-t border-border pt-6">
+//             <Stat value="500+" label="Happy Gifts Sent" />
+//             <Stat value="100%" label="Made With Love" />
+//             <Stat value="48h" label="Design Turnaround" />
+//           </div>
+//         </div>
+//       </div>
+//     </section>
+//   );
+// }
+
+function CustomCTA() {
   return (
-    <section id="about" className="bg-cream">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 md:grid-cols-2 md:px-8 md:py-28">
-        <div className="relative">
-          <img
-            src={catFaith}
-            alt="Cream Faith sweatshirt folded in warm sunlight"
-            width={800}
-            height={1000}
-            loading="lazy"
-            className="aspect-[4/5] w-full rounded-sm object-cover"
-          />
-          <div className="absolute -bottom-6 -right-6 hidden h-40 w-40 rounded-sm border border-gold bg-background p-6 shadow-sm md:block">
-            <div className="font-display text-3xl italic text-gold">5★</div>
-            <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Loved by hundreds of customers
-            </div>
+    <section className="relative isolate overflow-hidden border-y border-border bg-background">
+      <div className="absolute inset-x-0 top-0 -z-10 h-24 bg-cream/70" />
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-4 py-16 md:grid-cols-[1fr_1.05fr] md:px-8 md:py-20">
+        <div className="max-w-xl">
+          <span className="text-[11px] uppercase tracking-[0.32em] text-gold">Design Your Own</span>
+          <h2 className="mt-3 font-display text-3xl md:text-4xl">
+            Make it <span className="italic">yours</span>.
+          </h2>
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-foreground/75 md:text-base">
+            Names, scripture, photos, or a message that matters — send us your idea and we’ll turn
+          it into a piece made just for you, with proofs back in as little as 48 hours.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-2">
+            {["Names", "Scripture", "Photos", "Gift Notes"].map((item) => (
+              <span
+                key={item}
+                className="rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-ink"
+              >
+                {item}
+              </span>
+            ))}
           </div>
+          <a
+            href="/custom"
+            className="group mt-8 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-7 py-4 text-[12px] font-medium uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink"
+          >
+            Start a Custom Order
+            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+          </a>
         </div>
 
-        <div>
-          <span className="text-[11px] uppercase tracking-[0.32em] text-gold">Our Story</span>
-          <h2 className="mt-3 font-display text-4xl md:text-5xl">
-            Inspired by <span className="italic">faith</span>,<br />
-            made with <span className="italic">love</span>.
-          </h2>
-          <p className="mt-6 text-base leading-relaxed text-foreground/80">
-            BT Collection LLC began as a labor of love — a small studio creating heartfelt,
-            faith-rooted pieces for the people we love most. Today, every sweatshirt, mug, and
-            gift box we ship still passes through caring hands and a prayerful heart.
-          </p>
-          <p className="mt-4 text-base leading-relaxed text-foreground/80">
-            We believe a gift should feel personal — that it should carry meaning long after
-            the wrapping is gone. That’s why every detail, from our hand-finished embroidery
-            to our gold-ribboned packaging, is made with intention.
-          </p>
-
-          <div className="mt-8 grid grid-cols-3 gap-6 border-t border-border pt-6">
-            <Stat value="500+" label="Happy Gifts Sent" />
-            <Stat value="100%" label="Made With Love" />
-            <Stat value="48h" label="Design Turnaround" />
+        <div className="relative min-h-72 overflow-hidden rounded-sm border border-border bg-cream p-4">
+          <div className="grid h-full grid-cols-[0.9fr_1.1fr] gap-4">
+            <img
+              src={catMugs}
+              alt="Personalized mug gift inspiration"
+              loading="lazy"
+              className="h-72 w-full rounded-sm object-cover"
+            />
+            <div className="grid gap-4">
+              <img
+                src={catGifts}
+                alt="Curated custom gift set"
+                loading="lazy"
+                className="h-32 w-full rounded-sm object-cover"
+              />
+              <img
+                src={p3}
+                alt="Custom tote inspiration"
+                loading="lazy"
+                className="h-36 w-full rounded-sm object-cover"
+              />
+            </div>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 overflow-hidden bg-ink/88 py-3 text-background">
+            <div className="animate-marquee flex w-max gap-8 text-[10px] uppercase tracking-[0.24em]">
+              {["Proofs in 48 hours", "Gift-ready packaging", "Bulk orders welcome", "Made with love", "Custom names & messages", "Proofs in 48 hours", "Gift-ready packaging", "Bulk orders welcome"].map((item, i) => (
+                <span key={i} className="flex items-center gap-8">
+                  <span>{item}</span>
+                  <span className="text-gold">✦</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -382,7 +465,9 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
       <div className="font-display text-3xl text-ink">{value}</div>
-      <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+        {label}
+      </div>
     </div>
   );
 }
@@ -430,7 +515,9 @@ function Testimonials() {
             </div>
             <figcaption className="mt-8 border-t border-border pt-4">
               <div className="font-medium text-ink">{r.name}</div>
-              <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{r.role}</div>
+              <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                {r.role}
+              </div>
             </figcaption>
           </figure>
         ))}
@@ -457,9 +544,110 @@ function Pill({ icon: Icon, label }: { icon: typeof Truck; label: string }) {
   );
 }
 
+const FOLLOW_IMAGES = [p1, catMugs, p3, catGifts, p2, catAccessories];
+
+function FollowAlong() {
+  return (
+    <section className="bg-cream">
+      <div className="mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-24">
+        <div className="mb-10 flex flex-col items-center text-center">
+          <span className="text-[11px] uppercase tracking-[0.32em] text-gold">
+            @BTCollectionLLC
+          </span>
+          <h2 className="mt-3 font-display text-4xl md:text-5xl">Follow the Journey</h2>
+          <p className="mt-4 max-w-lg text-sm text-foreground/75">
+            See our latest designs, behind-the-scenes, and real gifts unboxed by our community.
+          </p>
+          <a
+            href={SOCIAL_LINKS.instagram || "https://instagram.com"}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-5 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-ink hover:text-gold"
+          >
+            <Instagram className="h-4 w-4" /> Open Instagram
+          </a>
+        </div>
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+          {FOLLOW_IMAGES.map((img, i) => (
+            <a
+              key={i}
+              href={SOCIAL_LINKS.instagram || "https://instagram.com"}
+              target="_blank"
+              rel="noreferrer"
+              className="group relative aspect-square overflow-hidden rounded-sm bg-muted"
+            >
+              <img
+                src={img}
+                alt="BT Collection LLC on Instagram"
+                loading="lazy"
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-ink/0 transition group-hover:bg-ink/30">
+                <Instagram className="h-5 w-5 text-background opacity-0 transition group-hover:opacity-100" />
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const FAQS = [
+  {
+    q: "How long does personalization take?",
+    a: "Most custom and personalized pieces are proofed within 48 hours and ship within 3–5 business days after approval.",
+  },
+  {
+    q: "Do you ship across the US?",
+    a: "Yes — we ship nationwide from our studio, with free shipping on orders over $75.",
+  },
+  {
+    q: "Can I return a personalized item?",
+    a: "Personalized and custom items are final sale, but if anything arrives damaged or incorrect, we’ll make it right.",
+  },
+  {
+    q: "Do you offer bulk or ministry/corporate pricing?",
+    a: "Yes — orders of 12+ pieces qualify for bulk pricing. Reach out through our Custom Orders page for a quote.",
+  },
+];
+
+function FAQ() {
+  const [open, setOpen] = useState(0);
+  return (
+    <section className="mx-auto max-w-4xl px-4 py-20 md:px-8 md:py-28">
+      <SectionLabel kicker="Good to Know" title="Frequently Asked Questions" />
+      <div className="divide-y divide-border border-y border-border">
+        {FAQS.map((item, i) => {
+          const isOpen = open === i;
+          return (
+            <div key={item.q}>
+              <button
+                onClick={() => setOpen(isOpen ? -1 : i)}
+                className="flex w-full items-center justify-between gap-4 py-5 text-left"
+              >
+                <span className="font-display text-lg text-ink md:text-xl">{item.q}</span>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-gold transition ${isOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {isOpen && (
+                <p className="pb-5 text-sm leading-relaxed text-foreground/75">{item.a}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function Newsletter() {
   return (
-    <section id="contact" className="relative isolate overflow-hidden bg-primary text-primary-foreground">
+    <section
+      id="contact"
+      className="relative isolate overflow-hidden bg-primary text-primary-foreground"
+    >
       <div className="mx-auto max-w-3xl px-4 py-20 text-center md:py-24">
         <span className="text-[11px] uppercase tracking-[0.32em] text-gold">Stay Connected</span>
         <h2 className="mt-3 font-display text-4xl md:text-5xl">
@@ -498,4 +686,3 @@ function Newsletter() {
     </section>
   );
 }
-

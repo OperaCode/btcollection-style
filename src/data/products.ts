@@ -17,6 +17,11 @@ export type Product = {
   sizes?: string[];
   description: string;
   rating: number;
+  badges?: string[];
+  occasions?: string[];
+  customizable?: boolean;
+  bestSeller?: boolean;
+  giftReady?: boolean;
 };
 
 export const PRODUCTS: Product[] = [
@@ -31,6 +36,11 @@ export const PRODUCTS: Product[] = [
     description:
       "A cozy heavyweight sweatshirt embroidered with our signature ‘Faith Over Fear’ script. Made from a soft cotton-poly blend and finished by hand in our studio.",
     rating: 32,
+    badges: ["Best Seller", "Gift Ready"],
+    occasions: ["Encouragement", "Birthday", "Ministry"],
+    customizable: true,
+    bestSeller: true,
+    giftReady: true,
   },
   {
     slug: "blessed-mom-mug",
@@ -42,6 +52,10 @@ export const PRODUCTS: Product[] = [
     description:
       "A premium 15oz ceramic mug personalized with a delicate gold-foil ‘Blessed Mom’ script. Dishwasher-safe and gift-ready.",
     rating: 47,
+    badges: ["Personalizable", "Gift Ready"],
+    occasions: ["Mother's Day", "Birthday", "Thank You"],
+    customizable: true,
+    giftReady: true,
   },
   {
     slug: "grateful-canvas-tote",
@@ -53,6 +67,9 @@ export const PRODUCTS: Product[] = [
     description:
       "A structured heavyweight canvas tote embroidered with ‘Grateful.’ Roomy enough for your everyday carry, refined enough for weekends away.",
     rating: 19,
+    badges: ["Personalizable"],
+    occasions: ["Thank You", "Everyday", "Teacher Gift"],
+    customizable: true,
   },
   {
     slug: "signature-navy-gift-box",
@@ -64,6 +81,10 @@ export const PRODUCTS: Product[] = [
     description:
       "Our best-selling curated set: an embroidered sweatshirt, signature mug, and a scripture card — presented in our signature navy box with gold ribbon.",
     rating: 12,
+    badges: ["Best Seller", "Gift Ready"],
+    occasions: ["Corporate", "Ministry", "Milestone"],
+    bestSeller: true,
+    giftReady: true,
   },
   {
     slug: "walk-by-faith-hoodie",
@@ -76,6 +97,10 @@ export const PRODUCTS: Product[] = [
     description:
       "An oversized hoodie in warm cream with embroidered ‘Walk by Faith’ detailing. Brushed fleece interior for everyday softness.",
     rating: 24,
+    badges: ["New", "Gift Ready"],
+    occasions: ["Encouragement", "Ministry", "Birthday"],
+    customizable: true,
+    giftReady: true,
   },
   {
     slug: "custom-name-mug",
@@ -87,6 +112,9 @@ export const PRODUCTS: Product[] = [
     description:
       "Personalize with any name in gold foil script. A thoughtful, everyday gift for the coffee lover in your life.",
     rating: 38,
+    badges: ["Personalizable"],
+    occasions: ["Birthday", "Thank You", "Teacher Gift"],
+    customizable: true,
   },
   {
     slug: "embroidered-day-tote",
@@ -98,6 +126,9 @@ export const PRODUCTS: Product[] = [
     description:
       "A refined everyday tote with monogram embroidery of your choice. Sturdy handles, interior pocket.",
     rating: 16,
+    badges: ["Personalizable", "New"],
+    occasions: ["Everyday", "Teacher Gift", "Corporate"],
+    customizable: true,
   },
   {
     slug: "mothers-day-box",
@@ -109,6 +140,10 @@ export const PRODUCTS: Product[] = [
     description:
       "A limited edition set for Mom: personalized mug, silk-touch scarf, hand-poured candle, and a heartfelt scripture card.",
     rating: 21,
+    badges: ["Limited", "Gift Ready"],
+    occasions: ["Mother's Day", "Birthday", "Milestone"],
+    customizable: true,
+    giftReady: true,
   },
 ];
 

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, HandHeart, Sparkles, PackageCheck, Truck } from "lucide-react";
-import { Header, Footer, PageHeader } from "@/components/site/SiteChrome";
+import { Header, Footer, PageBanner } from "@/components/site/SiteChrome";
 import heroImg from "@/assets/hero.jpg";
 import catFaith from "@/assets/cat-faith.jpg";
 import catGifts from "@/assets/cat-gifts.jpg";
@@ -33,11 +33,12 @@ function AboutPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <PageHeader
+      <PageBanner
         kicker="Our Story"
         title="Inspired by Faith,"
         italic="made with love."
-        blurb="A small studio with a big heart — creating heartfelt, faith-rooted pieces for the people you love most."
+        image={catFaith}
+        blurb="A small studio with a big heart, creating heartfelt pieces for the people you love most."
       />
 
       <section className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 md:grid-cols-2 md:px-8 md:py-28">
@@ -53,14 +54,15 @@ function AboutPage() {
           <span className="text-[11px] uppercase tracking-[0.32em] text-gold">How It Started</span>
           <h2 className="mt-3 font-display text-4xl md:text-5xl">A labor of love, stitch by stitch.</h2>
           <p className="mt-6 text-base leading-relaxed text-foreground/80">
-            BT Collection LLC began at a kitchen table — a single embroidery machine, a stack of
-            cream sweatshirts, and a heart full of scripture. What started as personal gifts for
-            family and friends quickly grew into something much bigger: a community of women,
-            mothers, and ministry leaders looking for pieces that felt like them.
+            BT Collection LLC was founded in 2021, during the pandemic, by Rebecca and her three
+            sons. What started as a creative outlet at the kitchen table — a single embroidery
+            machine, a stack of cream sweatshirts, and a heart full of scripture — grew into a
+            family business built on faith, creativity, and perseverance.
           </p>
           <p className="mt-4 text-base leading-relaxed text-foreground/80">
-            Today, we’re still that same small studio — just with more hands, more love, and a
-            growing Breakthrough family across the country.
+            Today, we’re still that same family studio — just with more hands, more love, and a
+            growing Breakthrough family across the country. Every piece is made with care, because
+            we believe a gift should be more than an item — it should tell a story.
           </p>
           <Link
             to="/shop"
