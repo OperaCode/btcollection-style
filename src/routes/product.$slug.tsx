@@ -1,9 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { Heart, Minus, Plus, ShoppingBag, Truck, PackageCheck, Sparkles, Star } from "lucide-react";
+import type { ReactNode } from "react";
+import { ChevronDown, Heart, Minus, Plus, ShoppingBag, Truck, PackageCheck, Sparkles, Star } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { PRODUCTS, findProduct, type Product } from "@/data/products";
 import { useCart, formatUSD } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: ({ params }) => {
@@ -46,9 +48,13 @@ export const Route = createFileRoute("/product/$slug")({
 function ProductPage() {
   const { product } = Route.useLoaderData() as { product: Product };
   const { add } = useCart();
+  const wishlist = useWishlist();
   const [size, setSize] = useState(product.sizes?.[1] ?? product.sizes?.[0]);
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
+  const [personalization, setPersonalization] = useState("");
+  const [giftNote, setGiftNote] = useState("");
+  const [openPanel, setOpenPanel] = useState("details");
 
   const related = PRODUCTS.filter(
     (p) => p.slug !== product.slug && p.category === product.category,
@@ -95,6 +101,18 @@ function ProductPage() {
         <div className="flex flex-col">
           <p className="text-[11px] uppercase tracking-[0.28em] text-gold">{product.category}</p>
           <h1 className="mt-3 font-display text-4xl leading-tight text-ink md:text-5xl">{product.name}</h1>
+          {product.badges && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {product.badges.map((badge) => (
+                <span
+                  key={badge}
+                  className="rounded-full border border-gold/50 bg-gold/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-ink"
+                >
+                  {badge}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="mt-4 flex items-center gap-4">
             <span className="font-display text-2xl text-ink">{formatUSD(product.price)}</span>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -127,6 +145,37 @@ function ProductPage() {
             </div>
           )}
 
+          {product.customizable && (
+            <div className="mt-8 rounded-sm border border-border bg-cream/50 p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-gold">Personalization</div>
+              <div className="mt-4 grid gap-3">
+                <label className="grid gap-2">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Name, phrase, or scripture
+                  </span>
+                  <input
+                    value={personalization}
+                    onChange={(e) => setPersonalization(e.target.value)}
+                    placeholder="Example: Faith Over Fear"
+                    className="h-11 rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-gold"
+                  />
+                </label>
+                <label className="grid gap-2">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Gift note
+                  </span>
+                  <textarea
+                    value={giftNote}
+                    onChange={(e) => setGiftNote(e.target.value)}
+                    rows={3}
+                    placeholder="Optional message for the recipient"
+                    className="rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-gold"
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
           <div className="mt-8">
             <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Quantity</div>
             <div className="mt-3 inline-flex items-center rounded-full border border-border">
@@ -152,7 +201,15 @@ function ProductPage() {
             <button
               onClick={() =>
                 add(
-                  { id: product.slug, name: product.name, price: product.price, img: product.img, variant: size },
+                  {
+                    id: product.slug,
+                    name: product.name,
+                    price: product.price,
+                    img: product.img,
+                    variant: [size, personalization && `Custom: ${personalization}`, giftNote && "Gift note"]
+                      .filter(Boolean)
+                      .join(" / "),
+                  },
                   qty,
                 )
               }
@@ -162,9 +219,10 @@ function ProductPage() {
             </button>
             <button
               aria-label="Wishlist"
+              onClick={() => wishlist.toggle(product.slug)}
               className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-border text-foreground/70 hover:border-gold hover:text-gold"
             >
-              <Heart className="h-5 w-5" />
+              <Heart className={`h-5 w-5 ${wishlist.has(product.slug) ? "fill-gold text-gold" : ""}`} />
             </button>
           </div>
 
@@ -173,6 +231,33 @@ function ProductPage() {
             <li className="flex items-center gap-3"><PackageCheck className="h-4 w-4 text-gold" /> Gift-ready packaging</li>
             <li className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-gold" /> Hand-finished with love</li>
           </ul>
+
+          <div className="mt-8 divide-y divide-border border-y border-border">
+            <ProductPanel
+              id="details"
+              title="Details"
+              open={openPanel === "details"}
+              onOpen={setOpenPanel}
+            >
+              {product.description}
+            </ProductPanel>
+            <ProductPanel
+              id="shipping"
+              title="Shipping & Packaging"
+              open={openPanel === "shipping"}
+              onOpen={setOpenPanel}
+            >
+              Orders ship gift-ready from our studio. Standard US shipping is free on orders over $75.
+            </ProductPanel>
+            <ProductPanel
+              id="care"
+              title="Care & Returns"
+              open={openPanel === "care"}
+              onOpen={setOpenPanel}
+            >
+              Apparel should be washed cold and inside out. Personalized items are final sale unless they arrive damaged.
+            </ProductPanel>
+          </div>
         </div>
       </section>
 
@@ -209,6 +294,33 @@ function ProductPage() {
       )}
 
       <Footer />
+    </div>
+  );
+}
+
+function ProductPanel({
+  id,
+  title,
+  open,
+  onOpen,
+  children,
+}: {
+  id: string;
+  title: string;
+  open: boolean;
+  onOpen: (id: string) => void;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <button
+        onClick={() => onOpen(open ? "" : id)}
+        className="flex w-full items-center justify-between py-4 text-left text-[11px] uppercase tracking-[0.22em] text-ink"
+      >
+        {title}
+        <ChevronDown className={`h-4 w-4 text-gold transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && <p className="pb-5 text-sm leading-relaxed text-foreground/75">{children}</p>}
     </div>
   );
 }

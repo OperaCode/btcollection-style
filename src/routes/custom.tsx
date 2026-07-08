@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Sparkles, Shirt, Coffee, Gift, Check, ArrowRight } from "lucide-react";
-import { Header, Footer, PageHeader } from "@/components/site/SiteChrome";
+import { Header, Footer, PageHero } from "@/components/site/SiteChrome";
 import catMugs from "@/assets/cat-mugs.jpg";
+import { saveCustomRequest } from "@/lib/commerce";
 
 export const Route = createFileRoute("/custom")({
   head: () => ({
@@ -48,53 +49,12 @@ const INCLUDES = [
 
 function CustomPage() {
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <PageHeader
-        kicker="Custom Orders"
-        title="Design your"
-        italic="own story."
-        blurb="From bridal parties to ministry retreats, corporate gifting to milestone moments — we’ll help you create pieces that feel made just for them."
-      />
 
-      <section className="mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-28">
-        <div className="mb-14 flex flex-col items-center text-center">
-          <span className="text-[11px] uppercase tracking-[0.32em] text-gold">What We Customize</span>
-          <h2 className="mt-3 font-display text-4xl md:text-5xl">Designed With You</h2>
-          <span className="mt-5 inline-block h-px w-12 bg-gold" />
-        </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {TYPES.map(({ icon: Icon, title, body }) => (
-            <div key={title} className="rounded-sm border border-border bg-card p-8">
-              <Icon className="h-7 w-7 text-gold" />
-              <h3 className="mt-6 font-display text-2xl text-ink">{title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-foreground/75">{body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="bg-cream">
-        <div className="mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-28">
-          <div className="mb-14 flex flex-col items-center text-center">
-            <span className="text-[11px] uppercase tracking-[0.32em] text-gold">The Process</span>
-            <h2 className="mt-3 font-display text-4xl md:text-5xl">How It Works</h2>
-            <span className="mt-5 inline-block h-px w-12 bg-gold" />
-          </div>
-          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-sm border border-border bg-border md:grid-cols-3">
-            {STEPS.map((s) => (
-              <div key={s.n} className="bg-background p-10">
-                <div className="font-display text-5xl italic text-gold">{s.n}</div>
-                <h3 className="mt-6 font-display text-2xl text-ink">{s.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-foreground/75">{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-20 md:grid-cols-2 md:px-8 md:py-28">
+      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 pt-8 pb-20 md:grid-cols-2 md:px-8 md:pt-10 md:pb-24">
         <div>
           <span className="text-[11px] uppercase tracking-[0.32em] text-gold">Every Custom Includes</span>
           <h2 className="mt-3 font-display text-4xl md:text-5xl">White-glove from start to finish.</h2>
@@ -111,7 +71,14 @@ function CustomPage() {
         </div>
 
         <form
-          onSubmit={(e) => { e.preventDefault(); setSent(true); }}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setSending(true);
+            const form = new FormData(e.currentTarget);
+            await saveCustomRequest(Object.fromEntries(form.entries()));
+            setSending(false);
+            setSent(true);
+          }}
           className="rounded-sm border border-border bg-card p-8 md:p-10"
         >
           <h3 className="font-display text-2xl text-ink">Start Your Custom Order</h3>
@@ -125,10 +92,10 @@ function CustomPage() {
             </div>
           ) : (
             <div className="mt-6 grid grid-cols-1 gap-4">
-              <Field label="Your name"><input required className={inputCls} /></Field>
-              <Field label="Email"><input required type="email" className={inputCls} /></Field>
+              <Field label="Your name"><input name="name" required className={inputCls} /></Field>
+              <Field label="Email"><input name="email" required type="email" className={inputCls} /></Field>
               <Field label="Occasion">
-                <select className={inputCls}>
+                <select name="occasion" className={inputCls}>
                   <option>Wedding / Bridal</option>
                   <option>Ministry / Church</option>
                   <option>Corporate gifting</option>
@@ -136,15 +103,16 @@ function CustomPage() {
                   <option>Other</option>
                 </select>
               </Field>
-              <Field label="Quantity"><input type="number" min={1} defaultValue={12} className={inputCls} /></Field>
+              <Field label="Quantity"><input name="quantity" type="number" min={1} defaultValue={12} className={inputCls} /></Field>
               <Field label="Tell us about your idea">
-                <textarea rows={4} className={inputCls} placeholder="Colors, scripture, names, deadline…" />
+                <textarea name="idea" rows={4} className={inputCls} placeholder="Colors, scripture, names, deadline..." />
               </Field>
               <button
                 type="submit"
+                disabled={sending}
                 className="mt-2 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] font-medium uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink"
               >
-                Submit Request <ArrowRight className="h-4 w-4" />
+                {sending ? "Submitting..." : "Submit Request"} <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           )}

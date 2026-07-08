@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Check, Lock, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart, formatUSD } from "@/lib/cart";
+import { createOrder } from "@/lib/commerce";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -21,6 +22,8 @@ function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const [step, setStep] = useState<Step>(1);
   const [orderId, setOrderId] = useState("");
+  const [orderOffline, setOrderOffline] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [shipping, setShipping] = useState({ name: "", email: "", address: "", city: "", zip: "", state: "" });
 
   const shippingCost = subtotal > 75 || subtotal === 0 ? 0 : 8;
@@ -66,15 +69,27 @@ function CheckoutPage() {
             {step === 2 && (
               <StepPayment
                 onBack={() => setStep(1)}
-                onPay={() => {
-                  setOrderId(`BTC-${Math.floor(100000 + Math.random() * 900000)}`);
+                submitting={submitting}
+                onPay={async () => {
+                  setSubmitting(true);
+                  const order = await createOrder({
+                    email: shipping.email,
+                    shippingAddress: shipping,
+                    items,
+                    subtotal,
+                    shipping: shippingCost,
+                    total,
+                  });
+                  setOrderId(order.id);
+                  setOrderOffline(order.offline);
                   clear();
                   setStep(3);
+                  setSubmitting(false);
                 }}
                 total={total}
               />
             )}
-            {step === 3 && <StepConfirmation orderId={orderId} email={shipping.email} />}
+            {step === 3 && <StepConfirmation orderId={orderId} email={shipping.email} offline={orderOffline} />}
           </div>
 
           {step !== 3 && (
@@ -176,7 +191,17 @@ function StepShipping({
   );
 }
 
-function StepPayment({ onBack, onPay, total }: { onBack: () => void; onPay: () => void; total: number }) {
+function StepPayment({
+  onBack,
+  onPay,
+  total,
+  submitting,
+}: {
+  onBack: () => void;
+  onPay: () => void;
+  total: number;
+  submitting: boolean;
+}) {
   const [card, setCard] = useState({ number: "", exp: "", cvc: "" });
   return (
     <form
@@ -204,6 +229,17 @@ function StepPayment({ onBack, onPay, total }: { onBack: () => void; onPay: () =
         </div>
       </div>
 
+      <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border pt-5">
+        {["Visa", "Mastercard", "Amex", "Apple Pay", "Google Pay", "Shop Pay"].map((method) => (
+          <span
+            key={method}
+            className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+          >
+            {method}
+          </span>
+        ))}
+      </div>
+
       <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
@@ -214,16 +250,17 @@ function StepPayment({ onBack, onPay, total }: { onBack: () => void; onPay: () =
         </button>
         <button
           type="submit"
+          disabled={submitting}
           className="inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
         >
-          Pay {formatUSD(total)} <ArrowRight className="h-4 w-4" />
+          {submitting ? "Placing Order..." : `Pay ${formatUSD(total)}`} <ArrowRight className="h-4 w-4" />
         </button>
       </div>
     </form>
   );
 }
 
-function StepConfirmation({ orderId, email }: { orderId: string; email: string }) {
+function StepConfirmation({ orderId, email, offline }: { orderId: string; email: string; offline: boolean }) {
   return (
     <div className="rounded-sm border border-border bg-card p-10 text-center">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-gold/15 text-gold">
@@ -236,6 +273,11 @@ function StepConfirmation({ orderId, email }: { orderId: string; email: string }
       {email && (
         <p className="mt-1 text-sm text-foreground/75">
           A receipt has been sent to <span className="text-ink">{email}</span>.
+        </p>
+      )}
+      {offline && (
+        <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-muted-foreground">
+          The order was saved locally because the storefront could not reach Supabase. It will need to be reconciled before fulfillment.
         </p>
       )}
       <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">

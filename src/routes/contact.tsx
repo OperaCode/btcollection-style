@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, MapPin, Clock, Instagram, Facebook, ArrowRight } from "lucide-react";
-import { Header, Footer, PageHeader } from "@/components/site/SiteChrome";
+import { Mail, MapPin, Clock, Instagram, Facebook, MessageCircle, ArrowRight } from "lucide-react";
+import { Header, Footer, PageBanner } from "@/components/site/SiteChrome";
 import heroImg from "@/assets/hero.jpg";
+import { saveContactMessage } from "@/lib/commerce";
+import { SOCIAL_LINKS, WHATSAPP_URL, CONTACT_EMAIL } from "@/lib/site-config";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -22,20 +24,22 @@ export const Route = createFileRoute("/contact")({
 });
 
 const INFO = [
-  { icon: Mail, label: "Email", value: "hello@btcollectionllc.com" },
+  { icon: Mail, label: "Email", value: CONTACT_EMAIL },
   { icon: Clock, label: "Studio Hours", value: "Mon – Fri · 9am – 5pm EST" },
   { icon: MapPin, label: "Studio", value: "Made with love in the USA" },
 ];
 
 function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <PageHeader
+      <PageBanner
         kicker="Say Hello"
         title="We’d love to"
         italic="hear from you."
+        image={heroImg}
         blurb="Whether it’s a custom order, a wholesale inquiry, or simply a hello — our inbox is open."
       />
 
@@ -63,17 +67,47 @@ function ContactPage() {
           </ul>
 
           <div className="mt-10 flex gap-2">
-            <a href="#" aria-label="Instagram" className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold">
+            {WHATSAPP_URL && (
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="WhatsApp"
+                className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </a>
+            )}
+            <a
+              href={SOCIAL_LINKS.instagram || "#"}
+              target={SOCIAL_LINKS.instagram ? "_blank" : undefined}
+              rel={SOCIAL_LINKS.instagram ? "noreferrer" : undefined}
+              aria-label="Instagram"
+              className={`grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold ${!SOCIAL_LINKS.instagram ? "pointer-events-none opacity-40" : ""}`}
+            >
               <Instagram className="h-4 w-4" />
             </a>
-            <a href="#" aria-label="Facebook" className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold">
+            <a
+              href={SOCIAL_LINKS.facebook || "#"}
+              target={SOCIAL_LINKS.facebook ? "_blank" : undefined}
+              rel={SOCIAL_LINKS.facebook ? "noreferrer" : undefined}
+              aria-label="Facebook"
+              className={`grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold ${!SOCIAL_LINKS.facebook ? "pointer-events-none opacity-40" : ""}`}
+            >
               <Facebook className="h-4 w-4" />
             </a>
           </div>
         </div>
 
         <form
-          onSubmit={(e) => { e.preventDefault(); setSent(true); }}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setSending(true);
+            const form = new FormData(e.currentTarget);
+            await saveContactMessage(Object.fromEntries(form.entries()));
+            setSending(false);
+            setSent(true);
+          }}
           className="rounded-sm border border-border bg-card p-8 md:p-10"
         >
           {sent ? (
@@ -91,13 +125,13 @@ function ContactPage() {
               <h3 className="font-display text-2xl text-ink">Send us a note</h3>
               <p className="mt-2 text-sm text-muted-foreground">All fields required.</p>
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="First name"><input required className={inputCls} /></Field>
-                <Field label="Last name"><input required className={inputCls} /></Field>
+                <Field label="First name"><input name="firstName" required className={inputCls} /></Field>
+                <Field label="Last name"><input name="lastName" required className={inputCls} /></Field>
               </div>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Email"><input required type="email" className={inputCls} /></Field>
+                <Field label="Email"><input name="email" required type="email" className={inputCls} /></Field>
                 <Field label="Subject">
-                  <select className={inputCls}>
+                  <select name="subject" className={inputCls}>
                     <option>General question</option>
                     <option>Custom order</option>
                     <option>Wholesale / Bulk</option>
@@ -107,14 +141,15 @@ function ContactPage() {
               </div>
               <div className="mt-4">
                 <Field label="Message">
-                  <textarea required rows={5} className={inputCls} />
+                  <textarea name="message" required rows={5} className={inputCls} />
                 </Field>
               </div>
               <button
                 type="submit"
+                disabled={sending}
                 className="mt-6 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] font-medium uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink"
               >
-                Send Message <ArrowRight className="h-4 w-4" />
+                {sending ? "Sending..." : "Send Message"} <ArrowRight className="h-4 w-4" />
               </button>
             </>
           )}
