@@ -1,7 +1,17 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { ChevronDown, Heart, Minus, Plus, ShoppingBag, Truck, PackageCheck, Sparkles, Star } from "lucide-react";
+import {
+  ChevronDown,
+  Heart,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Truck,
+  PackageCheck,
+  Sparkles,
+  Star,
+} from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { PRODUCTS, findProduct, type Product } from "@/data/products";
 import { useCart, formatUSD } from "@/lib/cart";
@@ -16,7 +26,7 @@ export const Route = createFileRoute("/product/$slug")({
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
-          { title: `${loaderData.product.name} — BT Collection LLC` },
+          { title: `${loaderData.product.name} — Breakthrough Collection LLC` },
           { name: "description", content: loaderData.product.description },
           { property: "og:title", content: loaderData.product.name },
           { property: "og:description", content: loaderData.product.description },
@@ -66,9 +76,13 @@ function ProductPage() {
 
       <div className="border-b border-border">
         <div className="mx-auto max-w-7xl px-4 py-4 text-[11px] uppercase tracking-[0.22em] text-muted-foreground md:px-8">
-          <Link to="/" className="hover:text-gold">Home</Link>
+          <Link to="/" className="hover:text-gold">
+            Home
+          </Link>
           <span className="mx-2">/</span>
-          <Link to="/shop" className="hover:text-gold">Shop</Link>
+          <Link to="/shop" className="hover:text-gold">
+            Shop
+          </Link>
           <span className="mx-2">/</span>
           <span className="text-ink">{product.name}</span>
         </div>
@@ -100,7 +114,9 @@ function ProductPage() {
 
         <div className="flex flex-col">
           <p className="text-[11px] uppercase tracking-[0.28em] text-gold">{product.category}</p>
-          <h1 className="mt-3 font-display text-4xl leading-tight text-ink md:text-5xl">{product.name}</h1>
+          <h1 className="mt-3 font-display text-4xl leading-tight text-ink md:text-5xl">
+            {product.name}
+          </h1>
           {product.badges && (
             <div className="mt-4 flex flex-wrap gap-2">
               {product.badges.map((badge) => (
@@ -147,7 +163,9 @@ function ProductPage() {
 
           {product.customizable && (
             <div className="mt-8 rounded-sm border border-border bg-cream/50 p-5">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-gold">Personalization</div>
+              <div className="text-[11px] uppercase tracking-[0.22em] text-gold">
+                Personalization
+              </div>
               <div className="mt-4 grid gap-3">
                 <label className="grid gap-2">
                   <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -177,7 +195,9 @@ function ProductPage() {
           )}
 
           <div className="mt-8">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Quantity</div>
+            <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+              Quantity
+            </div>
             <div className="mt-3 inline-flex items-center rounded-full border border-border">
               <button
                 aria-label="Decrease"
@@ -206,7 +226,11 @@ function ProductPage() {
                     name: product.name,
                     price: product.price,
                     img: product.img,
-                    variant: [size, personalization && `Custom: ${personalization}`, giftNote && "Gift note"]
+                    variant: [
+                      size,
+                      personalization && `Custom: ${personalization}`,
+                      giftNote && "Gift note",
+                    ]
                       .filter(Boolean)
                       .join(" / "),
                   },
@@ -222,14 +246,22 @@ function ProductPage() {
               onClick={() => wishlist.toggle(product.slug)}
               className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-border text-foreground/70 hover:border-gold hover:text-gold"
             >
-              <Heart className={`h-5 w-5 ${wishlist.has(product.slug) ? "fill-gold text-gold" : ""}`} />
+              <Heart
+                className={`h-5 w-5 ${wishlist.has(product.slug) ? "fill-gold text-gold" : ""}`}
+              />
             </button>
           </div>
 
           <ul className="mt-10 grid grid-cols-1 gap-4 border-t border-border pt-8 text-sm text-foreground/75 sm:grid-cols-3">
-            <li className="flex items-center gap-3"><Truck className="h-4 w-4 text-gold" /> Free US shipping $75+</li>
-            <li className="flex items-center gap-3"><PackageCheck className="h-4 w-4 text-gold" /> Gift-ready packaging</li>
-            <li className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-gold" /> Hand-finished with love</li>
+            <li className="flex items-center gap-3">
+              <Truck className="h-4 w-4 text-gold" /> Free US shipping $75+
+            </li>
+            <li className="flex items-center gap-3">
+              <PackageCheck className="h-4 w-4 text-gold" /> Gift-ready packaging
+            </li>
+            <li className="flex items-center gap-3">
+              <Sparkles className="h-4 w-4 text-gold" /> Hand-finished with love
+            </li>
           </ul>
 
           <div className="mt-8 divide-y divide-border border-y border-border">
@@ -247,7 +279,8 @@ function ProductPage() {
               open={openPanel === "shipping"}
               onOpen={setOpenPanel}
             >
-              Orders ship gift-ready from our studio. Standard US shipping is free on orders over $75.
+              Orders ship gift-ready from our studio. Standard US shipping is free on orders over
+              $75.
             </ProductPanel>
             <ProductPanel
               id="care"
@@ -255,7 +288,8 @@ function ProductPage() {
               open={openPanel === "care"}
               onOpen={setOpenPanel}
             >
-              Apparel should be washed cold and inside out. Personalized items are final sale unless they arrive damaged.
+              Apparel should be washed cold and inside out. Personalized items are final sale unless
+              they arrive damaged.
             </ProductPanel>
           </div>
         </div>
@@ -266,25 +300,33 @@ function ProductPage() {
           <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
             <div className="mb-10 flex items-end justify-between">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.28em] text-gold">You May Also Love</p>
-                <h2 className="mt-2 font-display text-3xl text-ink md:text-4xl">Pair it beautifully</h2>
+                <p className="text-[11px] uppercase tracking-[0.28em] text-gold">
+                  You May Also Love
+                </p>
+                <h2 className="mt-2 font-display text-3xl text-ink md:text-4xl">
+                  Pair it beautifully
+                </h2>
               </div>
-              <Link to="/shop" className="hidden text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-gold sm:block">
+              <Link
+                to="/shop"
+                className="hidden text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-gold sm:block"
+              >
                 View All
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
               {related.map((p) => (
-                <Link
-                  key={p.slug}
-                  to="/product/$slug"
-                  params={{ slug: p.slug }}
-                  className="group"
-                >
+                <Link key={p.slug} to="/product/$slug" params={{ slug: p.slug }} className="group">
                   <div className="aspect-[4/5] overflow-hidden rounded-sm bg-muted">
-                    <img src={p.img} alt={p.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+                    <img
+                      src={p.img}
+                      alt={p.name}
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
+                    />
                   </div>
-                  <h3 className="mt-3 font-display text-lg text-ink group-hover:text-gold">{p.name}</h3>
+                  <h3 className="mt-3 font-display text-lg text-ink group-hover:text-gold">
+                    {p.name}
+                  </h3>
                   <p className="mt-1 text-sm text-ink">{formatUSD(p.price)}</p>
                 </Link>
               ))}

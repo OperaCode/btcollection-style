@@ -9,12 +9,12 @@ export const Route = createFileRoute("/admin/_layout")({
 
 const NAV = [
   { label: "Dashboard", to: "/admin" as const, icon: LayoutDashboard },
-  { label: "Products", to: "/admin/products" as const, icon: Package },
   { label: "Orders", to: "/admin/orders" as const, icon: ShoppingBag },
+  { label: "Products", to: "/admin/products" as const, icon: Package },
 ];
 
 function AdminProtectedLayout() {
-  const { loading, user, isAdmin, signOut } = useAdminAuth();
+  const { loading, user, isAdmin, authError, signOut } = useAdminAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -42,6 +42,7 @@ function AdminProtectedLayout() {
           <p className="mt-2 text-sm text-muted-foreground">
             {user.email} does not have admin access to this store.
           </p>
+          {authError && <p className="mt-3 max-w-md text-sm text-destructive">{authError}</p>}
           <button
             onClick={() => signOut()}
             className="mt-6 inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-[11px] uppercase tracking-[0.22em] text-foreground/75 hover:border-gold hover:text-gold"

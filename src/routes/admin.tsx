@@ -4,7 +4,7 @@ import { AdminAuthProvider } from "@/lib/admin-auth";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin — BT Collection LLC" },
+      { title: "Admin — Breakthrough Collection LLC" },
       { name: "robots", content: "noindex" },
     ],
   }),

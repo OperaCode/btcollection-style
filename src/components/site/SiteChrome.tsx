@@ -15,6 +15,7 @@ import { useWishlist } from "@/lib/wishlist";
 import { PRODUCTS } from "@/data/products";
 import { formatUSD } from "@/lib/cart";
 import { SOCIAL_LINKS, WHATSAPP_URL } from "@/lib/site-config";
+import logoMark from "@/assets/logo-mark.png";
 
 export const NAV = [
   { label: "Home", to: "/" as const },
@@ -28,8 +29,7 @@ export function Announcement() {
   return (
     <div className="bg-primary text-primary-foreground text-[12px] tracking-[0.18em] uppercase">
       <div className="mx-auto max-w-7xl px-4 py-2.5 text-center">
-        New Arrivals Just Landed · Use code{" "}
-        <span className="text-gold font-medium">BTC15</span> for 15% off your first order
+        Now Booking Custom Embroidery &amp; Engraving Gifts · Ships Nationwide
       </div>
     </div>
   );
@@ -37,8 +37,8 @@ export function Announcement() {
 
 function Monogram() {
   return (
-    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-gold/60 bg-primary text-primary-foreground">
-      <span className="font-display text-base italic">BT</span>
+    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-gold/60 bg-white">
+      <img src={logoMark} alt="Breakthrough Collection LLC" className="h-8 w-8 object-contain" />
     </div>
   );
 }
@@ -98,11 +98,15 @@ export function Header() {
     <>
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
         <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-4 md:px-8">
-          <Link to="/" className="flex min-w-0 items-center gap-3" onClick={() => setMobileOpen(false)}>
+          <Link
+            to="/"
+            className="flex min-w-0 items-center gap-3"
+            onClick={() => setMobileOpen(false)}
+          >
             <Monogram />
             <div className="min-w-0">
               <div className="font-display text-lg leading-none tracking-wide text-ink md:text-xl">
-                BT Collection <span className="italic text-gold">LLC</span>
+                Breakthrough Collection <span className="italic text-gold">LLC</span>
               </div>
               <div className="mt-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
                 Every Stitch Tells a Story
@@ -309,9 +313,13 @@ function FooterCol({ title, items }: { title: string; items: { label: string; to
         {items.map((l) => (
           <li key={l.label}>
             {l.to ? (
-              <Link to={l.to} className="transition hover:text-gold">{l.label}</Link>
+              <Link to={l.to} className="transition hover:text-gold">
+                {l.label}
+              </Link>
             ) : (
-              <a href="#" className="transition hover:text-gold">{l.label}</a>
+              <a href="#" className="transition hover:text-gold">
+                {l.label}
+              </a>
             )}
           </li>
         ))}
@@ -326,19 +334,25 @@ export function Footer() {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-16 md:grid-cols-5 md:px-8">
         <div className="md:col-span-2">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-full border border-gold/60 bg-background/5 font-display italic text-gold">
-              BT
+            <div className="grid h-11 w-11 place-items-center rounded-full border border-gold/60 bg-white">
+              <img
+                src={logoMark}
+                alt="Breakthrough Collection LLC"
+                className="h-8 w-8 object-contain"
+              />
             </div>
             <div>
-              <div className="font-display text-xl">BT Collection <span className="italic text-gold">LLC</span></div>
+              <div className="font-display text-xl">
+                Breakthrough Collection <span className="italic text-gold">LLC</span>
+              </div>
               <div className="text-[10px] uppercase tracking-[0.25em] text-background/60">
                 Every Stitch Tells a Story
               </div>
             </div>
           </div>
           <p className="mt-5 max-w-sm text-sm leading-relaxed text-background/70">
-            Faith-inspired, personalized apparel, mugs, accessories, and curated gift sets —
-            crafted with care in the United States.
+            Faith-inspired, personalized apparel, mugs, accessories, and curated gift sets — crafted
+            with care in the United States.
           </p>
           <div className="mt-6 flex gap-2">
             <Social icon={Instagram} href={SOCIAL_LINKS.instagram} label="Instagram" />
@@ -370,14 +384,16 @@ export function Footer() {
           items={[
             { label: "Privacy Policy", to: "/privacy" },
             { label: "Shipping Policy", to: "/shipping" },
-            { label: "Returns & Refunds", to: "/returns" },
+            // { label: "Returns & Refunds", to: "/returns" },
             { label: "Terms of Service", to: "/terms" },
           ]}
         />
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-[11px] uppercase tracking-[0.22em] text-background/55 md:flex-row md:px-8">
-          <span>© {new Date().getFullYear()} BT Collection LLC. All rights reserved.</span>
+          <span>
+            © {new Date().getFullYear()} Breakthrough Collection LLC. All rights reserved.
+          </span>
           <span>Crafted with love · Made for the journey</span>
         </div>
       </div>
@@ -400,21 +416,20 @@ export function PageHero({
 }) {
   return (
     <section className="relative isolate overflow-hidden">
-      <img
-        src={image}
-        alt=""
-        className="absolute inset-0 -z-10 h-full w-full object-cover"
-      />
+      <img src={image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
       <div className="absolute inset-0 -z-10 bg-gradient-to-r from-ink/85 via-ink/65 to-ink/40" />
       <div className="mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-28">
         <p className="text-[11px] uppercase tracking-[0.32em] text-gold">{kicker}</p>
         <h1 className="mt-4 max-w-3xl font-display text-5xl leading-[1] text-background md:text-7xl">
           {title}
-          {italic && <> <span className="italic text-gold-soft">{italic}</span></>}
+          {italic && (
+            <>
+              {" "}
+              <span className="italic text-gold-soft">{italic}</span>
+            </>
+          )}
         </h1>
-        {blurb && (
-          <p className="mt-6 max-w-xl text-base/relaxed text-background/85">{blurb}</p>
-        )}
+        {blurb && <p className="mt-6 max-w-xl text-base/relaxed text-background/85">{blurb}</p>}
       </div>
     </section>
   );
@@ -426,18 +441,25 @@ export function PageBanner({
   italic,
   blurb,
   image,
+  imagePosition = "center",
 }: {
   kicker: string;
   title: string;
   italic?: string;
   blurb?: string;
   image?: string;
+  imagePosition?: string;
 }) {
   return (
     <section className="relative isolate overflow-hidden border-b border-border bg-cream/70">
       {image && (
         <>
-          <img src={image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+          <img
+            src={image}
+            alt=""
+            className="absolute inset-0 -z-10 h-full w-full object-cover"
+            style={{ objectPosition: imagePosition }}
+          />
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-ink/82 via-ink/66 to-ink/35" />
         </>
       )}
@@ -445,7 +467,9 @@ export function PageBanner({
         <div className="absolute inset-x-0 bottom-0 -z-10 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
       )}
       <div className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-14">
-        <p className={`text-[11px] uppercase tracking-[0.32em] ${image ? "text-gold" : "text-gold"}`}>
+        <p
+          className={`text-[11px] uppercase tracking-[0.32em] ${image ? "text-gold" : "text-gold"}`}
+        >
           {kicker}
         </p>
         <h1
@@ -492,7 +516,12 @@ export function PageHeader({
         <p className="text-[11px] uppercase tracking-[0.32em] text-gold">{kicker}</p>
         <h1 className="mt-3 max-w-3xl font-display text-4xl leading-[1.05] text-ink md:text-5xl">
           {title}
-          {italic && <> <span className="italic text-gold">{italic}</span></>}
+          {italic && (
+            <>
+              {" "}
+              <span className="italic text-gold">{italic}</span>
+            </>
+          )}
         </h1>
         {blurb && (
           <p className="mt-4 max-w-2xl text-sm/relaxed text-foreground/75 md:text-base">{blurb}</p>
