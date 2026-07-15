@@ -5,7 +5,7 @@ export type AdminProduct = Tables<"products">;
 export type AdminOrder = Tables<"orders">;
 export type AdminOrderItem = Tables<"order_items">;
 
-export const PRODUCT_CATEGORIES = ["Faith Apparel", "Mugs", "Accessories", "Gift Sets"] as const;
+export const PRODUCT_CATEGORIES = ["Faith Apparel", "Mugs", "Tumblers", "Accessories", "Gift Sets"] as const;
 
 export async function listProducts() {
   const { data, error } = await supabase

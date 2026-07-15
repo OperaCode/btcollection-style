@@ -30,13 +30,13 @@ import { SOCIAL_LINKS } from "@/lib/site-config";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BT Collection LLC — Faith-Inspired Personalized Gifts" },
+      { title: "Breakthrough Collection LLC — Faith-Inspired Personalized Gifts" },
       {
         name: "description",
         content:
           "Faith-inspired, personalized apparel, mugs, accessories, and curated gift sets. Every stitch tells a story — thoughtfully made with love.",
       },
-      { property: "og:title", content: "BT Collection LLC — Every Stitch Tells a Story" },
+      { property: "og:title", content: "Breakthrough Collection LLC — Every Stitch Tells a Story" },
       {
         property: "og:description",
         content: "Faith-inspired personalized apparel and curated gift sets.",
@@ -138,7 +138,7 @@ function Hero() {
           </h1>
           <p className="mt-6 max-w-md text-base/relaxed text-background/85">
             Faith-inspired apparel, personalized mugs, and beautifully curated gift sets —
-            thoughtfully made with love by BT Collection LLC.
+            thoughtfully made with love by Breakthrough Collection LLC.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <a
@@ -368,7 +368,7 @@ function NewArrivals() {
 //             made with <span className="italic">love</span>.
 //           </h2>
 //           <p className="mt-6 text-base leading-relaxed text-foreground/80">
-//             BT Collection LLC began as a labor of love — a small studio creating heartfelt,
+//             Breakthrough Collection LLC began as a labor of love — a small studio creating heartfelt,
 //             faith-rooted pieces for the people we love most. Today, every sweatshirt, mug, and
 //             gift box we ship still passes through caring hands and a prayerful heart.
 //           </p>
@@ -401,7 +401,7 @@ function CustomCTA() {
           </h2>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-foreground/75 md:text-base">
             Names, scripture, photos, or a message that matters — send us your idea and we’ll turn
-          it into a piece made just for you, with proofs back in as little as 48 hours.
+            it into a piece made just for you, with proofs back in as little as 48 hours.
           </p>
           <div className="mt-7 flex flex-wrap gap-2">
             {["Names", "Scripture", "Photos", "Gift Notes"].map((item) => (
@@ -447,7 +447,17 @@ function CustomCTA() {
           </div>
           <div className="absolute inset-x-0 bottom-0 overflow-hidden bg-ink/88 py-3 text-background">
             <div className="animate-marquee flex w-max gap-8 text-[10px] uppercase tracking-[0.24em]">
-              {["Proofs in 48 hours", "Gift-ready packaging", "Bulk orders welcome", "Made with love", "Custom names & messages", "Proofs in 48 hours", "Gift-ready packaging", "Bulk orders welcome"].map((item, i) => (
+              {[
+                "Embroidery Gift Sets",
+                "Engravery Gift Sets",
+                "Prints on Mugs and Tumblers",
+                "Leather Cushion",
+                "Personalised Pillow",
+                "Name on Items",
+                "Gift-ready packaging",
+                "Bulk orders welcome",
+                "Custom names & messages",
+              ].map((item, i) => (
                 <span key={i} className="flex items-center gap-8">
                   <span>{item}</span>
                   <span className="text-gold">✦</span>
@@ -487,7 +497,7 @@ const REVIEWS = [
   },
   {
     quote:
-      "BT Collection’s gift sets are my go-to for client gifting. They feel high-end without being cold.",
+      "Breakthrough Collection’s gift sets are my go-to for client gifting. They feel high-end without being cold.",
     name: "Daniella O.",
     role: "Corporate gifting",
   },
@@ -578,7 +588,7 @@ function FollowAlong() {
             >
               <img
                 src={img}
-                alt="BT Collection LLC on Instagram"
+                alt="Breakthrough Collection LLC on Instagram"
                 loading="lazy"
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
               />

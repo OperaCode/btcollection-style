@@ -9,13 +9,13 @@ import { SOCIAL_LINKS, WHATSAPP_URL, CONTACT_EMAIL } from "@/lib/site-config";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact — BT Collection LLC" },
+      { title: "Contact — Breakthrough Collection LLC" },
       {
         name: "description",
         content:
-          "Get in touch with BT Collection LLC for custom orders, wholesale, ministry gifting, and care questions.",
+          "Get in touch with Breakthrough Collection LLC for custom orders, wholesale, ministry gifting, and care questions.",
       },
-      { property: "og:title", content: "Contact — BT Collection LLC" },
+      { property: "og:title", content: "Contact — Breakthrough Collection LLC" },
       { property: "og:description", content: "We’d love to hear from you." },
       { property: "og:image", content: heroImg },
     ],
@@ -46,10 +46,12 @@ function ContactPage() {
       <section className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-20 md:grid-cols-[1fr_1.2fr] md:px-8 md:py-28">
         <div>
           <span className="text-[11px] uppercase tracking-[0.32em] text-gold">Get in Touch</span>
-          <h2 className="mt-3 font-display text-4xl md:text-5xl">Let’s create something beautiful.</h2>
+          <h2 className="mt-3 font-display text-4xl md:text-5xl">
+            Let’s create something beautiful.
+          </h2>
           <p className="mt-6 text-base leading-relaxed text-foreground/80">
-            For custom orders, ministry & corporate gifting, or wholesale, please use the form
-            and we’ll respond within one business day.
+            For custom orders, ministry & corporate gifting, or wholesale, please use the form and
+            we’ll respond within one business day.
           </p>
 
           <ul className="mt-10 space-y-6">
@@ -59,7 +61,9 @@ function ContactPage() {
                   <Icon className="h-4 w-4" />
                 </span>
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{label}</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                    {label}
+                  </div>
                   <div className="mt-1 text-base text-ink">{value}</div>
                 </div>
               </li>
@@ -125,11 +129,17 @@ function ContactPage() {
               <h3 className="font-display text-2xl text-ink">Send us a note</h3>
               <p className="mt-2 text-sm text-muted-foreground">All fields required.</p>
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="First name"><input name="firstName" required className={inputCls} /></Field>
-                <Field label="Last name"><input name="lastName" required className={inputCls} /></Field>
+                <Field label="First name">
+                  <input name="firstName" required className={inputCls} />
+                </Field>
+                <Field label="Last name">
+                  <input name="lastName" required className={inputCls} />
+                </Field>
               </div>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Email"><input name="email" required type="email" className={inputCls} /></Field>
+                <Field label="Email">
+                  <input name="email" required type="email" className={inputCls} />
+                </Field>
                 <Field label="Subject">
                   <select name="subject" className={inputCls}>
                     <option>General question</option>

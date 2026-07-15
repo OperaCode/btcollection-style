@@ -8,7 +8,7 @@ import { createOrder } from "@/lib/commerce";
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
-      { title: "Checkout — BT Collection LLC" },
+      { title: "Checkout — Breakthrough Collection LLC" },
       { name: "description", content: "Secure checkout for your order." },
       { name: "robots", content: "noindex" },
     ],
@@ -24,7 +24,14 @@ function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [orderOffline, setOrderOffline] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [shipping, setShipping] = useState({ name: "", email: "", address: "", city: "", zip: "", state: "" });
+  const [shipping, setShipping] = useState({
+    name: "",
+    email: "",
+    address: "",
+    city: "",
+    zip: "",
+    state: "",
+  });
 
   const shippingCost = subtotal > 75 || subtotal === 0 ? 0 : 8;
   const total = subtotal + shippingCost;
@@ -35,8 +42,13 @@ function CheckoutPage() {
         <Header />
         <div className="mx-auto max-w-2xl px-4 py-32 text-center">
           <h1 className="font-display text-4xl text-ink">Your bag is empty</h1>
-          <p className="mt-4 text-sm text-foreground/70">Add pieces to your bag before checking out.</p>
-          <Link to="/shop" className="mt-8 inline-flex rounded-full bg-ink px-6 py-3 text-[11px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink">
+          <p className="mt-4 text-sm text-foreground/70">
+            Add pieces to your bag before checking out.
+          </p>
+          <Link
+            to="/shop"
+            className="mt-8 inline-flex rounded-full bg-ink px-6 py-3 text-[11px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
+          >
             Shop the Collection
           </Link>
         </div>
@@ -60,11 +72,7 @@ function CheckoutPage() {
         <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-[1.4fr_1fr]">
           <div>
             {step === 1 && (
-              <StepShipping
-                data={shipping}
-                onChange={setShipping}
-                onNext={() => setStep(2)}
-              />
+              <StepShipping data={shipping} onChange={setShipping} onNext={() => setStep(2)} />
             )}
             {step === 2 && (
               <StepPayment
@@ -89,7 +97,9 @@ function CheckoutPage() {
                 total={total}
               />
             )}
-            {step === 3 && <StepConfirmation orderId={orderId} email={shipping.email} offline={orderOffline} />}
+            {step === 3 && (
+              <StepConfirmation orderId={orderId} email={shipping.email} offline={orderOffline} />
+            )}
           </div>
 
           {step !== 3 && (
@@ -106,16 +116,29 @@ function CheckoutPage() {
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-sm text-ink">{it.name}</span>
-                      {it.variant && <span className="text-[11px] text-muted-foreground">Size {it.variant}</span>}
+                      {it.variant && (
+                        <span className="text-[11px] text-muted-foreground">Size {it.variant}</span>
+                      )}
                     </div>
                     <span className="text-sm text-ink">{formatUSD(it.price * it.qty)}</span>
                   </li>
                 ))}
               </ul>
               <dl className="mt-5 space-y-2 border-t border-border pt-5 text-sm">
-                <div className="flex justify-between"><dt className="text-foreground/75">Subtotal</dt><dd className="text-ink">{formatUSD(subtotal)}</dd></div>
-                <div className="flex justify-between"><dt className="text-foreground/75">Shipping</dt><dd className="text-ink">{shippingCost === 0 ? "Free" : formatUSD(shippingCost)}</dd></div>
-                <div className="flex justify-between border-t border-border pt-3 font-display text-lg text-ink"><dt>Total</dt><dd>{formatUSD(total)}</dd></div>
+                <div className="flex justify-between">
+                  <dt className="text-foreground/75">Subtotal</dt>
+                  <dd className="text-ink">{formatUSD(subtotal)}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-foreground/75">Shipping</dt>
+                  <dd className="text-ink">
+                    {shippingCost === 0 ? "Free" : formatUSD(shippingCost)}
+                  </dd>
+                </div>
+                <div className="flex justify-between border-t border-border pt-3 font-display text-lg text-ink">
+                  <dt>Total</dt>
+                  <dd>{formatUSD(total)}</dd>
+                </div>
               </dl>
             </aside>
           )}
@@ -137,9 +160,15 @@ function Steps({ step }: { step: Step }) {
         const done = step > n;
         return (
           <li key={label} className="flex items-center gap-3">
-            <span className={`grid h-7 w-7 place-items-center rounded-full border text-xs ${
-              done ? "border-gold bg-gold text-ink" : active ? "border-ink bg-ink text-background" : "border-border text-muted-foreground"
-            }`}>
+            <span
+              className={`grid h-7 w-7 place-items-center rounded-full border text-xs ${
+                done
+                  ? "border-gold bg-gold text-ink"
+                  : active
+                    ? "border-ink bg-ink text-background"
+                    : "border-border text-muted-foreground"
+              }`}
+            >
               {done ? <Check className="h-3 w-3" /> : n}
             </span>
             <span className={active || done ? "text-ink" : "text-muted-foreground"}>{label}</span>
@@ -170,16 +199,60 @@ function StepShipping({
     >
       <h2 className="font-display text-2xl text-ink">Shipping Information</h2>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Full Name"><input required value={data.name} onChange={(e) => onChange({ ...data, name: e.target.value })} className={inputCls} /></Field>
-        <Field label="Email"><input required type="email" value={data.email} onChange={(e) => onChange({ ...data, email: e.target.value })} className={inputCls} /></Field>
+        <Field label="Full Name">
+          <input
+            required
+            value={data.name}
+            onChange={(e) => onChange({ ...data, name: e.target.value })}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Email">
+          <input
+            required
+            type="email"
+            value={data.email}
+            onChange={(e) => onChange({ ...data, email: e.target.value })}
+            className={inputCls}
+          />
+        </Field>
       </div>
       <div className="mt-4">
-        <Field label="Street Address"><input required value={data.address} onChange={(e) => onChange({ ...data, address: e.target.value })} className={inputCls} /></Field>
+        <Field label="Street Address">
+          <input
+            required
+            value={data.address}
+            onChange={(e) => onChange({ ...data, address: e.target.value })}
+            className={inputCls}
+          />
+        </Field>
       </div>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field label="City"><input required value={data.city} onChange={(e) => onChange({ ...data, city: e.target.value })} className={inputCls} /></Field>
-        <Field label="State"><input required maxLength={2} value={data.state} onChange={(e) => onChange({ ...data, state: e.target.value.toUpperCase() })} className={inputCls} /></Field>
-        <Field label="ZIP"><input required value={data.zip} onChange={(e) => onChange({ ...data, zip: e.target.value })} className={inputCls} /></Field>
+        <Field label="City">
+          <input
+            required
+            value={data.city}
+            onChange={(e) => onChange({ ...data, city: e.target.value })}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="State">
+          <input
+            required
+            maxLength={2}
+            value={data.state}
+            onChange={(e) => onChange({ ...data, state: e.target.value.toUpperCase() })}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="ZIP">
+          <input
+            required
+            value={data.zip}
+            onChange={(e) => onChange({ ...data, zip: e.target.value })}
+            className={inputCls}
+          />
+        </Field>
       </div>
       <button
         type="submit"
@@ -221,11 +294,33 @@ function StepPayment({
 
       <div className="mt-6 grid grid-cols-1 gap-4">
         <Field label="Card Number">
-          <input required placeholder="1234 1234 1234 1234" value={card.number} onChange={(e) => setCard({ ...card, number: e.target.value })} className={inputCls} />
+          <input
+            required
+            placeholder="1234 1234 1234 1234"
+            value={card.number}
+            onChange={(e) => setCard({ ...card, number: e.target.value })}
+            className={inputCls}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Expiration"><input required placeholder="MM / YY" value={card.exp} onChange={(e) => setCard({ ...card, exp: e.target.value })} className={inputCls} /></Field>
-          <Field label="CVC"><input required placeholder="CVC" value={card.cvc} onChange={(e) => setCard({ ...card, cvc: e.target.value })} className={inputCls} /></Field>
+          <Field label="Expiration">
+            <input
+              required
+              placeholder="MM / YY"
+              value={card.exp}
+              onChange={(e) => setCard({ ...card, exp: e.target.value })}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="CVC">
+            <input
+              required
+              placeholder="CVC"
+              value={card.cvc}
+              onChange={(e) => setCard({ ...card, cvc: e.target.value })}
+              className={inputCls}
+            />
+          </Field>
         </div>
       </div>
 
@@ -253,14 +348,23 @@ function StepPayment({
           disabled={submitting}
           className="inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
         >
-          {submitting ? "Placing Order..." : `Pay ${formatUSD(total)}`} <ArrowRight className="h-4 w-4" />
+          {submitting ? "Placing Order..." : `Pay ${formatUSD(total)}`}{" "}
+          <ArrowRight className="h-4 w-4" />
         </button>
       </div>
     </form>
   );
 }
 
-function StepConfirmation({ orderId, email, offline }: { orderId: string; email: string; offline: boolean }) {
+function StepConfirmation({
+  orderId,
+  email,
+  offline,
+}: {
+  orderId: string;
+  email: string;
+  offline: boolean;
+}) {
   return (
     <div className="rounded-sm border border-border bg-card p-10 text-center">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-gold/15 text-gold">
@@ -277,7 +381,8 @@ function StepConfirmation({ orderId, email, offline }: { orderId: string; email:
       )}
       {offline && (
         <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-muted-foreground">
-          The order was saved locally because the storefront could not reach Supabase. It will need to be reconciled before fulfillment.
+          The order was saved locally because the storefront could not reach Supabase. It will need
+          to be reconciled before fulfillment.
         </p>
       )}
       <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">

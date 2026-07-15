@@ -1,0 +1,12 @@
+-- has_role() lost its EXECUTE grant when migration
+-- 20260701123431_bbe7a98b-c72c-4564-845b-094999b6f086.sql revoked it from
+-- PUBLIC/anon/authenticated, and the CREATE OR REPLACE in
+-- 20260707000000_admin_products_access.sql did not restore it (CREATE OR
+-- REPLACE preserves existing grants, it doesn't reset them).
+--
+-- Every admin check calls has_role() as the "authenticated" role: the
+-- client's direct `supabase.rpc("has_role", ...)` call, its fallback
+-- `user_roles` select, and the admin RLS policies on products/orders/
+-- order_items. Without this grant all of them fail with
+-- "permission denied for function has_role".
+grant execute on function public.has_role(uuid, public.app_role) to authenticated;

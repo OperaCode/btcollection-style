@@ -10,7 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import logoMark from "@/assets/logo-mark.png";
 import { CartProvider } from "@/lib/cart";
 import { WishlistProvider } from "@/lib/wishlist";
 import { CartDrawer } from "@/components/site/CartDrawer";
@@ -41,7 +41,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    console.error("Root route error", error);
   }, [error]);
 
   return (
@@ -80,10 +80,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BT Collection LLC — Every Stitch Tells a Story" },
-      { name: "description", content: "Faith-inspired, personalized apparel, mugs, accessories, and curated gift sets — thoughtfully made with love by BT Collection LLC." },
-      { name: "author", content: "BT Collection LLC" },
-      { property: "og:title", content: "BT Collection LLC — Every Stitch Tells a Story" },
+      { title: "Breakthrough Collection LLC — Every Stitch Tells a Story" },
+      { name: "description", content: "Faith-inspired, personalized apparel, mugs, accessories, and curated gift sets — thoughtfully made with love by Breakthrough Collection LLC." },
+      { name: "author", content: "Breakthrough Collection LLC" },
+      { property: "og:title", content: "Breakthrough Collection LLC — Every Stitch Tells a Story" },
       { property: "og:description", content: "Faith-inspired, personalized apparel and curated gift sets, thoughtfully made with love." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -93,6 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", type: "image/png", href: logoMark },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

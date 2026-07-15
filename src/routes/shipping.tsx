@@ -5,8 +5,11 @@ import { CONTACT_EMAIL } from "@/lib/site-config";
 export const Route = createFileRoute("/shipping")({
   head: () => ({
     meta: [
-      { title: "Shipping Policy — BT Collection LLC" },
-      { name: "description", content: "Shipping timelines, costs, and tracking for BT Collection LLC orders." },
+      { title: "Shipping Policy — Breakthrough Collection LLC" },
+      {
+        name: "description",
+        content: "Shipping timelines, costs, and tracking for Breakthrough Collection LLC orders.",
+      },
     ],
   }),
   component: ShippingPage,
@@ -25,14 +28,13 @@ function ShippingPage() {
       <section className="mx-auto max-w-3xl px-4 py-16 md:px-8">
         <div className="space-y-8 text-sm leading-relaxed text-foreground/80">
           <Section title="Processing Time">
-            Personalized and custom pieces are hand-finished to order — please allow 2–5 business
+            Personalized and custom pieces are hand-finished to order — please allow 7–8 business
             days for production before your order ships. Ready-to-ship items typically leave our
             studio within 1–2 business days.
           </Section>
 
           <Section title="Shipping Rates & Delivery">
-            We ship nationwide across the US. Standard shipping is free on orders over $75; orders
-            under $75 ship for a flat $8. Most packages arrive within 3–7 business days after
+            We ship nationwide across the US. Most packages arrive within 3–7 business days after
             leaving our studio.
           </Section>
 

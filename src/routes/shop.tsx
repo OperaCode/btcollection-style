@@ -9,29 +9,39 @@ import { useWishlist } from "@/lib/wishlist";
 export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
-      { title: "Shop the Collection - BT Collection LLC" },
+      { title: "Shop the Collection - Breakthrough Collection LLC" },
       {
         name: "description",
         content:
-          "Browse faith-inspired apparel, personalized mugs, accessories, and curated gift sets from BT Collection LLC.",
+          "Browse faith-inspired apparel, personalized mugs,personalized tumblers, accessories, and curated gift sets from Breakthrough Collection LLC.",
       },
-      { property: "og:title", content: "Shop the Collection - BT Collection LLC" },
+      { property: "og:title", content: "Shop the Collection - Breakthrough Collection LLC" },
       {
         property: "og:description",
-        content: "Faith-inspired apparel, mugs, accessories, and curated gift sets.",
+        content: "Faith-inspired apparel, mugs,tumblers, accessories, and curated gift sets.",
       },
     ],
   }),
   component: ShopPage,
 });
 
-const FILTERS = ["All", "Faith Apparel", "Mugs", "Accessories", "Gift Sets"] as const;
+const FILTERS = [
+  "All",
+  "Faith Apparel",
+  "Mugs & Tumblers",
+  "Accessories",
+  "Embroidery Gift Sets",
+  "Engraved Gift Sets",
+] as const;
 const SORTS = ["Newest", "Price: Low to High", "Price: High to Low", "Popular"] as const;
 const OCCASIONS = [
   "All",
   "Birthday",
   "Ministry",
   "Mother's Day",
+  "Father's Day",
+  "Wedding",
+  "Anniversary",
   "Thank You",
   "Corporate",
 ] as const;
@@ -127,19 +137,19 @@ function ShopPage() {
           <div>
             <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-ink">Collection</div>
             <div className="flex flex-wrap gap-2">
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.22em] shadow-sm transition ${
-                  filter === f
-                    ? "border-ink bg-ink text-background"
-                    : "border-ink/15 bg-background text-ink hover:border-gold hover:bg-gold/10 hover:text-ink"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+              {FILTERS.map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.22em] shadow-sm transition ${
+                    filter === f
+                      ? "border-ink bg-ink text-background"
+                      : "border-ink/15 bg-background text-ink hover:border-gold hover:bg-gold/10 hover:text-ink"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -196,9 +206,7 @@ function FilterGroup<T extends string>({
 }) {
   return (
     <div>
-      <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-ink">
-        {label}
-      </div>
+      <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-ink">{label}</div>
       <div className="flex flex-wrap gap-2">
         {values.map((v) => (
           <button

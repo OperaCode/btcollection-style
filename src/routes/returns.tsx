@@ -5,8 +5,11 @@ import { CONTACT_EMAIL } from "@/lib/site-config";
 export const Route = createFileRoute("/returns")({
   head: () => ({
     meta: [
-      { title: "Returns & Refunds — BT Collection LLC" },
-      { name: "description", content: "Return, exchange, and refund policy for BT Collection LLC." },
+      { title: "Returns & Refunds — Breakthrough Collection LLC" },
+      {
+        name: "description",
+        content: "Return, exchange, and refund policy for Breakthrough Collection LLC.",
+      },
     ],
   }),
   component: ReturnsPage,
@@ -25,8 +28,8 @@ function ReturnsPage() {
       <section className="mx-auto max-w-3xl px-4 py-16 md:px-8">
         <div className="space-y-8 text-sm leading-relaxed text-foreground/80">
           <Section title="Personalized & Custom Items">
-            Because every personalized or custom piece is made specifically for you, these items
-            are final sale and cannot be returned or exchanged — unless they arrive damaged or
+            Because every personalized or custom piece is made specifically for you, these items are
+            final sale and cannot be returned or exchanged — unless they arrive damaged or
             incorrect, in which case we'll replace or refund it at no cost to you.
           </Section>
 
