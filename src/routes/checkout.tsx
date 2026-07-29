@@ -31,9 +31,11 @@ function CheckoutPage() {
     city: "",
     zip: "",
     state: "",
+    deliveryMethod: "standard",
   });
 
-  const shippingCost = subtotal > 75 || subtotal === 0 ? 0 : 8;
+  const shippingCost =
+    shipping.deliveryMethod === "rush" ? 25 : subtotal > 75 || subtotal === 0 ? 0 : 8;
   const total = subtotal + shippingCost;
 
   if (items.length === 0 && step !== 3) {
@@ -87,6 +89,10 @@ function CheckoutPage() {
                     subtotal,
                     shipping: shippingCost,
                     total,
+                    deliveryMethod:
+                      shipping.deliveryMethod === "rush"
+                        ? "Rush / express: requested, extra fee added"
+                        : "Standard delivery: 7-8 days",
                   });
                   setOrderId(order.id);
                   setOrderOffline(order.offline);
@@ -107,7 +113,7 @@ function CheckoutPage() {
               <h2 className="font-display text-xl text-ink">Order Summary</h2>
               <ul className="mt-5 divide-y divide-border">
                 {items.map((it) => (
-                  <li key={`${it.id}-${it.variant ?? ""}`} className="flex gap-3 py-3">
+                  <li key={`${it.id}-${JSON.stringify(it.customization ?? {})}`} className="flex gap-3 py-3">
                     <div className="relative">
                       <img src={it.img} alt="" className="h-16 w-14 rounded-sm object-cover" />
                       <span className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-[10px] font-semibold text-background">
@@ -116,8 +122,11 @@ function CheckoutPage() {
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-sm text-ink">{it.name}</span>
-                      {it.variant && (
-                        <span className="text-[11px] text-muted-foreground">Size {it.variant}</span>
+                      {it.customization?.size && (
+                        <span className="text-[11px] text-muted-foreground">Size {it.customization.size}</span>
+                      )}
+                      {(it.customization?.text || it.customization?.photoPath || it.customization?.note) && (
+                        <span className="text-[11px] text-gold">Personalized</span>
                       )}
                     </div>
                     <span className="text-sm text-ink">{formatUSD(it.price * it.qty)}</span>
@@ -133,6 +142,12 @@ function CheckoutPage() {
                   <dt className="text-foreground/75">Shipping</dt>
                   <dd className="text-ink">
                     {shippingCost === 0 ? "Free" : formatUSD(shippingCost)}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-foreground/75">Delivery</dt>
+                  <dd className="text-right text-ink">
+                    {shipping.deliveryMethod === "rush" ? "Rush / express" : "Standard 7-8 days"}
                   </dd>
                 </div>
                 <div className="flex justify-between border-t border-border pt-3 font-display text-lg text-ink">
@@ -185,7 +200,15 @@ function StepShipping({
   onChange,
   onNext,
 }: {
-  data: { name: string; email: string; address: string; city: string; zip: string; state: string };
+  data: {
+    name: string;
+    email: string;
+    address: string;
+    city: string;
+    zip: string;
+    state: string;
+    deliveryMethod: string;
+  };
   onChange: (v: typeof data) => void;
   onNext: () => void;
 }) {
@@ -252,6 +275,18 @@ function StepShipping({
             onChange={(e) => onChange({ ...data, zip: e.target.value })}
             className={inputCls}
           />
+        </Field>
+      </div>
+      <div className="mt-4">
+        <Field label="Delivery Speed">
+          <select
+            value={data.deliveryMethod}
+            onChange={(e) => onChange({ ...data, deliveryMethod: e.target.value })}
+            className={inputCls}
+          >
+            <option value="standard">Standard delivery: 7-8 days</option>
+            <option value="rush">Rush / express: add $25, confirmed after review</option>
+          </select>
         </Field>
       </div>
       <button

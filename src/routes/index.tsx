@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { FormEvent } from "react";
 import { useState } from "react";
 import {
   Heart,
@@ -25,6 +26,7 @@ import p2 from "@/assets/p2.jpg";
 import p3 from "@/assets/p3.jpg";
 import p4 from "@/assets/p4.jpg";
 import { Announcement, Header, Footer } from "@/components/site/SiteChrome";
+import { subscribeNewsletter } from "@/lib/commerce";
 import { SOCIAL_LINKS } from "@/lib/site-config";
 
 export const Route = createFileRoute("/")({
@@ -400,8 +402,8 @@ function CustomCTA() {
             Make it <span className="italic">yours</span>.
           </h2>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-foreground/75 md:text-base">
-            Names, scripture, photos, or a message that matters — send us your idea and we’ll turn
-            it into a piece made just for you, with proofs back in as little as 48 hours.
+            Names, scripture, photos, or a message that matters — choose any personalizable piece
+            and add your name, photo, or message right on the product page.
           </p>
           <div className="mt-7 flex flex-wrap gap-2">
             {["Names", "Scripture", "Photos", "Gift Notes"].map((item) => (
@@ -417,7 +419,7 @@ function CustomCTA() {
             href="/custom"
             className="group mt-8 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-7 py-4 text-[12px] font-medium uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink"
           >
-            Start a Custom Order
+            Request a Custom Quote
             <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
           </a>
         </div>
@@ -653,6 +655,38 @@ function FAQ() {
 }
 
 function Newsletter() {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus("loading");
+    setMessage("");
+
+    const result = await subscribeNewsletter({ email, fullName, source: "homepage" });
+
+    if (result.ok) {
+      setStatus("success");
+      setFullName("");
+      setEmail("");
+      setMessage(
+        result.alreadySubscribed
+          ? "You are already on the newsletter list."
+          : result.emailWarning
+          ? `You are subscribed. ${result.emailWarning}`
+          : "You are subscribed. Please check your inbox for a welcome email.",
+      );
+      return;
+    }
+
+    setStatus("error");
+    setMessage(
+      "Your signup was saved on this device, but it could not reach Supabase yet. Please try again in a moment.",
+    );
+  }
+
   return (
     <section
       id="contact"
@@ -669,25 +703,46 @@ function Newsletter() {
         </p>
 
         <form
-          onSubmit={(e) => e.preventDefault()}
-          className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:flex-row"
+          onSubmit={handleSubmit}
+          className="mx-auto mt-9 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]"
         >
+          <input
+            type="text"
+            required
+            value={fullName}
+            onChange={(event) => setFullName(event.target.value)}
+            placeholder="Your name"
+            className="h-12 w-full rounded-full border border-white/20 bg-white/5 px-4 text-sm text-primary-foreground placeholder:text-primary-foreground/50 focus:border-gold focus:outline-none"
+          />
           <div className="relative flex-1">
             <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-foreground/60" />
             <input
               type="email"
               required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               placeholder="Enter your email"
               className="h-12 w-full rounded-full border border-white/20 bg-white/5 pl-11 pr-4 text-sm text-primary-foreground placeholder:text-primary-foreground/50 focus:border-gold focus:outline-none"
             />
           </div>
           <button
             type="submit"
+            disabled={status === "loading"}
             className="h-12 rounded-full bg-gold px-6 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-gold-soft"
           >
-            Subscribe
+            {status === "loading" ? "Joining..." : "Subscribe"}
           </button>
         </form>
+
+        {message && (
+          <p
+            className={`mx-auto mt-4 max-w-md text-sm ${
+              status === "success" ? "text-gold-soft" : "text-primary-foreground/75"
+            }`}
+          >
+            {message}
+          </p>
+        )}
 
         <p className="mt-4 text-[11px] uppercase tracking-[0.22em] text-primary-foreground/55">
           No spam · Unsubscribe anytime

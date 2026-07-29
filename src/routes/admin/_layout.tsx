@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LayoutDashboard, Package, ShoppingBag, LogOut } from "lucide-react";
+import { ClipboardList, LayoutDashboard, Mail, Package, ShoppingBag, LogOut } from "lucide-react";
 import { useAdminAuth } from "@/lib/admin-auth";
 
 export const Route = createFileRoute("/admin/_layout")({
@@ -10,7 +10,9 @@ export const Route = createFileRoute("/admin/_layout")({
 const NAV = [
   { label: "Dashboard", to: "/admin" as const, icon: LayoutDashboard },
   { label: "Orders", to: "/admin/orders" as const, icon: ShoppingBag },
+  { label: "Custom", to: "/admin/custom-requests" as const, icon: ClipboardList },
   { label: "Products", to: "/admin/products" as const, icon: Package },
+  { label: "Subscribers", to: "/admin/subscribers" as const, icon: Mail },
 ];
 
 function AdminProtectedLayout() {

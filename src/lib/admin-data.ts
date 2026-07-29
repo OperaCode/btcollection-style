@@ -1,11 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { CATEGORIES } from "@/lib/categories";
 
 export type AdminProduct = Tables<"products">;
 export type AdminOrder = Tables<"orders">;
 export type AdminOrderItem = Tables<"order_items">;
+export type NewsletterSubscriber = Tables<"newsletter_subscribers">;
+export type CustomRequest = Tables<"custom_requests">;
 
-export const PRODUCT_CATEGORIES = ["Faith Apparel", "Mugs", "Tumblers", "Accessories", "Gift Sets"] as const;
+export const PRODUCT_CATEGORIES = CATEGORIES;
 
 export async function listProducts() {
   const { data, error } = await supabase
@@ -58,14 +61,48 @@ export async function updateOrderStatus(id: string, status: AdminOrder["status"]
   if (error) throw error;
 }
 
+export async function listNewsletterSubscribers() {
+  const { data, error } = await supabase
+    .from("newsletter_subscribers")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function listCustomRequests() {
+  const { data, error } = await supabase
+    .from("custom_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCustomRequestStatus(id: string, status: CustomRequest["status"]) {
+  const { error } = await supabase
+    .from("custom_requests")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 export async function getDashboardStats() {
-  const [{ count: orderCount }, { data: orderTotals }, { count: activeCount }, { count: outOfStockCount }] =
-    await Promise.all([
-      supabase.from("orders").select("id", { count: "exact", head: true }),
-      supabase.from("orders").select("total").neq("status", "cancelled"),
-      supabase.from("products").select("id", { count: "exact", head: true }).eq("in_stock", true),
-      supabase.from("products").select("id", { count: "exact", head: true }).eq("in_stock", false),
-    ]);
+  const [
+    { count: orderCount },
+    { data: orderTotals },
+    { count: activeCount },
+    { count: outOfStockCount },
+    { count: subscriberCount },
+    { count: customRequestCount },
+  ] = await Promise.all([
+    supabase.from("orders").select("id", { count: "exact", head: true }),
+    supabase.from("orders").select("total").neq("status", "cancelled"),
+    supabase.from("products").select("id", { count: "exact", head: true }).eq("in_stock", true),
+    supabase.from("products").select("id", { count: "exact", head: true }).eq("in_stock", false),
+    supabase.from("newsletter_subscribers").select("id", { count: "exact", head: true }),
+    supabase.from("custom_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
+  ]);
 
   const revenue = (orderTotals ?? []).reduce((sum, o) => sum + Number(o.total ?? 0), 0);
 
@@ -74,5 +111,7 @@ export async function getDashboardStats() {
     revenue,
     activeProducts: activeCount ?? 0,
     outOfStock: outOfStockCount ?? 0,
+    subscriberCount: subscriberCount ?? 0,
+    customRequestCount: customRequestCount ?? 0,
   };
 }

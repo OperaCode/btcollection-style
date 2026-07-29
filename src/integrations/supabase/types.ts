@@ -57,6 +57,99 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_requests: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          delivery_preference: string | null
+          design_text: string | null
+          email: string
+          full_name: string
+          id: string
+          idea: string | null
+          item_type: string | null
+          media_details: string | null
+          notification_error: string | null
+          notification_sent_at: string | null
+          occasion: string | null
+          quantity: number | null
+          sample_image_path: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          delivery_preference?: string | null
+          design_text?: string | null
+          email: string
+          full_name: string
+          id?: string
+          idea?: string | null
+          item_type?: string | null
+          media_details?: string | null
+          notification_error?: string | null
+          notification_sent_at?: string | null
+          occasion?: string | null
+          quantity?: number | null
+          sample_image_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          delivery_preference?: string | null
+          design_text?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          idea?: string | null
+          item_type?: string | null
+          media_details?: string | null
+          notification_error?: string | null
+          notification_sent_at?: string | null
+          occasion?: string | null
+          quantity?: number | null
+          sample_image_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          source: string
+          status: string
+          updated_at: string
+          welcome_email_sent_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          welcome_email_sent_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          welcome_email_sent_at?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -165,7 +258,9 @@ export type Database = {
           images: string[]
           in_stock: boolean
           name: string
+          occasions: string[] | null
           price: number
+          sizes: string[] | null
           slug: string
           updated_at: string
         }
@@ -180,7 +275,9 @@ export type Database = {
           images?: string[]
           in_stock?: boolean
           name: string
+          occasions?: string[] | null
           price?: number
+          sizes?: string[] | null
           slug: string
           updated_at?: string
         }
@@ -195,7 +292,9 @@ export type Database = {
           images?: string[]
           in_stock?: boolean
           name?: string
+          occasions?: string[] | null
           price?: number
+          sizes?: string[] | null
           slug?: string
           updated_at?: string
         }

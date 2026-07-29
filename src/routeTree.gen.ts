@@ -25,8 +25,10 @@ import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
 import { Route as AdminLayoutIndexRouteImport } from './routes/admin/_layout/index'
+import { Route as AdminLayoutSubscribersRouteImport } from './routes/admin/_layout/subscribers'
 import { Route as AdminLayoutProductsRouteImport } from './routes/admin/_layout/products'
 import { Route as AdminLayoutOrdersRouteImport } from './routes/admin/_layout/orders'
+import { Route as AdminLayoutCustomRequestsRouteImport } from './routes/admin/_layout/custom-requests'
 import { Route as AdminLayoutProductsIndexRouteImport } from './routes/admin/_layout/products.index'
 import { Route as AdminLayoutProductsNewRouteImport } from './routes/admin/_layout/products.new'
 import { Route as AdminLayoutProductsIdRouteImport } from './routes/admin/_layout/products.$id'
@@ -110,6 +112,11 @@ const AdminLayoutIndexRoute = AdminLayoutIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
+const AdminLayoutSubscribersRoute = AdminLayoutSubscribersRouteImport.update({
+  id: '/subscribers',
+  path: '/subscribers',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
 const AdminLayoutProductsRoute = AdminLayoutProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -120,6 +127,12 @@ const AdminLayoutOrdersRoute = AdminLayoutOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
+const AdminLayoutCustomRequestsRoute =
+  AdminLayoutCustomRequestsRouteImport.update({
+    id: '/custom-requests',
+    path: '/custom-requests',
+    getParentRoute: () => AdminLayoutRoute,
+  } as any)
 const AdminLayoutProductsIndexRoute =
   AdminLayoutProductsIndexRouteImport.update({
     id: '/',
@@ -152,8 +165,10 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/admin/login': typeof AdminLoginRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/orders': typeof AdminLayoutOrdersRoute
   '/admin/products': typeof AdminLayoutProductsRouteWithChildren
+  '/admin/subscribers': typeof AdminLayoutSubscribersRoute
   '/admin/': typeof AdminLayoutIndexRoute
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
@@ -174,7 +189,9 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/admin/login': typeof AdminLoginRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/orders': typeof AdminLayoutOrdersRoute
+  '/admin/subscribers': typeof AdminLayoutSubscribersRoute
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
   '/admin/products': typeof AdminLayoutProductsIndexRoute
@@ -196,8 +213,10 @@ export interface FileRoutesById {
   '/admin/_layout': typeof AdminLayoutRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/_layout/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/_layout/orders': typeof AdminLayoutOrdersRoute
   '/admin/_layout/products': typeof AdminLayoutProductsRouteWithChildren
+  '/admin/_layout/subscribers': typeof AdminLayoutSubscribersRoute
   '/admin/_layout/': typeof AdminLayoutIndexRoute
   '/admin/_layout/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/_layout/products/new': typeof AdminLayoutProductsNewRoute
@@ -220,8 +239,10 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin/login'
     | '/product/$slug'
+    | '/admin/custom-requests'
     | '/admin/orders'
     | '/admin/products'
+    | '/admin/subscribers'
     | '/admin/'
     | '/admin/products/$id'
     | '/admin/products/new'
@@ -242,7 +263,9 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin/login'
     | '/product/$slug'
+    | '/admin/custom-requests'
     | '/admin/orders'
+    | '/admin/subscribers'
     | '/admin/products/$id'
     | '/admin/products/new'
     | '/admin/products'
@@ -263,8 +286,10 @@ export interface FileRouteTypes {
     | '/admin/_layout'
     | '/admin/login'
     | '/product/$slug'
+    | '/admin/_layout/custom-requests'
     | '/admin/_layout/orders'
     | '/admin/_layout/products'
+    | '/admin/_layout/subscribers'
     | '/admin/_layout/'
     | '/admin/_layout/products/$id'
     | '/admin/_layout/products/new'
@@ -401,6 +426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutIndexRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
+    '/admin/_layout/subscribers': {
+      id: '/admin/_layout/subscribers'
+      path: '/subscribers'
+      fullPath: '/admin/subscribers'
+      preLoaderRoute: typeof AdminLayoutSubscribersRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
     '/admin/_layout/products': {
       id: '/admin/_layout/products'
       path: '/products'
@@ -413,6 +445,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/admin/orders'
       preLoaderRoute: typeof AdminLayoutOrdersRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
+    '/admin/_layout/custom-requests': {
+      id: '/admin/_layout/custom-requests'
+      path: '/custom-requests'
+      fullPath: '/admin/custom-requests'
+      preLoaderRoute: typeof AdminLayoutCustomRequestsRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
     '/admin/_layout/products/': {
@@ -455,14 +494,18 @@ const AdminLayoutProductsRouteWithChildren =
   AdminLayoutProductsRoute._addFileChildren(AdminLayoutProductsRouteChildren)
 
 interface AdminLayoutRouteChildren {
+  AdminLayoutCustomRequestsRoute: typeof AdminLayoutCustomRequestsRoute
   AdminLayoutOrdersRoute: typeof AdminLayoutOrdersRoute
   AdminLayoutProductsRoute: typeof AdminLayoutProductsRouteWithChildren
+  AdminLayoutSubscribersRoute: typeof AdminLayoutSubscribersRoute
   AdminLayoutIndexRoute: typeof AdminLayoutIndexRoute
 }
 
 const AdminLayoutRouteChildren: AdminLayoutRouteChildren = {
+  AdminLayoutCustomRequestsRoute: AdminLayoutCustomRequestsRoute,
   AdminLayoutOrdersRoute: AdminLayoutOrdersRoute,
   AdminLayoutProductsRoute: AdminLayoutProductsRouteWithChildren,
+  AdminLayoutSubscribersRoute: AdminLayoutSubscribersRoute,
   AdminLayoutIndexRoute: AdminLayoutIndexRoute,
 }
 

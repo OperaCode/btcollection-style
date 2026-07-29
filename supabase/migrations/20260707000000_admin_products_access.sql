@@ -88,6 +88,61 @@ create table if not exists public.user_roles (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.newsletter_subscribers (
+  id uuid primary key default gen_random_uuid(),
+  full_name text,
+  email text not null unique,
+  source text not null default 'website',
+  status text not null default 'subscribed',
+  welcome_email_sent_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.custom_requests (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  email text not null,
+  item_type text,
+  occasion text,
+  quantity integer,
+  deadline date,
+  delivery_preference text,
+  sample_image_path text,
+  design_text text,
+  media_details text,
+  idea text,
+  status text not null default 'new',
+  notification_sent_at timestamptz,
+  notification_error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table if exists public.newsletter_subscribers
+  add column if not exists full_name text,
+  add column if not exists source text not null default 'website',
+  add column if not exists status text not null default 'subscribed',
+  add column if not exists welcome_email_sent_at timestamptz,
+  add column if not exists updated_at timestamptz not null default now();
+
+alter table if exists public.custom_requests
+  add column if not exists full_name text,
+  add column if not exists email text,
+  add column if not exists item_type text,
+  add column if not exists occasion text,
+  add column if not exists quantity integer,
+  add column if not exists deadline date,
+  add column if not exists delivery_preference text,
+  add column if not exists sample_image_path text,
+  add column if not exists design_text text,
+  add column if not exists media_details text,
+  add column if not exists idea text,
+  add column if not exists status text not null default 'new',
+  add column if not exists notification_sent_at timestamptz,
+  add column if not exists notification_error text,
+  add column if not exists updated_at timestamptz not null default now();
+
 create unique index if not exists user_roles_user_id_role_idx
   on public.user_roles (user_id, role);
 
@@ -97,6 +152,15 @@ alter table if exists public.orders enable row level security;
 alter table if exists public.order_items enable row level security;
 alter table if exists public.user_roles enable row level security;
 alter table if exists public.profiles enable row level security;
+alter table if exists public.newsletter_subscribers enable row level security;
+alter table if exists public.custom_requests enable row level security;
+
+grant insert on public.newsletter_subscribers to anon, authenticated;
+grant select, update on public.newsletter_subscribers to authenticated;
+grant all on public.newsletter_subscribers to service_role;
+grant insert on public.custom_requests to anon, authenticated;
+grant select, update on public.custom_requests to authenticated;
+grant all on public.custom_requests to service_role;
 
 -- Admin invite allowlist. Configure admin emails in Supabase, not in code.
 create table if not exists public.admin_invites (
@@ -169,7 +233,41 @@ create policy "Users read own role"
   on public.user_roles for select
   using (auth.uid() = user_id or public.has_role(auth.uid(), 'admin'));
 
--- 5. Admin bootstrap: users are granted roles if their email exists in
+-- 5. Newsletter: visitors can subscribe; admins can view and manage the list.
+drop policy if exists "Anyone can subscribe to newsletter" on public.newsletter_subscribers;
+create policy "Anyone can subscribe to newsletter"
+  on public.newsletter_subscribers for insert
+  with check (status = 'subscribed');
+ 
+drop policy if exists "Admins view newsletter subscribers" on public.newsletter_subscribers;
+create policy "Admins view newsletter subscribers"
+  on public.newsletter_subscribers for select
+  using (public.has_role(auth.uid(), 'admin'));
+
+drop policy if exists "Admins update newsletter subscribers" on public.newsletter_subscribers;
+create policy "Admins update newsletter subscribers"
+  on public.newsletter_subscribers for update
+  using (public.has_role(auth.uid(), 'admin'))
+  with check (public.has_role(auth.uid(), 'admin'));
+
+-- 6. Custom requests: visitors can submit; admins can view and manage.
+drop policy if exists "Anyone can create custom requests" on public.custom_requests;
+create policy "Anyone can create custom requests"
+  on public.custom_requests for insert
+  with check (true);
+
+drop policy if exists "Admins view custom requests" on public.custom_requests;
+create policy "Admins view custom requests"
+  on public.custom_requests for select
+  using (public.has_role(auth.uid(), 'admin'));
+
+drop policy if exists "Admins update custom requests" on public.custom_requests;
+create policy "Admins update custom requests"
+  on public.custom_requests for update
+  using (public.has_role(auth.uid(), 'admin'))
+  with check (public.has_role(auth.uid(), 'admin'));
+
+-- 7. Admin bootstrap: users are granted roles if their email exists in
 --    public.admin_invites. Add admins from Supabase with:
 --    select public.grant_admin_by_email('owner@example.com');
 create or replace function public.handle_new_admin_bootstrap()
