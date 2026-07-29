@@ -22,9 +22,9 @@ import logoMark from "@/assets/bclogo.jpeg";
 export const NAV = [
   { label: "Home", to: "/" as const },
   { label: "Shop", to: "/shop" as const },
-  { label: "Custom", to: "/custom" as const },
+  { label: "Custom Order", to: "/custom" as const },
   { label: "About", to: "/about" as const },
-  { label: "Contact", to: "/contact" as const },
+  // { label: "Contact", to: "/contact" as const },
 ];
 
 export function Announcement() {
