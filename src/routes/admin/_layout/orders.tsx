@@ -1,9 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ImageIcon, Loader2 } from "lucide-react";
 import { listOrders, listOrderItems, updateOrderStatus, type AdminOrder } from "@/lib/admin-data";
+import { getCustomizationPhotoUrl } from "@/lib/admin-storage";
 import { formatUSD } from "@/lib/cart";
+
+type OrderItemCustomization = {
+  size?: string;
+  text?: string;
+  photoPath?: string;
+  note?: string;
+};
 
 export const Route = createFileRoute("/admin/_layout/orders")({
   component: AdminOrdersPage,
@@ -90,17 +98,69 @@ function OrderItemsPanel({ orderId }: { orderId: string }) {
 
   return (
     <div className="border-t border-border bg-cream/40 px-5 py-4">
-      <ul className="space-y-2 text-sm">
-        {(items.data ?? []).map((it) => (
-          <li key={it.id} className="flex justify-between text-foreground/80">
-            <span>
-              {it.quantity}× {it.name}
-            </span>
-            <span>{formatUSD(Number(it.price) * it.quantity)}</span>
-          </li>
-        ))}
+      <ul className="space-y-3 text-sm">
+        {(items.data ?? []).map((it) => {
+          const c = (it.customization ?? null) as OrderItemCustomization | null;
+          const hasCustomization = c && (c.size || c.text || c.photoPath || c.note);
+          return (
+            <li key={it.id} className="text-foreground/80">
+              <div className="flex justify-between">
+                <span>
+                  {it.quantity}× {it.name}
+                </span>
+                <span>{formatUSD(Number(it.price) * it.quantity)}</span>
+              </div>
+              {hasCustomization && (
+                <div className="mt-1.5 ml-4 grid gap-1 rounded-sm border border-gold/30 bg-gold/5 p-2.5 text-xs">
+                  {c.size && <div>Size: {c.size}</div>}
+                  {c.text && <div>Text: {c.text}</div>}
+                  {c.note && <div>Note: {c.note}</div>}
+                  {c.photoPath && <CustomizationPhotoLink path={c.photoPath} />}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
       {items.data?.length === 0 && <p className="text-xs text-muted-foreground">No line items.</p>}
     </div>
+  );
+}
+
+function CustomizationPhotoLink({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (url) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-gold hover:underline">
+        <ImageIcon className="h-3.5 w-3.5" /> View uploaded photo
+      </a>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const result = await getCustomizationPhotoUrl(path);
+          setUrl(result.url);
+        } catch {
+          setError("Could not load photo.");
+        } finally {
+          setLoading(false);
+        }
+      }}
+      className="inline-flex items-center gap-1 text-gold hover:underline disabled:opacity-60"
+    >
+      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+      {loading ? "Loading photo..." : "View uploaded photo"}
+      {error && <span className="text-destructive">{error}</span>}
+    </button>
   );
 }

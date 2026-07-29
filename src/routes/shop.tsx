@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Heart, Search, Star, SlidersHorizontal, ShoppingBag } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Heart, Search, SlidersHorizontal, ShoppingBag, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
-import { PRODUCTS, type Product } from "@/data/products";
+import { listPublicProducts, PRODUCTS_QUERY_KEY, type Product } from "@/lib/catalog";
 import { useCart, formatUSD } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
+import { CATEGORIES } from "@/lib/categories";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -25,14 +27,7 @@ export const Route = createFileRoute("/shop")({
   component: ShopPage,
 });
 
-const FILTERS = [
-  "All",
-  "Faith Apparel",
-  "Mugs & Tumblers",
-  "Accessories",
-  "Embroidery Gift Sets",
-  "Engraved Gift Sets",
-] as const;
+const FILTERS = ["All", ...CATEGORIES] as const;
 const SORTS = ["Newest", "Price: Low to High", "Price: High to Low", "Popular"] as const;
 const OCCASIONS = [
   "All",
@@ -56,10 +51,11 @@ function ShopPage() {
   const [query, setQuery] = useState("");
   const { add } = useCart();
   const wishlist = useWishlist();
+  const products = useQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: listPublicProducts });
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = PRODUCTS.filter((p) => {
+    const filtered = (products.data ?? []).filter((p) => {
       const matchesCategory = filter === "All" || p.category === filter;
       const matchesOccasion = occasion === "All" || p.occasions?.includes(occasion);
       const matchesPrice =
@@ -69,7 +65,7 @@ function ShopPage() {
         (priceRange === "$60+" && p.price > 60);
       const matchesQuery =
         !q ||
-        [p.name, p.category, p.description, ...(p.badges ?? []), ...(p.occasions ?? [])]
+        [p.name, p.category, p.description ?? "", ...(p.occasions ?? [])]
           .join(" ")
           .toLowerCase()
           .includes(q);
@@ -80,9 +76,9 @@ function ShopPage() {
     const sorted = [...filtered];
     if (sort === "Price: Low to High") sorted.sort((a, b) => a.price - b.price);
     else if (sort === "Price: High to Low") sorted.sort((a, b) => b.price - a.price);
-    else if (sort === "Popular") sorted.sort((a, b) => b.rating - a.rating);
+    else if (sort === "Popular") sorted.sort((a, b) => Number(b.best_seller) - Number(a.best_seller));
     return sorted;
-  }, [filter, occasion, priceRange, query, sort]);
+  }, [filter, occasion, priceRange, query, sort, products.data]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -176,12 +172,15 @@ function ShopPage() {
               p={p}
               wished={wishlist.has(p.slug)}
               onWish={() => wishlist.toggle(p.slug)}
-              onAdd={() => add({ id: p.slug, name: p.name, price: p.price, img: p.img })}
+              onAdd={() => add({ id: p.id, slug: p.slug, name: p.name, price: p.price, img: p.images[0] ?? "" })}
             />
           ))}
         </div>
 
-        {list.length === 0 && (
+        {products.isLoading && (
+          <p className="py-20 text-center text-sm text-muted-foreground">Loading the collection...</p>
+        )}
+        {!products.isLoading && list.length === 0 && (
           <p className="py-20 text-center text-sm text-muted-foreground">
             No pieces match this filter yet.
           </p>
@@ -242,15 +241,17 @@ function ProductCard({
       <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted">
         <Link to="/product/$slug" params={{ slug: p.slug }} className="block h-full w-full">
           <img
-            src={p.img}
+            src={p.images[0]}
             alt={p.name}
             loading="lazy"
-            className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
+            className={`h-full w-full object-cover transition duration-700 group-hover:scale-[1.04] ${
+              p.in_stock ? "" : "opacity-50"
+            }`}
           />
         </Link>
-        {p.badges?.[0] && (
+        {p.best_seller && (
           <span className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-ink">
-            {p.badges[0]}
+            Best Seller
           </span>
         )}
         <button
@@ -260,17 +261,30 @@ function ProductCard({
         >
           <Heart className={`h-4 w-4 ${wished ? "fill-gold text-gold" : ""}`} />
         </button>
-        <button
-          onClick={onAdd}
-          className="absolute inset-x-3 bottom-3 inline-flex translate-y-2 items-center justify-center gap-2 rounded-full bg-ink px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.22em] text-background opacity-0 transition duration-300 hover:bg-gold hover:text-ink group-hover:translate-y-0 group-hover:opacity-100"
-        >
-          <ShoppingBag className="h-3.5 w-3.5" /> Quick Add
-        </button>
+        {p.in_stock ? (
+          <button
+            onClick={onAdd}
+            className="absolute inset-x-3 bottom-3 inline-flex translate-y-2 items-center justify-center gap-2 rounded-full bg-ink px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.22em] text-background opacity-0 transition duration-300 hover:bg-gold hover:text-ink group-hover:translate-y-0 group-hover:opacity-100"
+          >
+            <ShoppingBag className="h-3.5 w-3.5" /> Quick Add
+          </button>
+        ) : (
+          <span className="absolute inset-x-3 bottom-3 inline-flex items-center justify-center rounded-full bg-ink/80 px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.22em] text-background">
+            Out of Stock
+          </span>
+        )}
       </div>
       <div className="mt-4 flex flex-col gap-1">
-        <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-          {p.category}
-        </span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+            {p.category}
+          </span>
+          {p.customizable && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-gold/50 bg-gold/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] text-gold">
+              <Sparkles className="h-2.5 w-2.5" /> Personalizable
+            </span>
+          )}
+        </div>
         <Link
           to="/product/$slug"
           params={{ slug: p.slug }}
@@ -278,12 +292,7 @@ function ProductCard({
         >
           {p.name}
         </Link>
-        <div className="mt-1 flex items-center justify-between">
-          <span className="text-sm font-medium text-ink">{formatUSD(p.price)}</span>
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Star className="h-3.5 w-3.5 fill-gold text-gold" /> ({p.rating})
-          </span>
-        </div>
+        <span className="text-sm font-medium text-ink">{formatUSD(p.price)}</span>
       </div>
     </article>
   );

@@ -65,15 +65,20 @@ export function CartDrawer() {
           <>
             <ul className="flex-1 divide-y divide-border overflow-y-auto px-6">
               {items.map((it) => (
-                <li key={`${it.id}-${it.variant ?? ""}`} className="flex gap-4 py-5">
+                <li key={`${it.id}-${JSON.stringify(it.customization ?? {})}`} className="flex gap-4 py-5">
                   <img src={it.img} alt="" className="h-24 w-20 shrink-0 rounded-sm object-cover" />
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h4 className="truncate font-display text-lg leading-tight text-ink">{it.name}</h4>
-                        {it.variant && (
+                        {it.customization?.size && (
                           <p className="mt-0.5 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                            {it.variant}
+                            Size {it.customization.size}
+                          </p>
+                        )}
+                        {(it.customization?.text || it.customization?.photoPath || it.customization?.note) && (
+                          <p className="mt-0.5 text-[11px] uppercase tracking-[0.2em] text-gold">
+                            Personalized
                           </p>
                         )}
                       </div>
@@ -84,7 +89,7 @@ export function CartDrawer() {
                         <button
                           aria-label="Decrease"
                           className="grid h-8 w-8 place-items-center text-foreground/70 hover:text-ink"
-                          onClick={() => setQty(it.id, it.qty - 1, it.variant)}
+                          onClick={() => setQty(it.id, it.qty - 1, it.customization)}
                         >
                           <Minus className="h-3 w-3" />
                         </button>
@@ -92,13 +97,13 @@ export function CartDrawer() {
                         <button
                           aria-label="Increase"
                           className="grid h-8 w-8 place-items-center text-foreground/70 hover:text-ink"
-                          onClick={() => setQty(it.id, it.qty + 1, it.variant)}
+                          onClick={() => setQty(it.id, it.qty + 1, it.customization)}
                         >
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
                       <button
-                        onClick={() => remove(it.id, it.variant)}
+                        onClick={() => remove(it.id, it.customization)}
                         className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-gold"
                       >
                         Remove

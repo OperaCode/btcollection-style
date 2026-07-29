@@ -10,25 +10,27 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
-import { PRODUCTS } from "@/data/products";
+import { listPublicProducts, PRODUCTS_QUERY_KEY } from "@/lib/catalog";
 import { formatUSD } from "@/lib/cart";
 import { SOCIAL_LINKS, WHATSAPP_URL } from "@/lib/site-config";
-import logoMark from "@/assets/logo-mark.png";
+// import logoMark from "@/assets/logo-mark.png";
+import logoMark from "@/assets/bclogo.jpeg";
 
 export const NAV = [
   { label: "Home", to: "/" as const },
   { label: "Shop", to: "/shop" as const },
-  { label: "Custom Orders", to: "/custom" as const },
+  { label: "Custom", to: "/custom" as const },
   { label: "About", to: "/about" as const },
   { label: "Contact", to: "/contact" as const },
 ];
 
 export function Announcement() {
   return (
-    <div className="bg-primary text-primary-foreground text-[12px] tracking-[0.18em] uppercase">
-      <div className="mx-auto max-w-7xl px-4 py-2.5 text-center">
+    <div className="bg-primary text-primary-foreground text-[10px] uppercase leading-relaxed tracking-[0.14em] sm:text-[12px] sm:tracking-[0.18em]">
+      <div className="mx-auto max-w-7xl px-3 py-2 text-center sm:px-4 sm:py-2.5">
         Now Booking Custom Embroidery &amp; Engraving Gifts · Ships Nationwide
       </div>
     </div>
@@ -37,8 +39,8 @@ export function Announcement() {
 
 function Monogram() {
   return (
-    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-gold/60 bg-white">
-      <img src={logoMark} alt="Breakthrough Collection LLC" className="h-8 w-8 object-contain" />
+    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-gold/60 bg-white sm:h-11 sm:w-11">
+      <img src={logoMark} alt="Breakthrough Collection LLC" className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
     </div>
   );
 }
@@ -58,7 +60,7 @@ function IconBtn({
     <button
       onClick={onClick}
       aria-label={label}
-      className={`grid h-10 w-10 place-items-center rounded-full text-foreground/80 transition hover:bg-muted hover:text-foreground ${className}`}
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-foreground/80 transition hover:bg-muted hover:text-foreground sm:h-10 sm:w-10 ${className}`}
     >
       {children}
     </button>
@@ -81,23 +83,28 @@ export function Header() {
     };
   }, [mobileOpen, searchOpen]);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return PRODUCTS.slice(0, 4);
-    return PRODUCTS.filter((p) =>
-      [p.name, p.category, p.description, ...(p.badges ?? []), ...(p.occasions ?? [])]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    ).slice(0, 6);
-  }, [query]);
+  const products = useQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: listPublicProducts });
 
-  const wishlistProducts = PRODUCTS.filter((p) => wishlist.has(p.slug));
+  const results = useMemo(() => {
+    const list = products.data ?? [];
+    const q = query.trim().toLowerCase();
+    if (!q) return list.slice(0, 4);
+    return list
+      .filter((p) =>
+        [p.name, p.category, p.description ?? "", ...(p.occasions ?? [])]
+          .join(" ")
+          .toLowerCase()
+          .includes(q),
+      )
+      .slice(0, 6);
+  }, [query, products.data]);
+
+  const wishlistProducts = (products.data ?? []).filter((p) => wishlist.has(p.slug));
 
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-4 md:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-4 md:px-8 lg:grid-cols-[auto_1fr_auto]">
           <Link
             to="/"
             className="flex min-w-0 items-center gap-3"
@@ -105,10 +112,10 @@ export function Header() {
           >
             <Monogram />
             <div className="min-w-0">
-              <div className="font-display text-lg leading-none tracking-wide text-ink md:text-xl">
+              <div className="truncate font-display text-base leading-none tracking-wide text-ink sm:text-lg md:text-xl">
                 Breakthrough Collection <span className="italic text-gold">LLC</span>
               </div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              <div className="mt-1 hidden truncate text-[10px] uppercase tracking-[0.2em] text-muted-foreground sm:block md:tracking-[0.25em]">
                 Every Stitch Tells a Story
               </div>
             </div>
@@ -237,7 +244,7 @@ export function Header() {
               onClick={() => setSearchOpen(false)}
               className="flex items-center gap-4 rounded-sm p-2 transition hover:bg-cream"
             >
-              <img src={p.img} alt="" className="h-16 w-14 rounded-sm object-cover" />
+              <img src={p.images[0]} alt="" className="h-16 w-14 rounded-sm object-cover" />
               <div className="min-w-0 flex-1">
                 <div className="truncate font-display text-lg text-ink">{p.name}</div>
                 <div className="mt-0.5 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -375,7 +382,7 @@ export function Footer() {
           title="Company"
           items={[
             { label: "About Us", to: "/about" },
-            { label: "Custom Orders", to: "/custom" },
+            { label: "Custom Quote", to: "/custom" },
             { label: "Contact", to: "/contact" },
           ]}
         />

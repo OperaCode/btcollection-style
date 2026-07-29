@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
   Heart,
@@ -10,16 +11,19 @@ import {
   Truck,
   PackageCheck,
   Sparkles,
-  Star,
+  ImagePlus,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
-import { PRODUCTS, findProduct, type Product } from "@/data/products";
+import { getPublicProduct, listPublicProducts, PRODUCTS_QUERY_KEY, type Product } from "@/lib/catalog";
 import { useCart, formatUSD } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
+import { uploadCustomizationPhoto } from "@/lib/uploads";
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: ({ params }) => {
-    const product = findProduct(params.slug);
+  loader: async ({ params }) => {
+    const product = await getPublicProduct(params.slug).catch(() => null);
     if (!product) throw notFound();
     return { product };
   },
@@ -27,10 +31,10 @@ export const Route = createFileRoute("/product/$slug")({
     meta: loaderData
       ? [
           { title: `${loaderData.product.name} — Breakthrough Collection LLC` },
-          { name: "description", content: loaderData.product.description },
+          { name: "description", content: loaderData.product.description ?? "" },
           { property: "og:title", content: loaderData.product.name },
-          { property: "og:description", content: loaderData.product.description },
-          { property: "og:image", content: loaderData.product.img },
+          { property: "og:description", content: loaderData.product.description ?? "" },
+          { property: "og:image", content: loaderData.product.images[0] },
         ]
       : [{ title: "Product not found" }, { name: "robots", content: "noindex" }],
   }),
@@ -63,12 +67,42 @@ function ProductPage() {
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
   const [personalization, setPersonalization] = useState("");
-  const [giftNote, setGiftNote] = useState("");
+  const [note, setNote] = useState("");
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError(null);
+    setUploading(true);
+    setPhotoPreview(URL.createObjectURL(file));
+    try {
+      const path = await uploadCustomizationPhoto(file);
+      setPhotoPath(path);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      setPhotoPreview(null);
+      setPhotoPath(null);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removePhoto() {
+    setPhotoPath(null);
+    setPhotoPreview(null);
+    setUploadError(null);
+  }
   const [openPanel, setOpenPanel] = useState("details");
 
-  const related = PRODUCTS.filter(
-    (p) => p.slug !== product.slug && p.category === product.category,
-  ).slice(0, 4);
+  const allProducts = useQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: listPublicProducts });
+  const related = (allProducts.data ?? [])
+    .filter((p) => p.slug !== product.slug && p.category === product.category)
+    .slice(0, 4);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -91,7 +125,7 @@ function ProductPage() {
       <section className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-12 md:grid-cols-2 md:px-8 md:py-16">
         <div className="flex flex-col-reverse gap-4 md:flex-row">
           <div className="flex gap-3 md:flex-col">
-            {product.gallery.map((g, i) => (
+            {product.images.map((g, i) => (
               <button
                 key={i}
                 onClick={() => setActive(i)}
@@ -105,7 +139,7 @@ function ProductPage() {
           </div>
           <div className="relative flex-1 overflow-hidden rounded-sm bg-muted">
             <img
-              src={product.gallery[active]}
+              src={product.images[active]}
               alt={product.name}
               className="aspect-[4/5] w-full object-cover transition duration-500 hover:scale-105"
             />
@@ -117,23 +151,15 @@ function ProductPage() {
           <h1 className="mt-3 font-display text-4xl leading-tight text-ink md:text-5xl">
             {product.name}
           </h1>
-          {product.badges && (
+          {product.best_seller && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {product.badges.map((badge) => (
-                <span
-                  key={badge}
-                  className="rounded-full border border-gold/50 bg-gold/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-ink"
-                >
-                  {badge}
-                </span>
-              ))}
+              <span className="rounded-full border border-gold/50 bg-gold/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-ink">
+                Best Seller
+              </span>
             </div>
           )}
           <div className="mt-4 flex items-center gap-4">
             <span className="font-display text-2xl text-ink">{formatUSD(product.price)}</span>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="h-3.5 w-3.5 fill-gold text-gold" /> ({product.rating} reviews)
-            </span>
           </div>
           <p className="mt-6 text-sm leading-relaxed text-foreground/80">{product.description}</p>
 
@@ -166,10 +192,10 @@ function ProductPage() {
               <div className="text-[11px] uppercase tracking-[0.22em] text-gold">
                 Personalization
               </div>
-              <div className="mt-4 grid gap-3">
+              <div className="mt-4 grid gap-4">
                 <label className="grid gap-2">
                   <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                    Name, phrase, or scripture
+                    Name, phrase, logo text, or monogram
                   </span>
                   <input
                     value={personalization}
@@ -178,15 +204,50 @@ function ProductPage() {
                     className="h-11 rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-gold"
                   />
                 </label>
+
+                <div className="grid gap-2">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Upload a photo (optional)
+                  </span>
+                  {photoPreview ? (
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={photoPreview}
+                        alt="Upload preview"
+                        className="h-16 w-16 rounded-sm border border-border object-cover"
+                      />
+                      {uploading ? (
+                        <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading...
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={removePhoto}
+                          className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-3.5 w-3.5" /> Remove
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <label className="flex h-11 w-fit cursor-pointer items-center gap-2 rounded-sm border border-dashed border-border bg-background px-4 text-sm text-foreground/75 hover:border-gold hover:text-gold">
+                      <ImagePlus className="h-4 w-4" /> Choose photo
+                      <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                    </label>
+                  )}
+                  {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+                </div>
+
                 <label className="grid gap-2">
                   <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                    Gift note
+                    Anything else?
                   </span>
                   <textarea
-                    value={giftNote}
-                    onChange={(e) => setGiftNote(e.target.value)}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
                     rows={3}
-                    placeholder="Optional message for the recipient"
+                    placeholder="Colors, fonts, sizing, or anything else for this piece"
                     className="rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-gold"
                   />
                 </label>
@@ -219,27 +280,36 @@ function ProductPage() {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button
+              disabled={uploading}
               onClick={() =>
                 add(
                   {
-                    id: product.slug,
+                    id: product.id,
+                    slug: product.slug,
                     name: product.name,
                     price: product.price,
-                    img: product.img,
-                    variant: [
-                      size,
-                      personalization && `Custom: ${personalization}`,
-                      giftNote && "Gift note",
-                    ]
-                      .filter(Boolean)
-                      .join(" / "),
+                    img: product.images[0],
+                    customization:
+                      size || personalization || photoPath || note
+                        ? {
+                            size,
+                            text: personalization || undefined,
+                            photoPath: photoPath ?? undefined,
+                            note: note || undefined,
+                          }
+                        : undefined,
                   },
                   qty,
                 )
               }
-              className="inline-flex flex-1 items-center justify-center gap-3 rounded-full bg-ink px-6 py-4 text-[12px] font-medium uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink"
+              className="inline-flex flex-1 items-center justify-center gap-3 rounded-full bg-ink px-6 py-4 text-[12px] font-medium uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink disabled:opacity-60"
             >
-              <ShoppingBag className="h-4 w-4" /> Add to Bag · {formatUSD(product.price * qty)}
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShoppingBag className="h-4 w-4" />
+              )}{" "}
+              Add to Bag · {formatUSD(product.price * qty)}
             </button>
             <button
               aria-label="Wishlist"
@@ -319,7 +389,7 @@ function ProductPage() {
                 <Link key={p.slug} to="/product/$slug" params={{ slug: p.slug }} className="group">
                   <div className="aspect-[4/5] overflow-hidden rounded-sm bg-muted">
                     <img
-                      src={p.img}
+                      src={p.images[0]}
                       alt={p.name}
                       className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
                     />

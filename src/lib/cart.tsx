@@ -1,12 +1,20 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
+export type CartCustomization = {
+  size?: string;
+  text?: string;
+  photoPath?: string;
+  note?: string;
+};
+
 export type CartItem = {
-  id: string;
+  id: string; // product UUID — matches order_items.product_id
+  slug: string; // for routing to the product page
   name: string;
   price: number;
   img: string;
   qty: number;
-  variant?: string;
+  customization?: CartCustomization;
 };
 
 type CartCtx = {
@@ -14,8 +22,8 @@ type CartCtx = {
   count: number;
   subtotal: number;
   add: (item: Omit<CartItem, "qty">, qty?: number) => void;
-  remove: (id: string, variant?: string) => void;
-  setQty: (id: string, qty: number, variant?: string) => void;
+  remove: (id: string, customization?: CartCustomization) => void;
+  setQty: (id: string, qty: number, customization?: CartCustomization) => void;
   clear: () => void;
   isOpen: boolean;
   openDrawer: () => void;
@@ -23,10 +31,12 @@ type CartCtx = {
 };
 
 const CartContext = createContext<CartCtx | null>(null);
-const STORAGE_KEY = "btc.cart.v1";
+const STORAGE_KEY = "btc.cart.v2";
 
-function keyOf(id: string, variant?: string) {
-  return `${id}::${variant ?? ""}`;
+function keyOf(id: string, customization?: CartCustomization) {
+  if (!customization) return id;
+  const { size, text, photoPath, note } = customization;
+  return `${id}::${[size, text, photoPath, note].map((v) => v ?? "").join("|")}`;
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -58,23 +68,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
       subtotal,
       add: (item, qty = 1) => {
         setItems((prev) => {
-          const k = keyOf(item.id, item.variant);
-          const found = prev.find((p) => keyOf(p.id, p.variant) === k);
+          const k = keyOf(item.id, item.customization);
+          const found = prev.find((p) => keyOf(p.id, p.customization) === k);
           if (found) {
             return prev.map((p) =>
-              keyOf(p.id, p.variant) === k ? { ...p, qty: p.qty + qty } : p,
+              keyOf(p.id, p.customization) === k ? { ...p, qty: p.qty + qty } : p,
             );
           }
           return [...prev, { ...item, qty }];
         });
         setOpen(true);
       },
-      remove: (id, variant) =>
-        setItems((prev) => prev.filter((p) => keyOf(p.id, p.variant) !== keyOf(id, variant))),
-      setQty: (id, qty, variant) =>
+      remove: (id, customization) =>
+        setItems((prev) => prev.filter((p) => keyOf(p.id, p.customization) !== keyOf(id, customization))),
+      setQty: (id, qty, customization) =>
         setItems((prev) =>
           prev
-            .map((p) => (keyOf(p.id, p.variant) === keyOf(id, variant) ? { ...p, qty } : p))
+            .map((p) => (keyOf(p.id, p.customization) === keyOf(id, customization) ? { ...p, qty } : p))
             .filter((p) => p.qty > 0),
         ),
       clear: () => setItems([]),

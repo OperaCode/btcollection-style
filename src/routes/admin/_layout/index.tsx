@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ShoppingBag, DollarSign, Package, PackageX } from "lucide-react";
+import { ShoppingBag, DollarSign, Package, ClipboardList } from "lucide-react";
 import { getDashboardStats, listOrders } from "@/lib/admin-data";
 import { formatUSD } from "@/lib/cart";
 
@@ -26,7 +26,7 @@ function AdminDashboard() {
           value={stats.data ? formatUSD(stats.data.revenue) : "—"}
         />
         <StatCard icon={Package} label="Active Products" value={stats.data?.activeProducts ?? "—"} />
-        <StatCard icon={PackageX} label="Out of Stock" value={stats.data?.outOfStock ?? "—"} />
+        <StatCard icon={ClipboardList} label="New Custom Requests" value={stats.data?.customRequestCount ?? "—"} />
       </div>
 
       <div className="mt-10 rounded-sm border border-border bg-card">

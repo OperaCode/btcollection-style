@@ -51,8 +51,8 @@ function CartPage() {
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.6fr_1fr]">
             <ul className="divide-y divide-border border-y border-border">
               {items.map((it) => (
-                <li key={`${it.id}-${it.variant ?? ""}`} className="flex gap-4 py-6 md:gap-6">
-                  <Link to="/product/$slug" params={{ slug: it.id }} className="shrink-0">
+                <li key={`${it.id}-${JSON.stringify(it.customization ?? {})}`} className="flex gap-4 py-6 md:gap-6">
+                  <Link to="/product/$slug" params={{ slug: it.slug }} className="shrink-0">
                     <img
                       src={it.img}
                       alt=""
@@ -64,14 +64,19 @@ function CartPage() {
                       <div className="min-w-0">
                         <Link
                           to="/product/$slug"
-                          params={{ slug: it.id }}
+                          params={{ slug: it.slug }}
                           className="truncate font-display text-xl text-ink hover:text-gold"
                         >
                           {it.name}
                         </Link>
-                        {it.variant && (
+                        {it.customization?.size && (
                           <p className="mt-1 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                            Size · {it.variant}
+                            Size · {it.customization.size}
+                          </p>
+                        )}
+                        {(it.customization?.text || it.customization?.photoPath || it.customization?.note) && (
+                          <p className="mt-1 text-[11px] uppercase tracking-[0.22em] text-gold">
+                            Personalized
                           </p>
                         )}
                         <p className="mt-1 text-sm text-foreground/75">{formatUSD(it.price)}</p>
@@ -84,7 +89,7 @@ function CartPage() {
                       <div className="inline-flex items-center rounded-full border border-border">
                         <button
                           aria-label="Decrease"
-                          onClick={() => setQty(it.id, it.qty - 1, it.variant)}
+                          onClick={() => setQty(it.id, it.qty - 1, it.customization)}
                           className="grid h-9 w-9 place-items-center text-foreground/70 hover:text-ink"
                         >
                           <Minus className="h-3 w-3" />
@@ -92,14 +97,14 @@ function CartPage() {
                         <span className="w-6 text-center text-sm">{it.qty}</span>
                         <button
                           aria-label="Increase"
-                          onClick={() => setQty(it.id, it.qty + 1, it.variant)}
+                          onClick={() => setQty(it.id, it.qty + 1, it.customization)}
                           className="grid h-9 w-9 place-items-center text-foreground/70 hover:text-ink"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
                       <button
-                        onClick={() => remove(it.id, it.variant)}
+                        onClick={() => remove(it.id, it.customization)}
                         className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5" /> Remove
