@@ -25,11 +25,13 @@ import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
 import { Route as AdminLayoutIndexRouteImport } from './routes/admin/_layout/index'
+import { Route as CustomPayIdRouteImport } from './routes/custom.pay.$id'
 import { Route as AdminLayoutSubscribersRouteImport } from './routes/admin/_layout/subscribers'
 import { Route as AdminLayoutProductsRouteImport } from './routes/admin/_layout/products'
 import { Route as AdminLayoutOrdersRouteImport } from './routes/admin/_layout/orders'
 import { Route as AdminLayoutCustomRequestsRouteImport } from './routes/admin/_layout/custom-requests'
 import { Route as AdminLayoutProductsIndexRouteImport } from './routes/admin/_layout/products.index'
+import { Route as CustomPayIdSuccessRouteImport } from './routes/custom.pay.$id.success'
 import { Route as AdminLayoutProductsNewRouteImport } from './routes/admin/_layout/products.new'
 import { Route as AdminLayoutProductsIdRouteImport } from './routes/admin/_layout/products.$id'
 
@@ -112,6 +114,11 @@ const AdminLayoutIndexRoute = AdminLayoutIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
+const CustomPayIdRoute = CustomPayIdRouteImport.update({
+  id: '/pay/$id',
+  path: '/pay/$id',
+  getParentRoute: () => CustomRoute,
+} as any)
 const AdminLayoutSubscribersRoute = AdminLayoutSubscribersRouteImport.update({
   id: '/subscribers',
   path: '/subscribers',
@@ -139,6 +146,11 @@ const AdminLayoutProductsIndexRoute =
     path: '/',
     getParentRoute: () => AdminLayoutProductsRoute,
   } as any)
+const CustomPayIdSuccessRoute = CustomPayIdSuccessRouteImport.update({
+  id: '/success',
+  path: '/success',
+  getParentRoute: () => CustomPayIdRoute,
+} as any)
 const AdminLayoutProductsNewRoute = AdminLayoutProductsNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -157,7 +169,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
-  '/custom': typeof CustomRoute
+  '/custom': typeof CustomRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shipping': typeof ShippingRoute
@@ -169,9 +181,11 @@ export interface FileRoutesByFullPath {
   '/admin/orders': typeof AdminLayoutOrdersRoute
   '/admin/products': typeof AdminLayoutProductsRouteWithChildren
   '/admin/subscribers': typeof AdminLayoutSubscribersRoute
+  '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
   '/admin/': typeof AdminLayoutIndexRoute
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
+  '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
   '/admin/products/': typeof AdminLayoutProductsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -181,7 +195,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
-  '/custom': typeof CustomRoute
+  '/custom': typeof CustomRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shipping': typeof ShippingRoute
@@ -192,8 +206,10 @@ export interface FileRoutesByTo {
   '/admin/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/orders': typeof AdminLayoutOrdersRoute
   '/admin/subscribers': typeof AdminLayoutSubscribersRoute
+  '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
+  '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
   '/admin/products': typeof AdminLayoutProductsIndexRoute
 }
 export interface FileRoutesById {
@@ -204,7 +220,7 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
-  '/custom': typeof CustomRoute
+  '/custom': typeof CustomRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shipping': typeof ShippingRoute
@@ -217,9 +233,11 @@ export interface FileRoutesById {
   '/admin/_layout/orders': typeof AdminLayoutOrdersRoute
   '/admin/_layout/products': typeof AdminLayoutProductsRouteWithChildren
   '/admin/_layout/subscribers': typeof AdminLayoutSubscribersRoute
+  '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
   '/admin/_layout/': typeof AdminLayoutIndexRoute
   '/admin/_layout/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/_layout/products/new': typeof AdminLayoutProductsNewRoute
+  '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
   '/admin/_layout/products/': typeof AdminLayoutProductsIndexRoute
 }
 export interface FileRouteTypes {
@@ -243,9 +261,11 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/products'
     | '/admin/subscribers'
+    | '/custom/pay/$id'
     | '/admin/'
     | '/admin/products/$id'
     | '/admin/products/new'
+    | '/custom/pay/$id/success'
     | '/admin/products/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -266,8 +286,10 @@ export interface FileRouteTypes {
     | '/admin/custom-requests'
     | '/admin/orders'
     | '/admin/subscribers'
+    | '/custom/pay/$id'
     | '/admin/products/$id'
     | '/admin/products/new'
+    | '/custom/pay/$id/success'
     | '/admin/products'
   id:
     | '__root__'
@@ -290,9 +312,11 @@ export interface FileRouteTypes {
     | '/admin/_layout/orders'
     | '/admin/_layout/products'
     | '/admin/_layout/subscribers'
+    | '/custom/pay/$id'
     | '/admin/_layout/'
     | '/admin/_layout/products/$id'
     | '/admin/_layout/products/new'
+    | '/custom/pay/$id/success'
     | '/admin/_layout/products/'
   fileRoutesById: FileRoutesById
 }
@@ -303,7 +327,7 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
-  CustomRoute: typeof CustomRoute
+  CustomRoute: typeof CustomRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   ReturnsRoute: typeof ReturnsRoute
   ShippingRoute: typeof ShippingRoute
@@ -426,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutIndexRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
+    '/custom/pay/$id': {
+      id: '/custom/pay/$id'
+      path: '/pay/$id'
+      fullPath: '/custom/pay/$id'
+      preLoaderRoute: typeof CustomPayIdRouteImport
+      parentRoute: typeof CustomRoute
+    }
     '/admin/_layout/subscribers': {
       id: '/admin/_layout/subscribers'
       path: '/subscribers'
@@ -460,6 +491,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/products/'
       preLoaderRoute: typeof AdminLayoutProductsIndexRouteImport
       parentRoute: typeof AdminLayoutProductsRoute
+    }
+    '/custom/pay/$id/success': {
+      id: '/custom/pay/$id/success'
+      path: '/success'
+      fullPath: '/custom/pay/$id/success'
+      preLoaderRoute: typeof CustomPayIdSuccessRouteImport
+      parentRoute: typeof CustomPayIdRoute
     }
     '/admin/_layout/products/new': {
       id: '/admin/_layout/products/new'
@@ -525,6 +563,29 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CustomPayIdRouteChildren {
+  CustomPayIdSuccessRoute: typeof CustomPayIdSuccessRoute
+}
+
+const CustomPayIdRouteChildren: CustomPayIdRouteChildren = {
+  CustomPayIdSuccessRoute: CustomPayIdSuccessRoute,
+}
+
+const CustomPayIdRouteWithChildren = CustomPayIdRoute._addFileChildren(
+  CustomPayIdRouteChildren,
+)
+
+interface CustomRouteChildren {
+  CustomPayIdRoute: typeof CustomPayIdRouteWithChildren
+}
+
+const CustomRouteChildren: CustomRouteChildren = {
+  CustomPayIdRoute: CustomPayIdRouteWithChildren,
+}
+
+const CustomRouteWithChildren =
+  CustomRoute._addFileChildren(CustomRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -532,7 +593,7 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
-  CustomRoute: CustomRoute,
+  CustomRoute: CustomRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   ReturnsRoute: ReturnsRoute,
   ShippingRoute: ShippingRoute,

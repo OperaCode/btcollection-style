@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Heart,
   ArrowRight,
@@ -144,14 +145,14 @@ function Hero() {
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <a
-              href="#shop"
+              href="/shop"
               className="group inline-flex items-center gap-3 rounded-full bg-background px-6 py-3.5 text-[12px] font-medium uppercase tracking-[0.22em] text-ink transition hover:bg-gold"
             >
               Shop Collection
               <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
             </a>
             <a
-              href="#services"
+              href="/custom"
               className="inline-flex items-center gap-3 rounded-full border border-background/40 px-6 py-3.5 text-[12px] font-medium uppercase tracking-[0.22em] text-background transition hover:border-gold hover:text-gold"
             >
               <Gift className="h-4 w-4" />
@@ -198,7 +199,7 @@ function Categories() {
         {CATEGORIES.map((c) => (
           <a
             key={c.name}
-            href="#new"
+            href="/shop"
             className="group relative block overflow-hidden rounded-sm border border-border bg-card"
           >
             <div className="aspect-[4/5] overflow-hidden">
@@ -657,21 +658,19 @@ function FAQ() {
 function Newsletter() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading">("idle");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("loading");
-    setMessage("");
 
     const result = await subscribeNewsletter({ email, fullName, source: "homepage" });
+    setStatus("idle");
 
     if (result.ok) {
-      setStatus("success");
       setFullName("");
       setEmail("");
-      setMessage(
+      toast.success(
         result.alreadySubscribed
           ? "You are already on the newsletter list."
           : result.emailWarning
@@ -681,8 +680,7 @@ function Newsletter() {
       return;
     }
 
-    setStatus("error");
-    setMessage(
+    toast.error(
       "Your signup was saved on this device, but it could not reach Supabase yet. Please try again in a moment.",
     );
   }
@@ -733,16 +731,6 @@ function Newsletter() {
             {status === "loading" ? "Joining..." : "Subscribe"}
           </button>
         </form>
-
-        {message && (
-          <p
-            className={`mx-auto mt-4 max-w-md text-sm ${
-              status === "success" ? "text-gold-soft" : "text-primary-foreground/75"
-            }`}
-          >
-            {message}
-          </p>
-        )}
 
         <p className="mt-4 text-[11px] uppercase tracking-[0.22em] text-primary-foreground/55">
           No spam · Unsubscribe anytime

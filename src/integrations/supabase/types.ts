@@ -59,7 +59,10 @@ export type Database = {
       }
       custom_requests: {
         Row: {
+          color_preference: string | null
           created_at: string
+          customer_notification_error: string | null
+          customer_notified_at: string | null
           deadline: string | null
           delivery_preference: string | null
           design_text: string | null
@@ -72,13 +75,22 @@ export type Database = {
           notification_error: string | null
           notification_sent_at: string | null
           occasion: string | null
+          paid_at: string | null
+          phone: string | null
           quantity: number | null
+          quote_note: string | null
+          quoted_price: number | null
           sample_image_path: string | null
           status: string
+          stripe_session_id: string | null
+          timeline: string | null
           updated_at: string
         }
         Insert: {
+          color_preference?: string | null
           created_at?: string
+          customer_notification_error?: string | null
+          customer_notified_at?: string | null
           deadline?: string | null
           delivery_preference?: string | null
           design_text?: string | null
@@ -91,13 +103,22 @@ export type Database = {
           notification_error?: string | null
           notification_sent_at?: string | null
           occasion?: string | null
+          paid_at?: string | null
+          phone?: string | null
           quantity?: number | null
+          quote_note?: string | null
+          quoted_price?: number | null
           sample_image_path?: string | null
           status?: string
+          stripe_session_id?: string | null
+          timeline?: string | null
           updated_at?: string
         }
         Update: {
+          color_preference?: string | null
           created_at?: string
+          customer_notification_error?: string | null
+          customer_notified_at?: string | null
           deadline?: string | null
           delivery_preference?: string | null
           design_text?: string | null
@@ -110,9 +131,15 @@ export type Database = {
           notification_error?: string | null
           notification_sent_at?: string | null
           occasion?: string | null
+          paid_at?: string | null
+          phone?: string | null
           quantity?: number | null
+          quote_note?: string | null
+          quoted_price?: number | null
           sample_image_path?: string | null
           status?: string
+          stripe_session_id?: string | null
+          timeline?: string | null
           updated_at?: string
         }
         Relationships: []

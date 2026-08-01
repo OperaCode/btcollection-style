@@ -14,6 +14,7 @@ import logoMark from "@/assets/logo-mark.png";
 import { CartProvider } from "@/lib/cart";
 import { WishlistProvider } from "@/lib/wishlist";
 import { CartDrawer } from "@/components/site/CartDrawer";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -132,6 +133,7 @@ function RootComponent() {
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
           <CartDrawer />
+          <Toaster position="top-center" richColors />
         </WishlistProvider>
       </CartProvider>
     </QueryClientProvider>
