@@ -1,28 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { CartItem } from "@/lib/cart";
 import { sendCustomRequestConfirmation, sendCustomRequestNotification } from "@/lib/custom-request-email";
 import { sendNewsletterWelcomeEmail } from "@/lib/newsletter-email";
-
-type ShippingAddress = {
-  name: string;
-  email: string;
-  address: string;
-  city: string;
-  zip: string;
-  state: string;
-  deliveryMethod?: string;
-};
-
-type CreateOrderInput = {
-  email: string;
-  shippingAddress: ShippingAddress;
-  items: CartItem[];
-  subtotal: number;
-  shipping: number;
-  total: number;
-  deliveryMethod?: string;
-  notes?: string;
-};
 
 function offlineId(prefix: string) {
   return `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -37,60 +15,6 @@ function storeOfflineSubmission(key: string, payload: unknown) {
       JSON.stringify([...existing, { ...payload, createdAt: new Date().toISOString() }]),
     );
   } catch {}
-}
-
-// Guest checkout has no login, and orders/order_items INSERT is only granted
-// to the "authenticated" role — an anon client insert would always be denied.
-// This server function writes with the service-role client instead, so
-// guest orders actually reach the database rather than silently falling
-// through to the offline localStorage fallback below on every checkout.
-const createOrderRecord = createServerFn({ method: "POST" })
-  .validator((data: CreateOrderInput) => data)
-  .handler(async ({ data: input }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: order, error } = await supabaseAdmin
-      .from("orders")
-      .insert({
-        email: input.email,
-        shipping_address: input.shippingAddress,
-        subtotal: input.subtotal,
-        shipping: input.shipping,
-        tax: 0,
-        total: input.total,
-        status: "pending",
-        notes: input.notes ?? null,
-        delivery_method: input.deliveryMethod ?? null,
-      })
-      .select("id")
-      .single();
-
-    if (error || !order) throw error ?? new Error("Order was not created.");
-
-    const { error: itemError } = await supabaseAdmin.from("order_items").insert(
-      input.items.map((item) => ({
-        order_id: order.id,
-        product_id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.qty,
-        customization: item.customization ?? null,
-      })),
-    );
-
-    if (itemError) throw itemError;
-    return { id: order.id as string };
-  });
-
-export async function createOrder(input: CreateOrderInput) {
-  try {
-    const order = await createOrderRecord({ data: input });
-    return { id: order.id, offline: false };
-  } catch (error) {
-    const id = offlineId("BTC");
-    storeOfflineSubmission("btc.pendingOrders.v1", { ...input, id });
-    return { id, offline: true, error };
-  }
 }
 
 export async function saveContactMessage(payload: Record<string, unknown>) {

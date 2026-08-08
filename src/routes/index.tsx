@@ -451,7 +451,7 @@ function CustomCTA() {
           <div className="absolute inset-x-0 bottom-0 overflow-hidden bg-ink/88 py-3 text-background">
             <div className="animate-marquee flex w-max gap-8 text-[10px] uppercase tracking-[0.24em]">
               {[
-                "Embroidery Gift Sets",
+                "Personalized Gift Sets",
                 "Engravery Gift Sets",
                 "Prints on Mugs and Tumblers",
                 "Leather Cushion",

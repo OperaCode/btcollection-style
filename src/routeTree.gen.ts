@@ -22,6 +22,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
 import { Route as AdminLayoutIndexRouteImport } from './routes/admin/_layout/index'
@@ -100,6 +101,11 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
   path: '/product/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/success',
+  path: '/success',
+  getParentRoute: () => CheckoutRoute,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -167,7 +173,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRouteWithChildren
   '/privacy': typeof PrivacyRoute
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/orders': typeof AdminLayoutOrdersRoute
@@ -193,7 +200,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/admin': typeof AdminLayoutIndexRoute
   '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRouteWithChildren
   '/privacy': typeof PrivacyRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/orders': typeof AdminLayoutOrdersRoute
@@ -218,7 +226,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRouteWithChildren
   '/privacy': typeof PrivacyRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/admin/_layout': typeof AdminLayoutRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/_layout/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/_layout/orders': typeof AdminLayoutOrdersRoute
@@ -256,6 +265,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/admin/login'
+    | '/checkout/success'
     | '/product/$slug'
     | '/admin/custom-requests'
     | '/admin/orders'
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/admin/login'
+    | '/checkout/success'
     | '/product/$slug'
     | '/admin/custom-requests'
     | '/admin/orders'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin/_layout'
     | '/admin/login'
+    | '/checkout/success'
     | '/product/$slug'
     | '/admin/_layout/custom-requests'
     | '/admin/_layout/orders'
@@ -325,7 +337,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
   CartRoute: typeof CartRoute
-  CheckoutRoute: typeof CheckoutRoute
+  CheckoutRoute: typeof CheckoutRouteWithChildren
   ContactRoute: typeof ContactRoute
   CustomRoute: typeof CustomRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
@@ -428,6 +440,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/product/$slug'
       preLoaderRoute: typeof ProductSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/checkout/success': {
+      id: '/checkout/success'
+      path: '/success'
+      fullPath: '/checkout/success'
+      preLoaderRoute: typeof CheckoutSuccessRouteImport
+      parentRoute: typeof CheckoutRoute
     }
     '/admin/login': {
       id: '/admin/login'
@@ -563,6 +582,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CheckoutRouteChildren {
+  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
+}
+
+const CheckoutRouteChildren: CheckoutRouteChildren = {
+  CheckoutSuccessRoute: CheckoutSuccessRoute,
+}
+
+const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
+  CheckoutRouteChildren,
+)
+
 interface CustomPayIdRouteChildren {
   CustomPayIdSuccessRoute: typeof CustomPayIdSuccessRoute
 }
@@ -591,7 +622,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
   CartRoute: CartRoute,
-  CheckoutRoute: CheckoutRoute,
+  CheckoutRoute: CheckoutRouteWithChildren,
   ContactRoute: ContactRoute,
   CustomRoute: CustomRouteWithChildren,
   PrivacyRoute: PrivacyRoute,

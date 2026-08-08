@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, Lock, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Check, Lock, ArrowRight, ArrowLeft, Truck, RefreshCw, User, MapPin, Phone } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart, formatUSD } from "@/lib/cart";
-import { createOrder } from "@/lib/commerce";
+import { startOrderCheckout } from "@/lib/order-payment";
+import { getCheckoutShippingRates, type ShippingAddress, type ShippoRate } from "@/lib/shippo";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -19,26 +21,47 @@ export const Route = createFileRoute("/checkout")({
 type Step = 1 | 2 | 3;
 
 function CheckoutPage() {
-  const { items, subtotal, clear } = useCart();
+  const { items, subtotal } = useCart();
   const [step, setStep] = useState<Step>(1);
-  const [orderId, setOrderId] = useState("");
-  const [orderOffline, setOrderOffline] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const [shipping, setShipping] = useState({
     name: "",
     email: "",
+    phone: "",
     address: "",
     city: "",
     zip: "",
     state: "",
-    deliveryMethod: "standard",
   });
+  const [selectedRate, setSelectedRate] = useState<ShippoRate | null>(null);
 
-  const shippingCost =
-    shipping.deliveryMethod === "rush" ? 25 : subtotal > 75 || subtotal === 0 ? 0 : 8;
+  const shippingCost = selectedRate ? Number(selectedRate.amount) : 0;
   const total = subtotal + shippingCost;
 
-  if (items.length === 0 && step !== 3) {
+  async function handlePay() {
+    setSubmitting(true);
+    setPayError(null);
+    try {
+      const result = await startOrderCheckout({
+        data: {
+          email: shipping.email,
+          shippingAddress: shipping,
+          items,
+          subtotal,
+          shipping: shippingCost,
+          total,
+          deliveryMethod: selectedRate ? `${selectedRate.provider} ${selectedRate.service}` : undefined,
+        },
+      });
+      window.location.href = result.url;
+    } catch (err) {
+      setPayError(err instanceof Error ? err.message : "Could not start checkout. Please try again.");
+      setSubmitting(false);
+    }
+  }
+
+  if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Header />
@@ -77,39 +100,13 @@ function CheckoutPage() {
               <StepShipping data={shipping} onChange={setShipping} onNext={() => setStep(2)} />
             )}
             {step === 2 && (
-              <StepPayment
-                onBack={() => setStep(1)}
-                submitting={submitting}
-                onPay={async () => {
-                  setSubmitting(true);
-                  const order = await createOrder({
-                    email: shipping.email,
-                    shippingAddress: shipping,
-                    items,
-                    subtotal,
-                    shipping: shippingCost,
-                    total,
-                    deliveryMethod:
-                      shipping.deliveryMethod === "rush"
-                        ? "Rush / express: requested, extra fee added"
-                        : "Standard delivery: 7-8 days",
-                  });
-                  setOrderId(order.id);
-                  setOrderOffline(order.offline);
-                  clear();
-                  setStep(3);
-                  setSubmitting(false);
-                }}
-                total={total}
-              />
+              <StepDelivery address={shipping} selectedRate={selectedRate} onSelect={setSelectedRate} />
             )}
-            {step === 3 && (
-              <StepConfirmation orderId={orderId} email={shipping.email} offline={orderOffline} />
-            )}
+            {step === 3 && <StepReview shipping={shipping} selectedRate={selectedRate} />}
           </div>
 
-          {step !== 3 && (
-            <aside className="h-fit rounded-sm border border-border bg-cream/50 p-6 md:p-8">
+          <div className="flex h-fit flex-col gap-6">
+            <aside className="rounded-sm border border-border bg-cream/50 p-6 md:p-8">
               <h2 className="font-display text-xl text-ink">Order Summary</h2>
               <ul className="mt-5 divide-y divide-border">
                 {items.map((it) => (
@@ -125,7 +122,10 @@ function CheckoutPage() {
                       {it.customization?.size && (
                         <span className="text-[11px] text-muted-foreground">Size {it.customization.size}</span>
                       )}
-                      {(it.customization?.text || it.customization?.photoPath || it.customization?.note) && (
+                      {(it.customization?.text ||
+                        it.customization?.photoPath ||
+                        it.customization?.note ||
+                        it.customization?.occasion) && (
                         <span className="text-[11px] text-gold">Personalized</span>
                       )}
                     </div>
@@ -140,23 +140,68 @@ function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-foreground/75">Shipping</dt>
-                  <dd className="text-ink">
-                    {shippingCost === 0 ? "Free" : formatUSD(shippingCost)}
-                  </dd>
+                  <dd className="text-ink">{selectedRate ? formatUSD(shippingCost) : "—"}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-foreground/75">Delivery</dt>
-                  <dd className="text-right text-ink">
-                    {shipping.deliveryMethod === "rush" ? "Rush / express" : "Standard 7-8 days"}
-                  </dd>
-                </div>
+                {selectedRate && (
+                  <div className="flex justify-between">
+                    <dt className="text-foreground/75">Delivery</dt>
+                    <dd className="text-right text-ink">
+                      {selectedRate.provider} {selectedRate.service}
+                    </dd>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-border pt-3 font-display text-lg text-ink">
                   <dt>Total</dt>
                   <dd>{formatUSD(total)}</dd>
                 </div>
               </dl>
             </aside>
-          )}
+
+            {step === 2 && (
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-gold"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedRate}
+                  onClick={() => setStep(3)}
+                  className="inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Continue to Review <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="flex flex-col gap-3">
+                {payError && <p className="text-xs text-destructive">{payError}</p>}
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-gold disabled:opacity-50"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePay}
+                    disabled={submitting}
+                    className="inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                    {submitting ? "Redirecting to secure payment..." : `Complete Payment · ${formatUSD(total)}`}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -166,7 +211,7 @@ function CheckoutPage() {
 }
 
 function Steps({ step }: { step: Step }) {
-  const labels = ["Shipping", "Payment", "Confirmation"];
+  const labels = ["Shipping", "Delivery", "Review"];
   return (
     <ol className="flex items-center gap-3 text-[11px] uppercase tracking-[0.22em]">
       {labels.map((label, i) => {
@@ -203,11 +248,11 @@ function StepShipping({
   data: {
     name: string;
     email: string;
+    phone: string;
     address: string;
     city: string;
     zip: string;
     state: string;
-    deliveryMethod: string;
   };
   onChange: (v: typeof data) => void;
   onNext: () => void;
@@ -236,6 +281,18 @@ function StepShipping({
             type="email"
             value={data.email}
             onChange={(e) => onChange({ ...data, email: e.target.value })}
+            className={inputCls}
+          />
+        </Field>
+      </div>
+      <div className="mt-4">
+        <Field label="Phone">
+          <input
+            required
+            type="tel"
+            value={data.phone}
+            onChange={(e) => onChange({ ...data, phone: e.target.value })}
+            placeholder="(555) 555-5555"
             className={inputCls}
           />
         </Field>
@@ -277,162 +334,168 @@ function StepShipping({
           />
         </Field>
       </div>
-      <div className="mt-4">
-        <Field label="Delivery Speed">
-          <select
-            value={data.deliveryMethod}
-            onChange={(e) => onChange({ ...data, deliveryMethod: e.target.value })}
-            className={inputCls}
-          >
-            <option value="standard">Standard delivery: 7-8 days</option>
-            <option value="rush">Rush / express: add $25, confirmed after review</option>
-          </select>
-        </Field>
-      </div>
       <button
         type="submit"
         className="mt-8 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
       >
-        Continue to Payment <ArrowRight className="h-4 w-4" />
+        Continue to Delivery <ArrowRight className="h-4 w-4" />
       </button>
     </form>
   );
 }
 
-function StepPayment({
-  onBack,
-  onPay,
-  total,
-  submitting,
+function StepDelivery({
+  address,
+  selectedRate,
+  onSelect,
 }: {
-  onBack: () => void;
-  onPay: () => void;
-  total: number;
-  submitting: boolean;
+  address: ShippingAddress;
+  selectedRate: ShippoRate | null;
+  onSelect: (rate: ShippoRate) => void;
 }) {
-  const [card, setCard] = useState({ number: "", exp: "", cvc: "" });
+  const rates = useQuery({
+    queryKey: ["checkout-shipping-rates", address],
+    queryFn: () => getCheckoutShippingRates(address),
+  });
+
+  const sorted = rates.data?.rates ?? [];
+  const addressWarning =
+    rates.data && !rates.data.addressValid
+      ? rates.data.addressMessages[0] ||
+        "We couldn't fully verify this address. Please double-check it before continuing."
+      : null;
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onPay();
-      }}
-      className="rounded-sm border border-border bg-card p-6 md:p-8"
-    >
+    <div className="rounded-sm border border-border bg-card p-6 md:p-8">
+      <h2 className="font-display text-2xl text-ink">Delivery Method</h2>
+      <p className="mt-2 text-sm text-foreground/70">
+        Live rates for {address.city}, {address.state} {address.zip}.
+      </p>
+
+      {addressWarning && (
+        <p className="mt-4 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-xs text-ink">
+          {addressWarning}
+        </p>
+      )}
+
+      <div className="mt-6 grid gap-3">
+        {rates.isLoading && (
+          <p className="py-8 text-center text-sm text-muted-foreground">Fetching live rates...</p>
+        )}
+
+        {rates.isError && (
+          <div className="flex flex-col items-center gap-3 rounded-sm border border-destructive/30 bg-destructive/5 p-6 text-center">
+            <p className="text-sm text-destructive">
+              Couldn't fetch shipping rates. Double-check your address, or try again.
+            </p>
+            <button
+              type="button"
+              onClick={() => rates.refetch()}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-foreground/75 hover:border-gold hover:text-gold"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
+            </button>
+          </div>
+        )}
+
+        {!rates.isLoading && !rates.isError && sorted.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            No delivery options were found for this address. Please check it and go back.
+          </p>
+        )}
+
+        {sorted.map((rate) => (
+          <button
+            key={rate.object_id}
+            type="button"
+            onClick={() => onSelect(rate)}
+            className={`flex items-center justify-between gap-4 rounded-sm border p-4 text-left transition ${
+              selectedRate?.object_id === rate.object_id
+                ? "border-gold bg-gold/10"
+                : "border-border hover:border-gold/60"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Truck className="h-4 w-4 shrink-0 text-gold" />
+              <div>
+                <div className="text-sm font-medium text-ink">
+                  {rate.provider} {rate.service}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {rate.estimated_days
+                    ? `${rate.estimated_days} business day${rate.estimated_days === 1 ? "" : "s"}`
+                    : rate.duration_terms || "Estimated delivery varies"}
+                </div>
+              </div>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-ink">{formatUSD(Number(rate.amount))}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StepReview({
+  shipping,
+  selectedRate,
+}: {
+  shipping: { name: string; email: string; phone: string; address: string; city: string; state: string; zip: string };
+  selectedRate: ShippoRate | null;
+}) {
+  return (
+    <div className="rounded-sm border border-border bg-card p-6 md:p-8">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-2xl text-ink">Payment</h2>
+        <h2 className="font-display text-2xl text-ink">Review Your Order</h2>
         <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
           <Lock className="h-3.5 w-3.5 text-gold" /> Secure
         </span>
       </div>
-      <p className="mt-2 text-sm text-foreground/70">All transactions are encrypted end-to-end.</p>
-
-      <div className="mt-6 grid grid-cols-1 gap-4">
-        <Field label="Card Number">
-          <input
-            required
-            placeholder="1234 1234 1234 1234"
-            value={card.number}
-            onChange={(e) => setCard({ ...card, number: e.target.value })}
-            className={inputCls}
-          />
-        </Field>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Expiration">
-            <input
-              required
-              placeholder="MM / YY"
-              value={card.exp}
-              onChange={(e) => setCard({ ...card, exp: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="CVC">
-            <input
-              required
-              placeholder="CVC"
-              value={card.cvc}
-              onChange={(e) => setCard({ ...card, cvc: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-        </div>
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border pt-5">
-        {["Visa", "Mastercard", "Amex", "Apple Pay", "Google Pay", "Shop Pay"].map((method) => (
-          <span
-            key={method}
-            className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
-          >
-            {method}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-gold"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </button>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
-        >
-          {submitting ? "Placing Order..." : `Pay ${formatUSD(total)}`}{" "}
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function StepConfirmation({
-  orderId,
-  email,
-  offline,
-}: {
-  orderId: string;
-  email: string;
-  offline: boolean;
-}) {
-  return (
-    <div className="rounded-sm border border-border bg-card p-10 text-center">
-      <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-gold/15 text-gold">
-        <Sparkles className="h-6 w-6" />
-      </div>
-      <h2 className="mt-6 font-display text-4xl text-ink">Thank you!</h2>
-      <p className="mt-3 text-sm text-foreground/75">
-        Your order <span className="font-medium text-ink">{orderId}</span> is confirmed.
+      <p className="mt-2 text-sm text-foreground/70">
+        Please double-check everything below before you complete payment.
       </p>
-      {email && (
-        <p className="mt-1 text-sm text-foreground/75">
-          A receipt has been sent to <span className="text-ink">{email}</span>.
-        </p>
-      )}
-      {offline && (
-        <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-muted-foreground">
-          The order was saved locally because the storefront could not reach Supabase. It will need
-          to be reconciled before fulfillment.
-        </p>
-      )}
-      <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-        <Link
-          to="/shop"
-          className="inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
-        >
-          Continue Shopping <ArrowRight className="h-4 w-4" />
-        </Link>
-        <Link
-          to="/"
-          className="inline-flex items-center justify-center gap-3 rounded-full border border-border px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-foreground/75 hover:border-gold hover:text-gold"
-        >
-          Back to Home
-        </Link>
+
+      <div className="mt-6 grid gap-4">
+        <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
+          <User className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+          <div className="text-sm">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Contact</div>
+            <div className="mt-1 text-ink">{shipping.name}</div>
+            <div className="text-foreground/75">{shipping.email}</div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+          <div className="text-sm">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Shipping Address
+            </div>
+            <div className="mt-1 text-foreground/75">
+              {shipping.address}, {shipping.city}, {shipping.state} {shipping.zip}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
+          <Phone className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+          <div className="text-sm">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Phone</div>
+            <div className="mt-1 text-foreground/75">{shipping.phone}</div>
+          </div>
+        </div>
+
+        {selectedRate && (
+          <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
+            <Truck className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+            <div className="text-sm">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Delivery</div>
+              <div className="mt-1 text-foreground/75">
+                {selectedRate.provider} {selectedRate.service}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

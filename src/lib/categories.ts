@@ -2,11 +2,10 @@
 // migration, the admin product form, and the shop filter chips — previously
 // three separate, drifting lists existed across the codebase.
 export const CATEGORIES = [
-  "Embroidery Apparel",
-  "Embroidery Home & Accessories",
-  "Engraved Drinkware",
-  "Engraved Accessories",
-  "Gift Sets & Stationery",
+  "Faith Apparel",
+  "Mugs & Tumblers",
+  "Accessories",
+  "Gift Sets",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];

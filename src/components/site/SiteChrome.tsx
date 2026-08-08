@@ -251,7 +251,7 @@ export function Header() {
                   {p.category}
                 </div>
               </div>
-              <span className="text-sm font-medium text-ink">{formatUSD(p.price)}</span>
+              <span className="text-sm font-medium text-ink">{formatUSD(p.base_price)}</span>
             </Link>
           ))}
         </div>

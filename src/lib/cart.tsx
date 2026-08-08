@@ -5,6 +5,7 @@ export type CartCustomization = {
   text?: string;
   photoPath?: string;
   note?: string;
+  occasion?: string;
 };
 
 export type CartItem = {
@@ -35,8 +36,8 @@ const STORAGE_KEY = "btc.cart.v2";
 
 function keyOf(id: string, customization?: CartCustomization) {
   if (!customization) return id;
-  const { size, text, photoPath, note } = customization;
-  return `${id}::${[size, text, photoPath, note].map((v) => v ?? "").join("|")}`;
+  const { size, text, photoPath, note, occasion } = customization;
+  return `${id}::${[size, text, photoPath, note, occasion].map((v) => v ?? "").join("|")}`;
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
