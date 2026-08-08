@@ -59,7 +59,10 @@ export type Database = {
       }
       custom_requests: {
         Row: {
+          color_preference: string | null
           created_at: string
+          customer_notification_error: string | null
+          customer_notified_at: string | null
           deadline: string | null
           delivery_preference: string | null
           design_text: string | null
@@ -72,13 +75,22 @@ export type Database = {
           notification_error: string | null
           notification_sent_at: string | null
           occasion: string | null
+          paid_at: string | null
+          phone: string | null
           quantity: number | null
+          quote_note: string | null
+          quoted_price: number | null
           sample_image_path: string | null
           status: string
+          stripe_session_id: string | null
+          timeline: string | null
           updated_at: string
         }
         Insert: {
+          color_preference?: string | null
           created_at?: string
+          customer_notification_error?: string | null
+          customer_notified_at?: string | null
           deadline?: string | null
           delivery_preference?: string | null
           design_text?: string | null
@@ -91,13 +103,22 @@ export type Database = {
           notification_error?: string | null
           notification_sent_at?: string | null
           occasion?: string | null
+          paid_at?: string | null
+          phone?: string | null
           quantity?: number | null
+          quote_note?: string | null
+          quoted_price?: number | null
           sample_image_path?: string | null
           status?: string
+          stripe_session_id?: string | null
+          timeline?: string | null
           updated_at?: string
         }
         Update: {
+          color_preference?: string | null
           created_at?: string
+          customer_notification_error?: string | null
+          customer_notified_at?: string | null
           deadline?: string | null
           delivery_preference?: string | null
           design_text?: string | null
@@ -110,9 +131,15 @@ export type Database = {
           notification_error?: string | null
           notification_sent_at?: string | null
           occasion?: string | null
+          paid_at?: string | null
+          phone?: string | null
           quantity?: number | null
+          quote_note?: string | null
+          quoted_price?: number | null
           sample_image_path?: string | null
           status?: string
+          stripe_session_id?: string | null
+          timeline?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -204,13 +231,21 @@ export type Database = {
           delivery_method: string | null
           email: string
           id: string
+          label_purchased_at: string | null
           notes: string | null
           shipping: number
           shipping_address: Json | null
+          shipping_label_url: string | null
+          shippo_rate_id: string | null
+          shippo_shipment_id: string | null
+          square_checkout_order_id: string | null
+          square_payment_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           tax: number
           total: number
+          tracking_number: string | null
+          tracking_url: string | null
           updated_at: string
           user_id: string | null
         }
@@ -219,13 +254,21 @@ export type Database = {
           delivery_method?: string | null
           email: string
           id?: string
+          label_purchased_at?: string | null
           notes?: string | null
           shipping?: number
           shipping_address?: Json | null
+          shipping_label_url?: string | null
+          shippo_rate_id?: string | null
+          shippo_shipment_id?: string | null
+          square_checkout_order_id?: string | null
+          square_payment_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tax?: number
           total?: number
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -234,13 +277,21 @@ export type Database = {
           delivery_method?: string | null
           email?: string
           id?: string
+          label_purchased_at?: string | null
           notes?: string | null
           shipping?: number
           shipping_address?: Json | null
+          shipping_label_url?: string | null
+          shippo_rate_id?: string | null
+          shippo_shipment_id?: string | null
+          square_checkout_order_id?: string | null
+          square_payment_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tax?: number
           total?: number
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -248,6 +299,7 @@ export type Database = {
       }
       products: {
         Row: {
+          base_price: number
           best_seller: boolean
           category: string
           created_at: string
@@ -255,16 +307,18 @@ export type Database = {
           description: string | null
           featured: boolean
           id: string
+          image_addon_price: number
           images: string[]
           in_stock: boolean
           name: string
           occasions: string[] | null
-          price: number
           sizes: string[] | null
           slug: string
+          text_addon_price: number
           updated_at: string
         }
         Insert: {
+          base_price?: number
           best_seller?: boolean
           category: string
           created_at?: string
@@ -272,16 +326,18 @@ export type Database = {
           description?: string | null
           featured?: boolean
           id?: string
+          image_addon_price?: number
           images?: string[]
           in_stock?: boolean
           name: string
           occasions?: string[] | null
-          price?: number
           sizes?: string[] | null
           slug: string
+          text_addon_price?: number
           updated_at?: string
         }
         Update: {
+          base_price?: number
           best_seller?: boolean
           category?: string
           created_at?: string
@@ -289,13 +345,14 @@ export type Database = {
           description?: string | null
           featured?: boolean
           id?: string
+          image_addon_price?: number
           images?: string[]
           in_stock?: boolean
           name?: string
           occasions?: string[] | null
-          price?: number
           sizes?: string[] | null
           slug?: string
+          text_addon_price?: number
           updated_at?: string
         }
         Relationships: []

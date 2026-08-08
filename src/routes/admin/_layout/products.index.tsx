@@ -56,7 +56,7 @@ function AdminProductsPage() {
               <tr key={p.id}>
                 <td className="px-5 py-3 text-ink">{p.name}</td>
                 <td className="px-5 py-3 text-foreground/75">{p.category}</td>
-                <td className="px-5 py-3 text-ink">{formatUSD(Number(p.price))}</td>
+                <td className="px-5 py-3 text-ink">{formatUSD(Number(p.base_price))}</td>
                 <td className="px-5 py-3">
                   <ToggleDot
                     active={p.in_stock}

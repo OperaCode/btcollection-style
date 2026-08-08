@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { handleSquareWebhook } from "./lib/square-webhook";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -39,6 +40,19 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    // Raw webhook receiver, handled before the TanStack Start/Router
+    // pipeline — this is a plain server-to-server POST from Square, not an
+    // RPC call from our own client, so it doesn't go through createServerFn.
+    const url = new URL(request.url);
+    if (url.pathname === "/webhooks/square" && request.method === "POST") {
+      try {
+        return await handleSquareWebhook(request);
+      } catch (error) {
+        console.error(error);
+        return new Response("Internal error", { status: 500 });
+      }
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);

@@ -6,7 +6,9 @@ export type ProductFormValues = {
   name: string;
   slug: string;
   category: string;
-  price: number;
+  base_price: number;
+  text_addon_price: number;
+  image_addon_price: number;
   description: string;
   images: string[];
   customizable: boolean;
@@ -36,7 +38,9 @@ export function AdminProductForm({
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(initial));
   const [category, setCategory] = useState(initial?.category ?? PRODUCT_CATEGORIES[0]);
-  const [price, setPrice] = useState(initial ? String(initial.price) : "");
+  const [basePrice, setBasePrice] = useState(initial ? String(initial.base_price) : "");
+  const [textAddonPrice, setTextAddonPrice] = useState(initial ? String(initial.text_addon_price) : "0");
+  const [imageAddonPrice, setImageAddonPrice] = useState(initial ? String(initial.image_addon_price) : "0");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [images, setImages] = useState((initial?.images ?? []).join("\n"));
   const [customizable, setCustomizable] = useState(initial?.customizable ?? false);
@@ -57,7 +61,9 @@ export function AdminProductForm({
             name,
             slug: slug || slugify(name),
             category,
-            price: Number(price) || 0,
+            base_price: Number(basePrice) || 0,
+            text_addon_price: Number(textAddonPrice) || 0,
+            image_addon_price: Number(imageAddonPrice) || 0,
             description,
             images: images
               .split("\n")
@@ -110,14 +116,39 @@ export function AdminProductForm({
             ))}
           </select>
         </Field>
-        <Field label="Price (USD)">
+        <Field label="Base Price (USD)">
           <input
             required
             type="number"
             min={0}
             step="0.01"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            value={basePrice}
+            onChange={(e) => setBasePrice(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Personalization Text Add-on (USD)">
+          <input
+            required
+            type="number"
+            min={0}
+            step="0.01"
+            value={textAddonPrice}
+            onChange={(e) => setTextAddonPrice(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Photo Upload Add-on (USD)">
+          <input
+            required
+            type="number"
+            min={0}
+            step="0.01"
+            value={imageAddonPrice}
+            onChange={(e) => setImageAddonPrice(e.target.value)}
             className={inputCls}
           />
         </Field>

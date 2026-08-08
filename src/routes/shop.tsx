@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Heart, Search, SlidersHorizontal, ShoppingBag, Sparkles } from "lucide-react";
+import { Heart, Search, SlidersHorizontal, ShoppingBag, Sparkles, Tag, type LucideIcon } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { listPublicProducts, PRODUCTS_QUERY_KEY, type Product } from "@/lib/catalog";
 import { useCart, formatUSD } from "@/lib/cart";
@@ -29,25 +29,13 @@ export const Route = createFileRoute("/shop")({
 
 const FILTERS = ["All", ...CATEGORIES] as const;
 const SORTS = ["Newest", "Price: Low to High", "Price: High to Low", "Popular"] as const;
-const OCCASIONS = [
-  "All",
-  "Birthday",
-  "Ministry",
-  "Mother's Day",
-  "Father's Day",
-  "Wedding",
-  "Anniversary",
-  "Thank You",
-  "Corporate",
-] as const;
 const PRICE_RANGES = ["All", "Under $30", "$30 - $60", "$60+"] as const;
 
 function ShopPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
-  const [occasion, setOccasion] = useState<(typeof OCCASIONS)[number]>("All");
   const [priceRange, setPriceRange] = useState<(typeof PRICE_RANGES)[number]>("All");
   const [sort, setSort] = useState<(typeof SORTS)[number]>("Newest");
-  const [sortOpen, setSortOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<"sort" | "price" | null>(null);
   const [query, setQuery] = useState("");
   const { add } = useCart();
   const wishlist = useWishlist();
@@ -57,12 +45,11 @@ function ShopPage() {
     const q = query.trim().toLowerCase();
     const filtered = (products.data ?? []).filter((p) => {
       const matchesCategory = filter === "All" || p.category === filter;
-      const matchesOccasion = occasion === "All" || p.occasions?.includes(occasion);
       const matchesPrice =
         priceRange === "All" ||
-        (priceRange === "Under $30" && p.price < 30) ||
-        (priceRange === "$30 - $60" && p.price >= 30 && p.price <= 60) ||
-        (priceRange === "$60+" && p.price > 60);
+        (priceRange === "Under $30" && p.base_price < 30) ||
+        (priceRange === "$30 - $60" && p.base_price >= 30 && p.base_price <= 60) ||
+        (priceRange === "$60+" && p.base_price > 60);
       const matchesQuery =
         !q ||
         [p.name, p.category, p.description ?? "", ...(p.occasions ?? [])]
@@ -70,22 +57,22 @@ function ShopPage() {
           .toLowerCase()
           .includes(q);
 
-      return matchesCategory && matchesOccasion && matchesPrice && matchesQuery;
+      return matchesCategory && matchesPrice && matchesQuery;
     });
 
     const sorted = [...filtered];
-    if (sort === "Price: Low to High") sorted.sort((a, b) => a.price - b.price);
-    else if (sort === "Price: High to Low") sorted.sort((a, b) => b.price - a.price);
+    if (sort === "Price: Low to High") sorted.sort((a, b) => a.base_price - b.base_price);
+    else if (sort === "Price: High to Low") sorted.sort((a, b) => b.base_price - a.base_price);
     else if (sort === "Popular") sorted.sort((a, b) => Number(b.best_seller) - Number(a.best_seller));
     return sorted;
-  }, [filter, occasion, priceRange, query, sort, products.data]);
+  }, [filter, priceRange, query, sort, products.data]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
       <section className="mx-auto max-w-7xl px-4 pt-8 pb-20 md:px-8 md:pt-10 md:pb-24">
-        <div className="mb-10 grid gap-5 rounded-sm border border-border bg-cream/70 p-4 shadow-sm md:p-6">
+        <div className="mb-8 grid gap-5 rounded-sm border border-border bg-cream/70 p-4 shadow-sm md:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative max-w-xl flex-1">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gold" />
@@ -97,47 +84,45 @@ function ShopPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between gap-4 lg:justify-end">
+            <div className="flex items-center justify-between gap-3 lg:justify-end">
               <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                 {list.length} {list.length === 1 ? "piece" : "pieces"}
               </p>
-              <div className="relative">
-                <button
-                  onClick={() => setSortOpen((v) => !v)}
-                  className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-background px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-ink shadow-sm hover:border-gold hover:text-gold"
-                >
-                  <SlidersHorizontal className="h-3.5 w-3.5" /> {sort}
-                </button>
-                {sortOpen && (
-                  <div className="absolute right-0 z-20 mt-2 w-56 rounded-sm border border-border bg-background shadow-lg">
-                    {SORTS.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => {
-                          setSort(s);
-                          setSortOpen(false);
-                        }}
-                        className={`block w-full px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.2em] transition hover:bg-cream ${
-                          s === sort ? "text-gold" : "text-foreground/75"
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <Dropdown
+                label={priceRange}
+                icon={Tag}
+                options={PRICE_RANGES}
+                value={priceRange}
+                onChange={(v) => {
+                  setPriceRange(v);
+                  setOpenMenu(null);
+                }}
+                isOpen={openMenu === "price"}
+                onToggle={() => setOpenMenu((m) => (m === "price" ? null : "price"))}
+              />
+              <Dropdown
+                label={sort}
+                icon={SlidersHorizontal}
+                options={SORTS}
+                value={sort}
+                onChange={(v) => {
+                  setSort(v);
+                  setOpenMenu(null);
+                }}
+                isOpen={openMenu === "sort"}
+                onToggle={() => setOpenMenu((m) => (m === "sort" ? null : "sort"))}
+              />
             </div>
           </div>
 
           <div>
             <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-ink">Collection</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="no-scrollbar flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible">
               {FILTERS.map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.22em] shadow-sm transition ${
+                  className={`shrink-0 rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.22em] shadow-sm transition ${
                     filter === f
                       ? "border-ink bg-ink text-background"
                       : "border-ink/15 bg-background text-ink hover:border-gold hover:bg-gold/10 hover:text-ink"
@@ -148,42 +133,30 @@ function ShopPage() {
               ))}
             </div>
           </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <FilterGroup
-              label="Occasion"
-              values={OCCASIONS}
-              value={occasion}
-              onChange={setOccasion}
-            />
-            <FilterGroup
-              label="Price"
-              values={PRICE_RANGES}
-              value={priceRange}
-              onChange={setPriceRange}
-            />
-          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-          {list.map((p) => (
-            <ProductCard
-              key={p.slug}
-              p={p}
-              wished={wishlist.has(p.slug)}
-              onWish={() => wishlist.toggle(p.slug)}
-              onAdd={() => add({ id: p.id, slug: p.slug, name: p.name, price: p.price, img: p.images[0] ?? "" })}
-            />
-          ))}
-        </div>
+        <div className="mb-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
 
-        {products.isLoading && (
-          <p className="py-20 text-center text-sm text-muted-foreground">Loading the collection...</p>
-        )}
-        {!products.isLoading && list.length === 0 && (
+        {products.isLoading ? (
+          <ProductGridSkeleton />
+        ) : list.length === 0 ? (
           <p className="py-20 text-center text-sm text-muted-foreground">
             No pieces match this filter yet.
           </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+            {list.map((p) => (
+              <ProductCard
+                key={p.slug}
+                p={p}
+                wished={wishlist.has(p.slug)}
+                onWish={() => wishlist.toggle(p.slug)}
+                onAdd={() =>
+                  add({ id: p.id, slug: p.slug, name: p.name, price: p.base_price, img: p.images[0] ?? "" })
+                }
+              />
+            ))}
+          </div>
         )}
       </section>
 
@@ -192,35 +165,61 @@ function ShopPage() {
   );
 }
 
-function FilterGroup<T extends string>({
+function Dropdown<T extends string>({
   label,
-  values,
+  icon: Icon,
+  options,
   value,
   onChange,
+  isOpen,
+  onToggle,
 }: {
   label: string;
-  values: readonly T[];
+  icon: LucideIcon;
+  options: readonly T[];
   value: T;
   onChange: (value: T) => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
   return (
-    <div>
-      <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-ink">{label}</div>
-      <div className="flex flex-wrap gap-2">
-        {values.map((v) => (
-          <button
-            key={v}
-            onClick={() => onChange(v)}
-            className={`rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] shadow-sm transition ${
-              value === v
-                ? "border-gold bg-gold text-ink"
-                : "border-ink/15 bg-background text-ink hover:border-gold hover:bg-gold/10"
-            }`}
-          >
-            {v}
-          </button>
-        ))}
-      </div>
+    <div className="relative">
+      <button
+        onClick={onToggle}
+        className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-background px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-ink shadow-sm hover:border-gold hover:text-gold"
+      >
+        <Icon className="h-3.5 w-3.5" /> {label}
+      </button>
+      {isOpen && (
+        <div className="absolute right-0 z-20 mt-2 w-56 rounded-sm border border-border bg-background shadow-lg">
+          {options.map((o) => (
+            <button
+              key={o}
+              onClick={() => onChange(o)}
+              className={`block w-full px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.2em] transition hover:bg-cream ${
+                o === value ? "text-gold" : "text-foreground/75"
+              }`}
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="animate-pulse">
+          <div className="aspect-[4/5] rounded-sm bg-muted" />
+          <div className="mt-4 h-2.5 w-1/3 rounded-full bg-muted" />
+          <div className="mt-2 h-4 w-2/3 rounded-full bg-muted" />
+          <div className="mt-2 h-3.5 w-1/4 rounded-full bg-muted" />
+        </div>
+      ))}
     </div>
   );
 }
@@ -292,7 +291,10 @@ function ProductCard({
         >
           {p.name}
         </Link>
-        <span className="text-sm font-medium text-ink">{formatUSD(p.price)}</span>
+        <span className="text-sm font-medium text-ink">
+          {p.text_addon_price > 0 || p.image_addon_price > 0 ? "From " : ""}
+          {formatUSD(p.base_price)}
+        </span>
       </div>
     </article>
   );

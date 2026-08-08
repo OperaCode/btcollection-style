@@ -67,6 +67,7 @@ function ProductPage() {
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
   const [personalization, setPersonalization] = useState("");
+  const [occasion, setOccasion] = useState("");
   const [note, setNote] = useState("");
   const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -99,6 +100,13 @@ function ProductPage() {
   }
   const [openPanel, setOpenPanel] = useState("details");
 
+  const textAddonApplies = product.text_addon_price > 0 && personalization.trim().length > 0;
+  const imageAddonApplies = product.image_addon_price > 0 && Boolean(photoPath);
+  const unitPrice =
+    product.base_price +
+    (textAddonApplies ? product.text_addon_price : 0) +
+    (imageAddonApplies ? product.image_addon_price : 0);
+
   const allProducts = useQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: listPublicProducts });
   const related = (allProducts.data ?? [])
     .filter((p) => p.slug !== product.slug && p.category === product.category)
@@ -123,26 +131,33 @@ function ProductPage() {
       </div>
 
       <section className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-12 md:grid-cols-2 md:px-8 md:py-16">
-        <div className="flex flex-col-reverse gap-4 md:flex-row">
-          <div className="flex gap-3 md:flex-col">
-            {product.images.map((g, i) => (
-              <button
-                key={i}
-                onClick={() => setActive(i)}
-                className={`h-20 w-16 shrink-0 overflow-hidden rounded-sm border transition md:h-24 md:w-20 ${
-                  i === active ? "border-gold" : "border-border hover:border-foreground/40"
-                }`}
-              >
-                <img src={g} alt="" className="h-full w-full object-cover" />
-              </button>
-            ))}
-          </div>
-          <div className="relative flex-1 overflow-hidden rounded-sm bg-muted">
-            <img
-              src={product.images[active]}
-              alt={product.name}
-              className="aspect-[4/5] w-full object-cover transition duration-500 hover:scale-105"
-            />
+        <div>
+          {product.customizable && product.images.length > 1 && (
+            <p className="mb-3 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+              Design examples — tap a thumbnail for inspiration
+            </p>
+          )}
+          <div className="flex flex-col-reverse gap-4 md:flex-row">
+            <div className="flex gap-3 md:flex-col">
+              {product.images.map((g, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActive(i)}
+                  className={`h-20 w-16 shrink-0 overflow-hidden rounded-sm border transition md:h-24 md:w-20 ${
+                    i === active ? "border-gold" : "border-border hover:border-foreground/40"
+                  }`}
+                >
+                  <img src={g} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+            <div className="relative flex-1 overflow-hidden rounded-sm bg-muted">
+              <img
+                src={product.images[active]}
+                alt={product.name}
+                className="aspect-[4/5] w-full object-cover transition duration-500 hover:scale-105"
+              />
+            </div>
           </div>
         </div>
 
@@ -158,8 +173,15 @@ function ProductPage() {
               </span>
             </div>
           )}
-          <div className="mt-4 flex items-center gap-4">
-            <span className="font-display text-2xl text-ink">{formatUSD(product.price)}</span>
+          <div className="mt-4 flex flex-col gap-1">
+            <span className="font-display text-2xl text-ink">{formatUSD(unitPrice)}</span>
+            {(textAddonApplies || imageAddonApplies) && (
+              <p className="text-xs text-muted-foreground">
+                {formatUSD(product.base_price)} base
+                {textAddonApplies && <> + {formatUSD(product.text_addon_price)} personalization</>}
+                {imageAddonApplies && <> + {formatUSD(product.image_addon_price)} photo</>}
+              </p>
+            )}
           </div>
           <p className="mt-6 text-sm leading-relaxed text-foreground/80">{product.description}</p>
 
@@ -194,8 +216,11 @@ function ProductPage() {
               </div>
               <div className="mt-4 grid gap-4">
                 <label className="grid gap-2">
-                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                     Name, phrase, logo text, or monogram
+                    {product.text_addon_price > 0 && (
+                      <span className="text-gold">+{formatUSD(product.text_addon_price)}</span>
+                    )}
                   </span>
                   <input
                     value={personalization}
@@ -205,9 +230,24 @@ function ProductPage() {
                   />
                 </label>
 
-                <div className="grid gap-2">
+                <label className="grid gap-2">
                   <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Occasion (optional)
+                  </span>
+                  <input
+                    value={occasion}
+                    onChange={(e) => setOccasion(e.target.value)}
+                    placeholder="Birthday, wedding, ministry..."
+                    className="h-11 rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-gold"
+                  />
+                </label>
+
+                <div className="grid gap-2">
+                  <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                     Upload a photo (optional)
+                    {product.image_addon_price > 0 && (
+                      <span className="text-gold">+{formatUSD(product.image_addon_price)}</span>
+                    )}
                   </span>
                   {photoPreview ? (
                     <div className="flex items-center gap-3">
@@ -287,15 +327,16 @@ function ProductPage() {
                     id: product.id,
                     slug: product.slug,
                     name: product.name,
-                    price: product.price,
+                    price: unitPrice,
                     img: product.images[0],
                     customization:
-                      size || personalization || photoPath || note
+                      size || personalization || photoPath || note || occasion
                         ? {
                             size,
                             text: personalization || undefined,
                             photoPath: photoPath ?? undefined,
                             note: note || undefined,
+                            occasion: occasion || undefined,
                           }
                         : undefined,
                   },
@@ -309,7 +350,7 @@ function ProductPage() {
               ) : (
                 <ShoppingBag className="h-4 w-4" />
               )}{" "}
-              Add to Bag · {formatUSD(product.price * qty)}
+              Add to Bag · {formatUSD(unitPrice * qty)}
             </button>
             <button
               aria-label="Wishlist"
@@ -397,7 +438,7 @@ function ProductPage() {
                   <h3 className="mt-3 font-display text-lg text-ink group-hover:text-gold">
                     {p.name}
                   </h3>
-                  <p className="mt-1 text-sm text-ink">{formatUSD(p.price)}</p>
+                  <p className="mt-1 text-sm text-ink">{formatUSD(p.base_price)}</p>
                 </Link>
               ))}
             </div>
