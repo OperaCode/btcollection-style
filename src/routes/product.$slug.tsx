@@ -1,7 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
   Heart,
@@ -14,12 +13,40 @@ import {
   ImagePlus,
   Loader2,
   X,
+  Info,
+  Shield,
+  ArrowRight,
+  type LucideIcon,
 } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
-import { getPublicProduct, listPublicProducts, PRODUCTS_QUERY_KEY, type Product } from "@/lib/catalog";
+import { getPublicProduct, type Product } from "@/lib/catalog";
 import { useCart, formatUSD } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { uploadCustomizationPhoto } from "@/lib/uploads";
+
+const CATEGORY_COPY: Record<string, { materials: string; care: string; processing: string }> = {
+  "Faith Apparel": {
+    materials: "Premium cotton-blend fabric with a soft, durable print or embroidered finish.",
+    care: "Machine wash cold, inside out, with like colors. Tumble dry low and avoid ironing directly over any design.",
+    processing: "Personalized apparel ships in 5–7 business days.",
+  },
+  "Mugs & Tumblers": {
+    materials:
+      "Durable ceramic or double-wall insulated stainless steel with a glossy, fade-resistant print.",
+    care: "Ceramic mugs are dishwasher and microwave safe. Insulated tumblers should be hand washed.",
+    processing: "Custom drinkware ships in 3–5 business days.",
+  },
+  Accessories: {
+    materials: "Quality hardware and finishes, hand-inspected before packing.",
+    care: "Wipe clean with a soft, dry cloth and keep away from moisture.",
+    processing: "Ships in 3–5 business days.",
+  },
+  "Gift Sets": {
+    materials: "Curated pieces packed together in gift-ready presentation.",
+    care: "Follow the care instructions for each individual piece included in the set.",
+    processing: "Gift sets ship in 5–7 business days.",
+  },
+};
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
@@ -85,7 +112,12 @@ function ProductPage() {
       const path = await uploadCustomizationPhoto(file);
       setPhotoPath(path);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      const message = err instanceof Error ? err.message : "Upload failed. Please try again.";
+      setUploadError(
+        message.includes("Bucket not found") || message.includes("not found")
+          ? "Photo upload is temporarily unavailable. Please try again later or continue without a photo."
+          : message,
+      );
       setPhotoPreview(null);
       setPhotoPath(null);
     } finally {
@@ -98,7 +130,7 @@ function ProductPage() {
     setPhotoPreview(null);
     setUploadError(null);
   }
-  const [openPanel, setOpenPanel] = useState("details");
+  const [openPanel, setOpenPanel] = useState(product.customizable ? "guidelines" : "shipping");
 
   const textAddonApplies = product.text_addon_price > 0 && personalization.trim().length > 0;
   const imageAddonApplies = product.image_addon_price > 0 && Boolean(photoPath);
@@ -107,17 +139,19 @@ function ProductPage() {
     (textAddonApplies ? product.text_addon_price : 0) +
     (imageAddonApplies ? product.image_addon_price : 0);
 
-  const allProducts = useQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: listPublicProducts });
-  const related = (allProducts.data ?? [])
-    .filter((p) => p.slug !== product.slug && p.category === product.category)
-    .slice(0, 4);
+  const thumbs = product.images;
+  const activeThumb = thumbs[active] ?? thumbs[0];
+  const isDrinkware =
+    product.category === "Mugs & Tumblers" || product.category === "Engraved Drinkware";
+  const inspirationCategory = isDrinkware ? "Mugs & Tumblers" : "";
+  const copy = CATEGORY_COPY[product.category] ?? CATEGORY_COPY.Accessories;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
       <div className="border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 py-4 text-[11px] uppercase tracking-[0.22em] text-muted-foreground md:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-3 text-[11px] uppercase tracking-[0.22em] text-muted-foreground md:px-8">
           <Link to="/" className="hover:text-gold">
             Home
           </Link>
@@ -130,51 +164,68 @@ function ProductPage() {
         </div>
       </div>
 
-      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-12 md:grid-cols-2 md:px-8 md:py-16">
-        <div>
-          {product.customizable && product.images.length > 1 && (
+      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-8 md:grid-cols-2 md:px-8 md:py-10">
+        <div className="md:sticky md:top-24 md:max-w-[460px] md:self-start">
+          {thumbs.length > 1 && (
             <p className="mb-3 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              Design examples — tap a thumbnail for inspiration
+              Tap a photo to preview
             </p>
           )}
-          <div className="flex flex-col-reverse gap-4 md:flex-row">
-            <div className="flex gap-3 md:flex-col">
-              {product.images.map((g, i) => (
+          <div className="flex flex-col-reverse gap-3 md:flex-row">
+            <div className="flex gap-3 overflow-x-auto pb-1 md:max-h-[440px] md:flex-col md:overflow-y-auto md:overflow-x-visible md:pb-0 md:pr-1">
+              {thumbs.map((url, i) => (
                 <button
                   key={i}
                   onClick={() => setActive(i)}
-                  className={`h-20 w-16 shrink-0 overflow-hidden rounded-sm border transition md:h-24 md:w-20 ${
-                    i === active ? "border-gold" : "border-border hover:border-foreground/40"
+                  className={`relative h-14 w-12 shrink-0 overflow-hidden rounded-sm border-2 transition md:h-16 md:w-14 ${
+                    i === active ? "border-gold" : "border-border hover:border-ink/40"
                   }`}
                 >
-                  <img src={g} alt="" className="h-full w-full object-cover" />
+                  <img src={url} alt="" className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>
-            <div className="relative flex-1 overflow-hidden rounded-sm bg-muted">
+            <div className="relative aspect-[4/5] flex-1 overflow-hidden rounded-sm border border-border bg-cream shadow-sm">
               <img
-                src={product.images[active]}
+                src={activeThumb ?? product.images[0]}
                 alt={product.name}
-                className="aspect-[4/5] w-full object-cover transition duration-500 hover:scale-105"
+                className="h-full w-full object-cover transition duration-300 hover:scale-[1.03]"
               />
             </div>
           </div>
+          <Link
+            to="/inspiration"
+            search={{ category: inspirationCategory }}
+            className="group mt-4 flex items-center justify-between gap-3 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-ink transition hover:border-gold hover:bg-gold/20"
+          >
+            <span className="flex items-center gap-2.5">
+              <ImagePlus className="h-4 w-4 text-gold" />
+              <span className="text-[11px] font-medium uppercase tracking-[0.2em]">
+                See more inspiration
+              </span>
+            </span>
+            <ArrowRight className="h-4 w-4 text-gold transition group-hover:translate-x-0.5" />
+          </Link>
         </div>
 
         <div className="flex flex-col">
-          <p className="text-[11px] uppercase tracking-[0.28em] text-gold">{product.category}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-gold">
+            {product.category}
+          </p>
           <h1 className="mt-3 font-display text-4xl leading-tight text-ink md:text-5xl">
             {product.name}
           </h1>
           {product.best_seller && (
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full border border-gold/50 bg-gold/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-ink">
+              <span className="rounded-full bg-gold px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink shadow-sm">
                 Best Seller
               </span>
             </div>
           )}
-          <div className="mt-4 flex flex-col gap-1">
-            <span className="font-display text-2xl text-ink">{formatUSD(unitPrice)}</span>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-baseline rounded-full bg-cream px-4 py-1.5 font-display text-2xl text-ink">
+              {formatUSD(unitPrice)}
+            </span>
             {(textAddonApplies || imageAddonApplies) && (
               <p className="text-xs text-muted-foreground">
                 {formatUSD(product.base_price)} base
@@ -183,7 +234,9 @@ function ProductPage() {
               </p>
             )}
           </div>
-          <p className="mt-6 text-sm leading-relaxed text-foreground/80">{product.description}</p>
+          <div className="mt-5 max-h-28 overflow-y-auto pr-2 text-sm leading-snug text-foreground/80">
+            {product.description}
+          </div>
 
           {product.sizes && (
             <div className="mt-8">
@@ -210,43 +263,47 @@ function ProductPage() {
           )}
 
           {product.customizable && (
-            <div className="mt-8 rounded-sm border border-border bg-cream/50 p-5">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-gold">
-                Personalization
+            <div className="mt-8 rounded-md border-2 border-gold/50 bg-cream p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">
+                <Sparkles className="h-3.5 w-3.5" /> Personalize This Piece
               </div>
               <div className="mt-4 grid gap-4">
                 <label className="grid gap-2">
-                  <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-foreground/70">
                     Name, phrase, logo text, or monogram
                     {product.text_addon_price > 0 && (
-                      <span className="text-gold">+{formatUSD(product.text_addon_price)}</span>
+                      <span className="font-semibold text-gold">
+                        +{formatUSD(product.text_addon_price)}
+                      </span>
                     )}
                   </span>
                   <input
                     value={personalization}
                     onChange={(e) => setPersonalization(e.target.value)}
                     placeholder="Example: Faith Over Fear"
-                    className="h-11 rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-gold"
+                    className="h-11 rounded-sm border border-ink/20 bg-background px-3 text-sm shadow-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
                   />
                 </label>
 
                 <label className="grid gap-2">
-                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-foreground/70">
                     Occasion (optional)
                   </span>
                   <input
                     value={occasion}
                     onChange={(e) => setOccasion(e.target.value)}
                     placeholder="Birthday, wedding, ministry..."
-                    className="h-11 rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-gold"
+                    className="h-11 rounded-sm border border-ink/20 bg-background px-3 text-sm shadow-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
                   />
                 </label>
 
                 <div className="grid gap-2">
-                  <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-foreground/70">
                     Upload a photo (optional)
                     {product.image_addon_price > 0 && (
-                      <span className="text-gold">+{formatUSD(product.image_addon_price)}</span>
+                      <span className="font-semibold text-gold">
+                        +{formatUSD(product.image_addon_price)}
+                      </span>
                     )}
                   </span>
                   {photoPreview ? (
@@ -254,7 +311,7 @@ function ProductPage() {
                       <img
                         src={photoPreview}
                         alt="Upload preview"
-                        className="h-16 w-16 rounded-sm border border-border object-cover"
+                        className="h-16 w-16 rounded-sm border border-ink/20 object-cover"
                       />
                       {uploading ? (
                         <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
@@ -271,16 +328,25 @@ function ProductPage() {
                       )}
                     </div>
                   ) : (
-                    <label className="flex h-11 w-fit cursor-pointer items-center gap-2 rounded-sm border border-dashed border-border bg-background px-4 text-sm text-foreground/75 hover:border-gold hover:text-gold">
+                    <label className="flex h-11 w-fit cursor-pointer items-center gap-2 rounded-sm border border-dashed border-ink/30 bg-background px-4 text-sm text-foreground/75 shadow-sm hover:border-gold hover:text-gold">
                       <ImagePlus className="h-4 w-4" /> Choose photo
-                      <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/heic"
+                        className="hidden"
+                        onChange={handlePhotoChange}
+                      />
                     </label>
                   )}
                   {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    Use a clear, high-resolution photo — blurry, low-res, or watermarked images can
+                    delay your order.
+                  </p>
                 </div>
 
                 <label className="grid gap-2">
-                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-foreground/70">
                     Anything else?
                   </span>
                   <textarea
@@ -288,7 +354,7 @@ function ProductPage() {
                     onChange={(e) => setNote(e.target.value)}
                     rows={3}
                     placeholder="Colors, fonts, sizing, or anything else for this piece"
-                    className="rounded-sm border border-border bg-background px-3 py-2 text-sm outline-none focus:border-gold"
+                    className="rounded-sm border border-ink/20 bg-background px-3 py-2 text-sm shadow-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
                   />
                 </label>
               </div>
@@ -363,88 +429,65 @@ function ProductPage() {
             </button>
           </div>
 
-          <ul className="mt-10 grid grid-cols-1 gap-4 border-t border-border pt-8 text-sm text-foreground/75 sm:grid-cols-3">
-            <li className="flex items-center gap-3">
-              <Truck className="h-4 w-4 text-gold" /> Free US shipping $75+
+          <ul className="mt-10 grid grid-cols-1 divide-y divide-ink/10 rounded-sm border border-ink/10 bg-cream/60 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <li className="flex items-center gap-3 p-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold/20 text-gold">
+                <Truck className="h-4 w-4" />
+              </span>
+              <span className="text-sm font-medium text-ink/80">Free US shipping $75+</span>
             </li>
-            <li className="flex items-center gap-3">
-              <PackageCheck className="h-4 w-4 text-gold" /> Gift-ready packaging
+            <li className="flex items-center gap-3 p-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold/20 text-gold">
+                <PackageCheck className="h-4 w-4" />
+              </span>
+              <span className="text-sm font-medium text-ink/80">Gift-ready packaging</span>
             </li>
-            <li className="flex items-center gap-3">
-              <Sparkles className="h-4 w-4 text-gold" /> Hand-finished with love
+            <li className="flex items-center gap-3 p-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold/20 text-gold">
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <span className="text-sm font-medium text-ink/80">Hand-finished with love</span>
             </li>
           </ul>
 
           <div className="mt-8 divide-y divide-border border-y border-border">
-            <ProductPanel
-              id="details"
-              title="Details"
-              open={openPanel === "details"}
-              onOpen={setOpenPanel}
-            >
-              {product.description}
-            </ProductPanel>
+            {product.customizable && (
+              <ProductPanel
+                id="guidelines"
+                title="Personalization Guidelines"
+                icon={Info}
+                open={openPanel === "guidelines"}
+                onOpen={setOpenPanel}
+              >
+                Use a clear, high-resolution photo for the best print quality — blurry,
+                low-resolution, or watermarked images may delay your order or require a revision.
+                Double-check names and spelling before checkout, as personalized items are final
+                sale.
+              </ProductPanel>
+            )}
             <ProductPanel
               id="shipping"
               title="Shipping & Packaging"
+              icon={Truck}
               open={openPanel === "shipping"}
               onOpen={setOpenPanel}
             >
-              Orders ship gift-ready from our studio. Standard US shipping is free on orders over
-              $75.
+              Orders ship gift-ready from our studio. {copy.processing} Standard US shipping is free
+              on orders over $75.
             </ProductPanel>
             <ProductPanel
               id="care"
-              title="Care & Returns"
+              title="Materials & Care"
+              icon={Shield}
               open={openPanel === "care"}
               onOpen={setOpenPanel}
             >
-              Apparel should be washed cold and inside out. Personalized items are final sale unless
-              they arrive damaged.
+              {copy.materials} {copy.care} Personalized items are final sale unless they arrive
+              damaged.
             </ProductPanel>
           </div>
         </div>
       </section>
-
-      {related.length > 0 && (
-        <section className="border-t border-border bg-cream/60">
-          <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
-            <div className="mb-10 flex items-end justify-between">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.28em] text-gold">
-                  You May Also Love
-                </p>
-                <h2 className="mt-2 font-display text-3xl text-ink md:text-4xl">
-                  Pair it beautifully
-                </h2>
-              </div>
-              <Link
-                to="/shop"
-                className="hidden text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-gold sm:block"
-              >
-                View All
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-              {related.map((p) => (
-                <Link key={p.slug} to="/product/$slug" params={{ slug: p.slug }} className="group">
-                  <div className="aspect-[4/5] overflow-hidden rounded-sm bg-muted">
-                    <img
-                      src={p.images[0]}
-                      alt={p.name}
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
-                    />
-                  </div>
-                  <h3 className="mt-3 font-display text-lg text-ink group-hover:text-gold">
-                    {p.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-ink">{formatUSD(p.base_price)}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       <Footer />
     </div>
@@ -454,26 +497,32 @@ function ProductPage() {
 function ProductPanel({
   id,
   title,
+  icon: Icon,
   open,
   onOpen,
   children,
 }: {
   id: string;
   title: string;
+  icon: LucideIcon;
   open: boolean;
   onOpen: (id: string) => void;
   children: ReactNode;
 }) {
   return (
-    <div>
+    <div className={open ? "bg-cream/40" : ""}>
       <button
         onClick={() => onOpen(open ? "" : id)}
-        className="flex w-full items-center justify-between py-4 text-left text-[11px] uppercase tracking-[0.22em] text-ink"
+        className="flex w-full items-center justify-between gap-3 px-1 py-4 text-left text-[11px] uppercase tracking-[0.22em] text-ink"
       >
-        {title}
-        <ChevronDown className={`h-4 w-4 text-gold transition ${open ? "rotate-180" : ""}`} />
+        <span className="flex items-center gap-3">
+          <Icon className="h-4 w-4 text-gold" /> {title}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-gold transition ${open ? "rotate-180" : ""}`}
+        />
       </button>
-      {open && <p className="pb-5 text-sm leading-relaxed text-foreground/75">{children}</p>}
+      {open && <p className="px-1 pb-5 text-sm leading-snug text-foreground/75">{children}</p>}
     </div>
   );
 }

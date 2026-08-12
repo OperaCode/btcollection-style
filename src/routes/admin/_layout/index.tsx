@@ -1,84 +1,92 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { ShoppingBag, DollarSign, Package, ClipboardList } from "lucide-react";
-import { getDashboardStats, listOrders } from "@/lib/admin-data";
-import { formatUSD } from "@/lib/cart";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { ArrowRight, Lock } from "lucide-react";
+import { useAdminAuth } from "@/lib/admin-auth";
 
 export const Route = createFileRoute("/admin/_layout/")({
-  component: AdminDashboard,
+  component: AdminLoginPage,
 });
 
-function AdminDashboard() {
-  const stats = useQuery({ queryKey: ["admin", "stats"], queryFn: getDashboardStats });
-  const orders = useQuery({ queryKey: ["admin", "orders", "recent"], queryFn: listOrders });
-  const recent = (orders.data ?? []).slice(0, 5);
+function AdminLoginPage() {
+  const { user, isAdmin, loading, authError, signIn } = useAdminAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user && isAdmin) navigate({ to: "/admin/dashboard" });
+  }, [loading, user, isAdmin, navigate]);
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError("");
+    setSubmitting(true);
+    const result = await signIn(email, password);
+    setSubmitting(false);
+    if (result.error) return setError(result.error);
+    if (result.isAdmin) return navigate({ to: "/admin/dashboard" });
+    setError("Sign-in succeeded, but this account does not have admin access yet.");
+  }
 
   return (
-    <div>
-      <h1 className="font-display text-3xl text-ink">Dashboard</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Store overview at a glance.</p>
-
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={ShoppingBag} label="Total Orders" value={stats.data?.orderCount ?? "—"} />
-        <StatCard
-          icon={DollarSign}
-          label="Total Revenue"
-          value={stats.data ? formatUSD(stats.data.revenue) : "—"}
-        />
-        <StatCard icon={Package} label="Active Products" value={stats.data?.activeProducts ?? "—"} />
-        <StatCard icon={ClipboardList} label="New Custom Requests" value={stats.data?.customRequestCount ?? "—"} />
-      </div>
-
-      <div className="mt-10 rounded-sm border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="font-display text-xl text-ink">Recent Orders</h2>
-          <Link to="/admin/orders" className="text-[11px] uppercase tracking-[0.2em] text-gold hover:underline">
-            View All
-          </Link>
+    <div className="grid min-h-screen place-items-center bg-background px-4 text-foreground">
+      <div className="w-full max-w-sm rounded-sm border border-border bg-card p-8">
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full border border-gold/60 text-gold">
+          <Lock className="h-5 w-5" />
         </div>
-        {recent.length === 0 ? (
-          <p className="px-6 py-8 text-sm text-muted-foreground">No orders yet.</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {recent.map((o) => (
-              <li key={o.id} className="flex items-center justify-between px-6 py-4 text-sm">
-                <div>
-                  <div className="text-ink">{o.email}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(o.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-foreground/70">
-                    {o.status}
-                  </span>
-                  <span className="text-ink">{formatUSD(Number(o.total))}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <h1 className="mt-5 text-center font-display text-2xl text-ink">Admin Sign In</h1>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          Breakthrough Collection LLC · Store Management
+        </p>
+        {user && !isAdmin && !loading && (
+          <p className="mt-4 rounded-sm border border-border bg-cream/60 p-3 text-center text-xs text-foreground/75">
+            You&apos;re signed in as {user.email}, but that account doesn&apos;t have admin access.
+          </p>
         )}
+        {authError && (
+          <p className="mt-4 rounded-sm border border-destructive/30 bg-destructive/10 p-3 text-center text-xs text-destructive">
+            {authError}
+          </p>
+        )}
+        <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
+          <label className="grid gap-2">
+            <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Email
+            </span>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11 rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-gold"
+            />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Password
+            </span>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-11 rounded-sm border border-border bg-background px-3 text-sm outline-none focus:border-gold"
+            />
+          </label>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="mt-2 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3 text-[12px] font-medium uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink disabled:opacity-60"
+          >
+            {submitting ? "Please wait..." : "Sign In"}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </form>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof ShoppingBag;
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="rounded-sm border border-border bg-card p-5">
-      <span className="grid h-10 w-10 place-items-center rounded-full border border-gold/60 text-gold">
-        <Icon className="h-4 w-4" />
-      </span>
-      <div className="mt-4 font-display text-2xl text-ink">{value}</div>
-      <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
     </div>
   );
 }

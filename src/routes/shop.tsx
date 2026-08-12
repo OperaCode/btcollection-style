@@ -1,7 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Heart, Search, SlidersHorizontal, ShoppingBag, Sparkles, Tag, type LucideIcon } from "lucide-react";
+import {
+  ArrowRight,
+  Heart,
+  Search,
+  ShoppingBag,
+  SlidersHorizontal,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { listPublicProducts, PRODUCTS_QUERY_KEY, type Product } from "@/lib/catalog";
 import { useCart, formatUSD } from "@/lib/cart";
@@ -35,7 +43,8 @@ function ShopPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [priceRange, setPriceRange] = useState<(typeof PRICE_RANGES)[number]>("All");
   const [sort, setSort] = useState<(typeof SORTS)[number]>("Newest");
-  const [openMenu, setOpenMenu] = useState<"sort" | "price" | null>(null);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [query, setQuery] = useState("");
   const { add } = useCart();
   const wishlist = useWishlist();
@@ -71,35 +80,121 @@ function ShopPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <section className="mx-auto max-w-7xl px-4 pt-8 pb-20 md:px-8 md:pt-10 md:pb-24">
-        <div className="mb-8 grid gap-5 rounded-sm border border-border bg-cream/70 p-4 shadow-sm md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative max-w-xl flex-1">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gold" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by product, occasion, or gift type"
-                className="h-12 w-full rounded-full border border-ink/15 bg-background pl-11 pr-4 text-sm outline-none transition placeholder:text-muted-foreground focus:border-gold"
-              />
-            </div>
+      <main className="mx-auto max-w-7xl px-4 pb-20 pt-10 md:px-8 md:pb-24 md:pt-14">
+        <div className="mb-8 flex flex-col gap-6 border-b border-border pb-6 md:mb-10 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="inline-flex rounded-full border border-gold/45 bg-gold/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-ink">
+              Shop the Collection
+            </p>
+            <h1 className="mt-2 font-display text-3xl text-ink md:text-4xl">All Products</h1>
+          </div>
 
-            <div className="flex items-center justify-between gap-3 lg:justify-end">
+          <Link
+            to="/inspiration"
+            search={{ category: "" }}
+            className="group inline-flex shrink-0 items-center gap-4 self-start rounded-lg border bg-gradient-to-br from-gold/10 via-gold/5 to-transparent px-5 py-4 transition duration-300 hover:border-gold hover:shadow-[0_8px_24px_-8px_rgba(180,140,60,0.35)] lg:self-auto
+
+           
+            "
+          >
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gold/15 text-gold transition duration-300 group-hover:bg-gold group-hover:text-ink">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <span className="text-left">
+              <span className="block text-[10px] rounded-full border border-gold/45 bg-gold/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-ink">
+                See Our Work
+              </span>
+             
+              <span className="mt-0.5 inline-flex items-center gap-1.5 font-display text-base text-ink">
+                Browse the Catalogue
+                <ArrowRight className="h-4 w-4 transition duration-300 group-hover:translate-x-1" />
+              </span>
+            </span>
+          </Link>
+        </div>
+
+        <div className="grid gap-10 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <aside
+            className="self-start lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-3"
+          >
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((o) => !o)}
+              className="mb-4 flex w-full items-center justify-between rounded-sm border border-border px-4 py-3 text-[11px] uppercase tracking-[0.22em] text-ink lg:hidden"
+            >
+              <span className="inline-flex items-center gap-2">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Filters
+              </span>
+              <span className="text-muted-foreground sm:hidden">
+                {list.length} {list.length === 1 ? "piece" : "pieces"}
+              </span>
+            </button>
+
+            <div className={`${filtersOpen ? "block" : "hidden"} lg:block`}>
+              <div className="relative mb-7">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/70" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search products"
+                  className="h-11 w-full rounded-sm border border-ink/25 bg-card pl-9 pr-3 text-sm text-ink shadow-sm outline-none transition placeholder:text-ink/60 focus:border-gold focus:ring-2 focus:ring-gold/20"
+                />
+              </div>
+
+              <div className="mb-7">
+                <p className="mb-3 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                  Category
+                </p>
+                <ul className="space-y-0.5">
+                  {FILTERS.map((f) => (
+                    <li key={f}>
+                      <button
+                        type="button"
+                        onClick={() => setFilter(f)}
+                        className={`block w-full rounded-sm px-2 py-1.5 text-left text-sm transition ${
+                          filter === f
+                            ? "font-medium text-ink"
+                            : "text-foreground/65 hover:text-ink"
+                        }`}
+                      >
+                        {f === "All" ? "All Products" : f}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <p className="mb-3 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                  Price
+                </p>
+                <ul className="space-y-0.5">
+                  {PRICE_RANGES.map((r) => (
+                    <li key={r}>
+                      <button
+                        type="button"
+                        onClick={() => setPriceRange(r)}
+                        className={`block w-full rounded-sm px-2 py-1.5 text-left text-sm transition ${
+                          priceRange === r
+                            ? "font-medium text-ink"
+                            : "text-foreground/65 hover:text-ink"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </aside>
+
+          <div>
+            <div className="mb-6 flex items-center justify-between gap-4">
               <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                 {list.length} {list.length === 1 ? "piece" : "pieces"}
               </p>
-              <Dropdown
-                label={priceRange}
-                icon={Tag}
-                options={PRICE_RANGES}
-                value={priceRange}
-                onChange={(v) => {
-                  setPriceRange(v);
-                  setOpenMenu(null);
-                }}
-                isOpen={openMenu === "price"}
-                onToggle={() => setOpenMenu((m) => (m === "price" ? null : "price"))}
-              />
               <Dropdown
                 label={sort}
                 icon={SlidersHorizontal}
@@ -107,58 +202,37 @@ function ShopPage() {
                 value={sort}
                 onChange={(v) => {
                   setSort(v);
-                  setOpenMenu(null);
+                  setSortOpen(false);
                 }}
-                isOpen={openMenu === "sort"}
-                onToggle={() => setOpenMenu((m) => (m === "sort" ? null : "sort"))}
+                isOpen={sortOpen}
+                onToggle={() => setSortOpen((o) => !o)}
               />
             </div>
-          </div>
 
-          <div>
-            <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-ink">Collection</div>
-            <div className="no-scrollbar flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible">
-              {FILTERS.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`shrink-0 rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.22em] shadow-sm transition ${
-                    filter === f
-                      ? "border-ink bg-ink text-background"
-                      : "border-ink/15 bg-background text-ink hover:border-gold hover:bg-gold/10 hover:text-ink"
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
+            {products.isLoading ? (
+              <ProductGridSkeleton />
+            ) : list.length === 0 ? (
+              <p className="py-20 text-center text-sm text-muted-foreground">
+                No pieces match this filter yet.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-5 gap-y-12 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4 xl:gap-x-8">
+                {list.map((p) => (
+                  <ProductCard
+                    key={p.slug}
+                    p={p}
+                    wished={wishlist.has(p.slug)}
+                    onWish={() => wishlist.toggle(p.slug)}
+                    onAdd={() =>
+                      add({ id: p.id, slug: p.slug, name: p.name, price: p.base_price, img: p.images[0] ?? "" })
+                    }
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
-
-        <div className="mb-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-
-        {products.isLoading ? (
-          <ProductGridSkeleton />
-        ) : list.length === 0 ? (
-          <p className="py-20 text-center text-sm text-muted-foreground">
-            No pieces match this filter yet.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-            {list.map((p) => (
-              <ProductCard
-                key={p.slug}
-                p={p}
-                wished={wishlist.has(p.slug)}
-                onWish={() => wishlist.toggle(p.slug)}
-                onAdd={() =>
-                  add({ id: p.id, slug: p.slug, name: p.name, price: p.base_price, img: p.images[0] ?? "" })
-                }
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      </main>
 
       <Footer />
     </div>
@@ -211,11 +285,11 @@ function Dropdown<T extends string>({
 
 function ProductGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-x-5 gap-y-12 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4 xl:gap-x-8">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="animate-pulse">
-          <div className="aspect-[4/5] rounded-sm bg-muted" />
-          <div className="mt-4 h-2.5 w-1/3 rounded-full bg-muted" />
+          <div className="aspect-[4/5] rounded-md bg-muted" />
+          <div className="mt-5 h-2.5 w-1/3 rounded-full bg-muted" />
           <div className="mt-2 h-4 w-2/3 rounded-full bg-muted" />
           <div className="mt-2 h-3.5 w-1/4 rounded-full bg-muted" />
         </div>
@@ -237,7 +311,7 @@ function ProductCard({
 }) {
   return (
     <article className="group">
-      <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-muted shadow-sm transition duration-300 group-hover:shadow-md">
         <Link to="/product/$slug" params={{ slug: p.slug }} className="block h-full w-full">
           <img
             src={p.images[0]}
@@ -273,7 +347,7 @@ function ProductCard({
           </span>
         )}
       </div>
-      <div className="mt-4 flex flex-col gap-1">
+      <div className="mt-5 flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
             {p.category}

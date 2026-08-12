@@ -22,6 +22,7 @@ import logoMark from "@/assets/bclogo.jpeg";
 export const NAV = [
   { label: "Home", to: "/" as const },
   { label: "Shop", to: "/shop" as const },
+  // { label: "Catalogue", to: "/inspiration" as const },
   { label: "Custom Order", to: "/custom" as const },
   { label: "About", to: "/about" as const },
   // { label: "Contact", to: "/contact" as const },
@@ -126,8 +127,17 @@ export function Header() {
               <Link
                 key={n.label}
                 to={n.to}
-                className="transition hover:text-gold"
-                activeProps={{ className: "text-gold" }}
+                className={`transition hover:text-gold ${
+                  n.label === "Catalogue"
+                    ? "rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-ink hover:border-gold hover:bg-gold/20"
+                    : ""
+                }`}
+                activeProps={{
+                  className:
+                    n.label === "Catalogue"
+                      ? "rounded-full border border-ink bg-ink px-3 py-1.5 text-background"
+                      : "text-gold",
+                }}
                 activeOptions={{ exact: true }}
               >
                 {n.label}
@@ -475,10 +485,11 @@ export function PageBanner({
       )}
       <div className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-14">
         <p
-          className={`text-[11px] uppercase tracking-[0.32em] ${image ? "text-gold" : "text-gold"}`}
+          className={`text-[11px] uppercase tracking-[0.32em] inline-flex rounded-full border border-gold/45 bg-gold/15 px-3 py-1 font-semibold uppercase tracking-[0.24em]  ${image ? "text-gold" : "text-gold"}`}
         >
           {kicker}
         </p>
+       
         <h1
           className={`mt-3 max-w-3xl font-display text-4xl leading-[1.05] md:text-5xl ${
             image ? "text-background" : "text-ink"

@@ -20,6 +20,11 @@ import { uploadCustomizationPhoto } from "@/lib/uploads";
 import { COLOR_SWATCHES } from "@/lib/colors";
 
 export const Route = createFileRoute("/custom")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    ref: typeof search.ref === "string" ? search.ref : "",
+    type: typeof search.type === "string" ? search.type : "",
+    occasion: typeof search.occasion === "string" ? search.occasion : "",
+  }),
   head: () => ({
     meta: [
       { title: "Custom Quote Request - Breakthrough Collection LLC" },
@@ -69,8 +74,14 @@ const STEP_LABELS = ["What You Want", "The Details", "Contact & Timing"] as cons
 type Step = 1 | 2 | 3;
 
 function CustomPage() {
+  const { ref, type, occasion } = Route.useSearch();
   const [step, setStep] = useState<Step>(1);
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  const [form, setForm] = useState<FormState>(() => ({
+    ...INITIAL_FORM,
+    itemType: type || INITIAL_FORM.itemType,
+    occasion: occasion || INITIAL_FORM.occasion,
+    description: ref ? `Inspired by "${ref}" from the inspiration gallery.\n\n` : INITIAL_FORM.description,
+  }));
   const [customColor, setCustomColor] = useState(false);
 
   const [sent, setSent] = useState(false);

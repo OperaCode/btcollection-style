@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Heart,
@@ -29,6 +30,8 @@ import p4 from "@/assets/p4.jpg";
 import { Announcement, Header, Footer } from "@/components/site/SiteChrome";
 import { subscribeNewsletter } from "@/lib/commerce";
 import { SOCIAL_LINKS } from "@/lib/site-config";
+import { listPublicProducts, PRODUCTS_QUERY_KEY } from "@/lib/catalog";
+import { formatUSD } from "@/lib/cart";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -87,13 +90,6 @@ const CATEGORIES = [
   },
 ];
 
-const PRODUCTS = [
-  { name: "Faith Over Fear Sweatshirt", price: "$48.00", tag: "Faith", img: p1, rating: 32 },
-  { name: "Blessed Mom 15oz Mug", price: "$22.00", tag: "Mugs", img: p2, rating: 47 },
-  { name: "Grateful Canvas Tote", price: "$28.00", tag: "Accessories", img: p3, rating: 19 },
-  { name: "Signature Navy Gift Box", price: "$85.00", tag: "Gift Sets", img: p4, rating: 12 },
-];
-
 function Index() {
   return (
     <div id="top" className="min-h-screen bg-background text-foreground">
@@ -108,7 +104,7 @@ function Index() {
       <CustomCTA />
       <Testimonials />
       <FollowAlong />
-      <FAQ />
+      {/* <FAQ /> */}
       <Newsletter />
       <Footer />
     </div>
@@ -142,6 +138,7 @@ function Hero() {
           <p className="mt-6 max-w-md text-base/relaxed text-background/85">
             Faith-inspired apparel, personalized mugs, and beautifully curated gift sets —
             thoughtfully made with love by Breakthrough Collection LLC.
+            {/* The name “Breakthrough” represents overcoming challenges and celebrating new beginnings. At Breakthrough Collection, we create personalized gifts, custom embroidery, and meaningful designs that help people celebrate life’s special moments. */}
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <a
@@ -287,6 +284,9 @@ function Services() {
 }
 
 function NewArrivals() {
+  const products = useQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: listPublicProducts });
+  const latest = (products.data ?? []).slice(0, 4);
+
   return (
     <section id="new" className="mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-28">
       <div className="mb-12 flex items-end justify-between gap-6">
@@ -303,41 +303,51 @@ function NewArrivals() {
       </div>
 
       <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-        {PRODUCTS.map((p) => (
-          <article key={p.name} className="group">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted">
-              <img
-                src={p.img}
-                alt={p.name}
-                width={800}
-                height={900}
-                loading="lazy"
-                className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
-              />
-              <span className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-ink">
-                New
-              </span>
-              <button
-                aria-label="Add to wishlist"
-                className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/90 text-ink transition hover:bg-gold"
-              >
-                <Heart className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-4 flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                {p.tag}
-              </span>
-              <h3 className="font-display text-lg leading-tight text-ink">{p.name}</h3>
-              <div className="mt-1 flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">{p.price}</span>
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Star className="h-3.5 w-3.5 fill-gold text-gold" /> ({p.rating})
-                </span>
+        {products.isLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-[4/5] rounded-sm bg-muted" />
+                <div className="mt-4 h-2.5 w-1/3 rounded-full bg-muted" />
+                <div className="mt-2 h-4 w-2/3 rounded-full bg-muted" />
+                <div className="mt-2 h-3.5 w-1/4 rounded-full bg-muted" />
               </div>
-            </div>
-          </article>
-        ))}
+            ))
+          : latest.map((p) => (
+              <article key={p.slug} className="group">
+                <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted">
+                  <Link to="/product/$slug" params={{ slug: p.slug }} className="block h-full w-full">
+                    <img
+                      src={p.images[0]}
+                      alt={p.name}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
+                    />
+                  </Link>
+                  <span className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-ink">
+                    New
+                  </span>
+                  <button
+                    aria-label="Add to wishlist"
+                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/90 text-ink transition hover:bg-gold"
+                  >
+                    <Heart className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="mt-4 flex flex-col gap-1">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                    {p.category}
+                  </span>
+                  <Link
+                    to="/product/$slug"
+                    params={{ slug: p.slug }}
+                    className="font-display text-lg leading-tight text-ink transition hover:text-gold"
+                  >
+                    {p.name}
+                  </Link>
+                  <span className="mt-1 text-sm font-medium text-ink">{formatUSD(p.base_price)}</span>
+                </div>
+              </article>
+            ))}
       </div>
     </section>
   );
@@ -606,54 +616,54 @@ function FollowAlong() {
   );
 }
 
-const FAQS = [
-  {
-    q: "How long does personalization take?",
-    a: "Most custom and personalized pieces are proofed within 48 hours and ship within 3–5 business days after approval.",
-  },
-  {
-    q: "Do you ship across the US?",
-    a: "Yes — we ship nationwide from our studio, with free shipping on orders over $75.",
-  },
-  {
-    q: "Can I return a personalized item?",
-    a: "Personalized and custom items are final sale, but if anything arrives damaged or incorrect, we’ll make it right.",
-  },
-  {
-    q: "Do you offer bulk or ministry/corporate pricing?",
-    a: "Yes — orders of 12+ pieces qualify for bulk pricing. Reach out through our Custom Orders page for a quote.",
-  },
-];
+// const FAQS = [
+//   {
+//     q: "How long does personalization take?",
+//     a: "Most custom and personalized pieces are proofed within 48 hours and ship within 3–5 business days after approval.",
+//   },
+//   {
+//     q: "Do you ship across the US?",
+//     a: "Yes — we ship nationwide from our studio, with free shipping on orders over $75.",
+//   },
+//   {
+//     q: "Can I return a personalized item?",
+//     a: "Personalized and custom items are final sale, but if anything arrives damaged or incorrect, we’ll make it right.",
+//   },
+//   {
+//     q: "Do you offer bulk or ministry/corporate pricing?",
+//     a: "Yes — orders of 12+ pieces qualify for bulk pricing. Reach out through our Custom Orders page for a quote.",
+//   },
+// ];
 
-function FAQ() {
-  const [open, setOpen] = useState(0);
-  return (
-    <section className="mx-auto max-w-4xl px-4 py-20 md:px-8 md:py-28">
-      <SectionLabel kicker="Good to Know" title="Frequently Asked Questions" />
-      <div className="divide-y divide-border border-y border-border">
-        {FAQS.map((item, i) => {
-          const isOpen = open === i;
-          return (
-            <div key={item.q}>
-              <button
-                onClick={() => setOpen(isOpen ? -1 : i)}
-                className="flex w-full items-center justify-between gap-4 py-5 text-left"
-              >
-                <span className="font-display text-lg text-ink md:text-xl">{item.q}</span>
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-gold transition ${isOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {isOpen && (
-                <p className="pb-5 text-sm leading-relaxed text-foreground/75">{item.a}</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
+// function FAQ() {
+//   const [open, setOpen] = useState(0);
+//   return (
+//     <section className="mx-auto max-w-4xl px-4 py-20 md:px-8 md:py-28">
+//       <SectionLabel kicker="Good to Know" title="Frequently Asked Questions" />
+//       <div className="divide-y divide-border border-y border-border">
+//         {FAQS.map((item, i) => {
+//           const isOpen = open === i;
+//           return (
+//             <div key={item.q}>
+//               <button
+//                 onClick={() => setOpen(isOpen ? -1 : i)}
+//                 className="flex w-full items-center justify-between gap-4 py-5 text-left"
+//               >
+//                 <span className="font-display text-lg text-ink md:text-xl">{item.q}</span>
+//                 <ChevronDown
+//                   className={`h-4 w-4 shrink-0 text-gold transition ${isOpen ? "rotate-180" : ""}`}
+//                 />
+//               </button>
+//               {isOpen && (
+//                 <p className="pb-5 text-sm leading-relaxed text-foreground/75">{item.a}</p>
+//               )}
+//             </div>
+//           );
+//         })}
+//       </div>
+//     </section>
+//   );
+// }
 
 function Newsletter() {
   const [fullName, setFullName] = useState("");

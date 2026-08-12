@@ -1,6 +1,14 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { ClipboardList, LayoutDashboard, Mail, Package, ShoppingBag, LogOut } from "lucide-react";
+import {
+  ClipboardList,
+  LayoutDashboard,
+  Mail,
+  Package,
+  ShoppingBag,
+  Images,
+  LogOut,
+} from "lucide-react";
 import { useAdminAuth } from "@/lib/admin-auth";
 
 export const Route = createFileRoute("/admin/_layout")({
@@ -8,10 +16,11 @@ export const Route = createFileRoute("/admin/_layout")({
 });
 
 const NAV = [
-  { label: "Dashboard", to: "/admin" as const, icon: LayoutDashboard },
+  { label: "Dashboard", to: "/admin/dashboard" as const, icon: LayoutDashboard },
   { label: "Orders", to: "/admin/orders" as const, icon: ShoppingBag },
   { label: "Custom", to: "/admin/custom-requests" as const, icon: ClipboardList },
   { label: "Products", to: "/admin/products" as const, icon: Package },
+  { label: "Gallery", to: "/admin/gallery" as const, icon: Images },
   { label: "Subscribers", to: "/admin/subscribers" as const, icon: Mail },
 ];
 
@@ -19,14 +28,15 @@ function AdminProtectedLayout() {
   const { loading, user, isAdmin, authError, signOut } = useAdminAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isLoginRoute = pathname === "/admin";
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate({ to: "/admin/login" });
+    if (!loading && !user && !isLoginRoute) {
+      navigate({ to: "/admin" });
     }
-  }, [loading, user, navigate]);
+  }, [loading, user, isLoginRoute, navigate]);
 
-  if (loading) {
+  if (loading && !isLoginRoute) {
     return (
       <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">
         Loading admin...
@@ -34,9 +44,9 @@ function AdminProtectedLayout() {
     );
   }
 
-  if (!user) return null;
+  if (!user && !isLoginRoute) return null;
 
-  if (!isAdmin) {
+  if (!isLoginRoute && !isAdmin) {
     return (
       <div className="grid min-h-screen place-items-center bg-background px-4 text-center text-foreground">
         <div>
@@ -74,7 +84,9 @@ function AdminProtectedLayout() {
                 key={n.to}
                 to={n.to}
                 className={`flex shrink-0 items-center gap-3 rounded-sm px-3 py-2.5 text-[12px] uppercase tracking-[0.18em] transition ${
-                  active ? "bg-gold/15 text-gold" : "text-background/75 hover:bg-white/5 hover:text-background"
+                  active
+                    ? "bg-gold/15 text-gold"
+                    : "text-background/75 hover:bg-white/5 hover:text-background"
                 }`}
               >
                 <Icon className="h-4 w-4" /> {n.label}

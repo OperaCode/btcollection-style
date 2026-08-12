@@ -11,6 +11,17 @@ type AdminAuthCtx = {
   signOut: () => Promise<void>;
 };
 
+const AUTH_CHECK_TIMEOUT_MS = 10000;
+
+function withTimeout<T>(promise: PromiseLike<T>, message: string): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), AUTH_CHECK_TIMEOUT_MS);
+    }),
+  ]);
+}
+
 const AdminAuthContext = createContext<AdminAuthCtx | null>(null);
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
@@ -26,19 +37,25 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
     try {
-      const { data, error } = await supabase.rpc("has_role", {
-        _user_id: currentUser.id,
-        _role: "admin",
-      });
+      const { data, error } = await withTimeout(
+        supabase.rpc("has_role", {
+          _user_id: currentUser.id,
+          _role: "admin",
+        }),
+        "Admin role check timed out.",
+      );
       if (error) {
-        const { data: roleRows, error: roleError } = await supabase
-          .from("user_roles")
-          .select("id")
-          .eq("user_id", currentUser.id)
-          .eq("role", "admin")
-          .limit(1);
+        const { data: roleRows, error: roleError } = await withTimeout(
+          supabase
+            .from("user_roles")
+            .select("id")
+            .eq("user_id", currentUser.id)
+            .eq("role", "admin")
+            .limit(1),
+          "Admin role lookup timed out.",
+        );
 
-        if (roleError) throw error;
+        if (roleError) throw roleError;
         const allowed = (roleRows ?? []).length > 0;
         setIsAdmin(allowed);
         setAuthError(null);
@@ -78,11 +95,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         if (active) setLoading(false);
       });
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      await checkAdmin(currentUser);
-      setLoading(false);
+      void checkAdmin(currentUser).finally(() => setLoading(false));
     });
 
     return () => {
@@ -98,7 +114,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     authError,
     async signIn(email, password) {
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          "Sign-in timed out. Check your connection and try again.",
+        );
         if (error) return { error: error.message, isAdmin: false };
         const currentUser = data.user ?? data.session?.user ?? null;
         setUser(currentUser);

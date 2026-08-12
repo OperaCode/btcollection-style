@@ -23,7 +23,7 @@ function AdminLoginPage() {
 
   useEffect(() => {
     if (!loading && user && isAdmin) {
-      navigate({ to: "/admin" });
+      navigate({ to: "/admin/dashboard" });
     }
   }, [loading, user, isAdmin, navigate]);
 
@@ -38,7 +38,7 @@ function AdminLoginPage() {
       return;
     }
     if (result.isAdmin) {
-      navigate({ to: "/admin" });
+      navigate({ to: "/admin/dashboard" });
       return;
     }
     setError("Sign-in succeeded, but this account does not have admin access yet.");
@@ -53,11 +53,6 @@ function AdminLoginPage() {
         <h1 className="mt-5 text-center font-display text-2xl text-ink">Admin Sign In</h1>
         <p className="mt-2 text-center text-sm text-muted-foreground">
           Breakthrough Collection LLC · Store Management
-        </p>
-
-        <p className="mt-4 rounded-sm border border-border bg-cream/60 p-3 text-center text-xs leading-relaxed text-foreground/70">
-          New Supabase project? Create the admin user in Supabase Auth, run the admin SQL migration,
-          then grant access with <span className="font-medium text-ink">grant_admin_by_email</span>.
         </p>
 
         {user && !isAdmin && !loading && (
