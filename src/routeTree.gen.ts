@@ -14,6 +14,7 @@ import { Route as ShopRouteImport } from './routes/shop'
 import { Route as ShippingRouteImport } from './routes/shipping'
 import { Route as ReturnsRouteImport } from './routes/returns'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as InspirationRouteImport } from './routes/inspiration'
 import { Route as CustomRouteImport } from './routes/custom'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -22,6 +23,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as InspirationSlugRouteImport } from './routes/inspiration.$slug'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
@@ -30,11 +32,14 @@ import { Route as CustomPayIdRouteImport } from './routes/custom.pay.$id'
 import { Route as AdminLayoutSubscribersRouteImport } from './routes/admin/_layout/subscribers'
 import { Route as AdminLayoutProductsRouteImport } from './routes/admin/_layout/products'
 import { Route as AdminLayoutOrdersRouteImport } from './routes/admin/_layout/orders'
+import { Route as AdminLayoutGalleryRouteImport } from './routes/admin/_layout/gallery'
+import { Route as AdminLayoutDashboardRouteImport } from './routes/admin/_layout/dashboard'
 import { Route as AdminLayoutCustomRequestsRouteImport } from './routes/admin/_layout/custom-requests'
 import { Route as AdminLayoutProductsIndexRouteImport } from './routes/admin/_layout/products.index'
 import { Route as CustomPayIdSuccessRouteImport } from './routes/custom.pay.$id.success'
 import { Route as AdminLayoutProductsNewRouteImport } from './routes/admin/_layout/products.new'
 import { Route as AdminLayoutProductsIdRouteImport } from './routes/admin/_layout/products.$id'
+import { Route as AdminLayoutGalleryNewRouteImport } from './routes/admin/_layout/gallery.new'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -59,6 +64,11 @@ const ReturnsRoute = ReturnsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InspirationRoute = InspirationRouteImport.update({
+  id: '/inspiration',
+  path: '/inspiration',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomRoute = CustomRouteImport.update({
@@ -101,6 +111,11 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
   path: '/product/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InspirationSlugRoute = InspirationSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => InspirationRoute,
+} as any)
 const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
   id: '/success',
   path: '/success',
@@ -140,6 +155,16 @@ const AdminLayoutOrdersRoute = AdminLayoutOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
+const AdminLayoutGalleryRoute = AdminLayoutGalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
+const AdminLayoutDashboardRoute = AdminLayoutDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
 const AdminLayoutCustomRequestsRoute =
   AdminLayoutCustomRequestsRouteImport.update({
     id: '/custom-requests',
@@ -167,6 +192,11 @@ const AdminLayoutProductsIdRoute = AdminLayoutProductsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminLayoutProductsRoute,
 } as any)
+const AdminLayoutGalleryNewRoute = AdminLayoutGalleryNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdminLayoutGalleryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -176,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRouteWithChildren
+  '/inspiration': typeof InspirationRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shipping': typeof ShippingRoute
@@ -183,13 +214,17 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/admin/login': typeof AdminLoginRoute
   '/checkout/success': typeof CheckoutSuccessRoute
+  '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/custom-requests': typeof AdminLayoutCustomRequestsRoute
+  '/admin/dashboard': typeof AdminLayoutDashboardRoute
+  '/admin/gallery': typeof AdminLayoutGalleryRouteWithChildren
   '/admin/orders': typeof AdminLayoutOrdersRoute
   '/admin/products': typeof AdminLayoutProductsRouteWithChildren
   '/admin/subscribers': typeof AdminLayoutSubscribersRoute
   '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
   '/admin/': typeof AdminLayoutIndexRoute
+  '/admin/gallery/new': typeof AdminLayoutGalleryNewRoute
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
   '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
@@ -203,6 +238,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRouteWithChildren
+  '/inspiration': typeof InspirationRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shipping': typeof ShippingRoute
@@ -210,11 +246,15 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/admin/login': typeof AdminLoginRoute
   '/checkout/success': typeof CheckoutSuccessRoute
+  '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/custom-requests': typeof AdminLayoutCustomRequestsRoute
+  '/admin/dashboard': typeof AdminLayoutDashboardRoute
+  '/admin/gallery': typeof AdminLayoutGalleryRouteWithChildren
   '/admin/orders': typeof AdminLayoutOrdersRoute
   '/admin/subscribers': typeof AdminLayoutSubscribersRoute
   '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
+  '/admin/gallery/new': typeof AdminLayoutGalleryNewRoute
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
   '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
@@ -229,6 +269,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/custom': typeof CustomRouteWithChildren
+  '/inspiration': typeof InspirationRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shipping': typeof ShippingRoute
@@ -237,13 +278,17 @@ export interface FileRoutesById {
   '/admin/_layout': typeof AdminLayoutRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/checkout/success': typeof CheckoutSuccessRoute
+  '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/_layout/custom-requests': typeof AdminLayoutCustomRequestsRoute
+  '/admin/_layout/dashboard': typeof AdminLayoutDashboardRoute
+  '/admin/_layout/gallery': typeof AdminLayoutGalleryRouteWithChildren
   '/admin/_layout/orders': typeof AdminLayoutOrdersRoute
   '/admin/_layout/products': typeof AdminLayoutProductsRouteWithChildren
   '/admin/_layout/subscribers': typeof AdminLayoutSubscribersRoute
   '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
   '/admin/_layout/': typeof AdminLayoutIndexRoute
+  '/admin/_layout/gallery/new': typeof AdminLayoutGalleryNewRoute
   '/admin/_layout/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/_layout/products/new': typeof AdminLayoutProductsNewRoute
   '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
@@ -259,6 +304,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/custom'
+    | '/inspiration'
     | '/privacy'
     | '/returns'
     | '/shipping'
@@ -266,13 +312,17 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin/login'
     | '/checkout/success'
+    | '/inspiration/$slug'
     | '/product/$slug'
     | '/admin/custom-requests'
+    | '/admin/dashboard'
+    | '/admin/gallery'
     | '/admin/orders'
     | '/admin/products'
     | '/admin/subscribers'
     | '/custom/pay/$id'
     | '/admin/'
+    | '/admin/gallery/new'
     | '/admin/products/$id'
     | '/admin/products/new'
     | '/custom/pay/$id/success'
@@ -286,6 +336,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/custom'
+    | '/inspiration'
     | '/privacy'
     | '/returns'
     | '/shipping'
@@ -293,11 +344,15 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin/login'
     | '/checkout/success'
+    | '/inspiration/$slug'
     | '/product/$slug'
     | '/admin/custom-requests'
+    | '/admin/dashboard'
+    | '/admin/gallery'
     | '/admin/orders'
     | '/admin/subscribers'
     | '/custom/pay/$id'
+    | '/admin/gallery/new'
     | '/admin/products/$id'
     | '/admin/products/new'
     | '/custom/pay/$id/success'
@@ -311,6 +366,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/custom'
+    | '/inspiration'
     | '/privacy'
     | '/returns'
     | '/shipping'
@@ -319,13 +375,17 @@ export interface FileRouteTypes {
     | '/admin/_layout'
     | '/admin/login'
     | '/checkout/success'
+    | '/inspiration/$slug'
     | '/product/$slug'
     | '/admin/_layout/custom-requests'
+    | '/admin/_layout/dashboard'
+    | '/admin/_layout/gallery'
     | '/admin/_layout/orders'
     | '/admin/_layout/products'
     | '/admin/_layout/subscribers'
     | '/custom/pay/$id'
     | '/admin/_layout/'
+    | '/admin/_layout/gallery/new'
     | '/admin/_layout/products/$id'
     | '/admin/_layout/products/new'
     | '/custom/pay/$id/success'
@@ -340,6 +400,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRouteWithChildren
   ContactRoute: typeof ContactRoute
   CustomRoute: typeof CustomRouteWithChildren
+  InspirationRoute: typeof InspirationRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   ReturnsRoute: typeof ReturnsRoute
   ShippingRoute: typeof ShippingRoute
@@ -383,6 +444,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inspiration': {
+      id: '/inspiration'
+      path: '/inspiration'
+      fullPath: '/inspiration'
+      preLoaderRoute: typeof InspirationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/custom': {
@@ -441,6 +509,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inspiration/$slug': {
+      id: '/inspiration/$slug'
+      path: '/$slug'
+      fullPath: '/inspiration/$slug'
+      preLoaderRoute: typeof InspirationSlugRouteImport
+      parentRoute: typeof InspirationRoute
+    }
     '/checkout/success': {
       id: '/checkout/success'
       path: '/success'
@@ -497,6 +572,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutOrdersRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
+    '/admin/_layout/gallery': {
+      id: '/admin/_layout/gallery'
+      path: '/gallery'
+      fullPath: '/admin/gallery'
+      preLoaderRoute: typeof AdminLayoutGalleryRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
+    '/admin/_layout/dashboard': {
+      id: '/admin/_layout/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminLayoutDashboardRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
     '/admin/_layout/custom-requests': {
       id: '/admin/_layout/custom-requests'
       path: '/custom-requests'
@@ -532,8 +621,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutProductsIdRouteImport
       parentRoute: typeof AdminLayoutProductsRoute
     }
+    '/admin/_layout/gallery/new': {
+      id: '/admin/_layout/gallery/new'
+      path: '/new'
+      fullPath: '/admin/gallery/new'
+      preLoaderRoute: typeof AdminLayoutGalleryNewRouteImport
+      parentRoute: typeof AdminLayoutGalleryRoute
+    }
   }
 }
+
+interface AdminLayoutGalleryRouteChildren {
+  AdminLayoutGalleryNewRoute: typeof AdminLayoutGalleryNewRoute
+}
+
+const AdminLayoutGalleryRouteChildren: AdminLayoutGalleryRouteChildren = {
+  AdminLayoutGalleryNewRoute: AdminLayoutGalleryNewRoute,
+}
+
+const AdminLayoutGalleryRouteWithChildren =
+  AdminLayoutGalleryRoute._addFileChildren(AdminLayoutGalleryRouteChildren)
 
 interface AdminLayoutProductsRouteChildren {
   AdminLayoutProductsIdRoute: typeof AdminLayoutProductsIdRoute
@@ -552,6 +659,8 @@ const AdminLayoutProductsRouteWithChildren =
 
 interface AdminLayoutRouteChildren {
   AdminLayoutCustomRequestsRoute: typeof AdminLayoutCustomRequestsRoute
+  AdminLayoutDashboardRoute: typeof AdminLayoutDashboardRoute
+  AdminLayoutGalleryRoute: typeof AdminLayoutGalleryRouteWithChildren
   AdminLayoutOrdersRoute: typeof AdminLayoutOrdersRoute
   AdminLayoutProductsRoute: typeof AdminLayoutProductsRouteWithChildren
   AdminLayoutSubscribersRoute: typeof AdminLayoutSubscribersRoute
@@ -560,6 +669,8 @@ interface AdminLayoutRouteChildren {
 
 const AdminLayoutRouteChildren: AdminLayoutRouteChildren = {
   AdminLayoutCustomRequestsRoute: AdminLayoutCustomRequestsRoute,
+  AdminLayoutDashboardRoute: AdminLayoutDashboardRoute,
+  AdminLayoutGalleryRoute: AdminLayoutGalleryRouteWithChildren,
   AdminLayoutOrdersRoute: AdminLayoutOrdersRoute,
   AdminLayoutProductsRoute: AdminLayoutProductsRouteWithChildren,
   AdminLayoutSubscribersRoute: AdminLayoutSubscribersRoute,
@@ -617,6 +728,18 @@ const CustomRouteChildren: CustomRouteChildren = {
 const CustomRouteWithChildren =
   CustomRoute._addFileChildren(CustomRouteChildren)
 
+interface InspirationRouteChildren {
+  InspirationSlugRoute: typeof InspirationSlugRoute
+}
+
+const InspirationRouteChildren: InspirationRouteChildren = {
+  InspirationSlugRoute: InspirationSlugRoute,
+}
+
+const InspirationRouteWithChildren = InspirationRoute._addFileChildren(
+  InspirationRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -625,6 +748,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRouteWithChildren,
   ContactRoute: ContactRoute,
   CustomRoute: CustomRouteWithChildren,
+  InspirationRoute: InspirationRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   ReturnsRoute: ReturnsRoute,
   ShippingRoute: ShippingRoute,

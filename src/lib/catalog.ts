@@ -23,6 +23,10 @@ import upload12 from "@/assets/product-uploads/upload-12.jpeg";
 import upload13 from "@/assets/product-uploads/upload-13.jpeg";
 import upload14 from "@/assets/product-uploads/upload-14.jpeg";
 import upload15 from "@/assets/product-uploads/upload-15.jpeg";
+import { NUMBERED_SHOP_IMAGES } from "@/lib/mug-tumbler-images";
+import { ACCESSORY_GIFT_IMAGES } from "@/lib/accessory-gift-images";
+import { APPAREL_IMAGES } from "@/lib/apparel-images";
+import { TOWEL_GIFT_IMAGES } from "@/lib/towel-gift-images";
 
 export type Product = Tables<"products">;
 
@@ -55,9 +59,14 @@ const LOCAL_IMAGES: Record<string, string> = {
 };
 
 function resolveProductImages(product: Product): Product {
+  const numberedImages =
+    NUMBERED_SHOP_IMAGES[product.slug] ??
+    ACCESSORY_GIFT_IMAGES[product.slug] ??
+    APPAREL_IMAGES[product.slug] ??
+    TOWEL_GIFT_IMAGES[product.slug];
   return {
     ...product,
-    images: product.images.map((image) => LOCAL_IMAGES[image] ?? image),
+    images: numberedImages ?? product.images.map((image) => LOCAL_IMAGES[image] ?? image),
   };
 }
 
@@ -65,13 +74,19 @@ export async function listPublicProducts() {
   const { data, error } = await supabase
     .from("products")
     .select("*")
+    .eq("hidden_from_shop", false)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data.map(resolveProductImages);
 }
 
 export async function getPublicProduct(slug: string) {
-  const { data, error } = await supabase.from("products").select("*").eq("slug", slug).single();
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("slug", slug)
+    .eq("hidden_from_shop", false)
+    .single();
   if (error) throw error;
   return resolveProductImages(data);
 }

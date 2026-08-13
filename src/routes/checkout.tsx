@@ -1,7 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Lock, ArrowRight, ArrowLeft, Truck, RefreshCw, User, MapPin, Phone } from "lucide-react";
+import {
+  Check,
+  Lock,
+  ArrowRight,
+  ArrowLeft,
+  Truck,
+  RefreshCw,
+  User,
+  MapPin,
+  Phone,
+} from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart, formatUSD } from "@/lib/cart";
 import { startOrderCheckout } from "@/lib/order-payment";
@@ -25,6 +35,7 @@ function CheckoutPage() {
   const [step, setStep] = useState<Step>(1);
   const [submitting, setSubmitting] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [shippingError, setShippingError] = useState<string | null>(null);
   const [shipping, setShipping] = useState({
     name: "",
     email: "",
@@ -39,24 +50,40 @@ function CheckoutPage() {
   const shippingCost = selectedRate ? Number(selectedRate.amount) : 0;
   const total = subtotal + shippingCost;
 
+  function continueFromShipping() {
+    const phoneDigits = shipping.phone.replace(/\D/g, "");
+    if (phoneDigits.length !== 10) {
+      setShippingError("Enter a valid 10-digit phone number, for example (555) 555-5555.");
+      return;
+    }
+    setShippingError(null);
+    setSelectedRate(null);
+    setStep(2);
+  }
+
   async function handlePay() {
     setSubmitting(true);
     setPayError(null);
     try {
+      const phoneDigits = shipping.phone.replace(/\D/g, "");
       const result = await startOrderCheckout({
         data: {
           email: shipping.email,
-          shippingAddress: shipping,
+          shippingAddress: { ...shipping, phone: `+1${phoneDigits}` },
           items,
           subtotal,
           shipping: shippingCost,
           total,
-          deliveryMethod: selectedRate ? `${selectedRate.provider} ${selectedRate.service}` : undefined,
+          deliveryMethod: selectedRate
+            ? `${selectedRate.provider} ${selectedRate.service}`
+            : undefined,
         },
       });
       window.location.href = result.url;
     } catch (err) {
-      setPayError(err instanceof Error ? err.message : "Could not start checkout. Please try again.");
+      setPayError(
+        err instanceof Error ? err.message : "Could not start checkout. Please try again.",
+      );
       setSubmitting(false);
     }
   }
@@ -97,12 +124,31 @@ function CheckoutPage() {
         <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-[1.4fr_1fr]">
           <div>
             {step === 1 && (
-              <StepShipping data={shipping} onChange={setShipping} onNext={() => setStep(2)} />
+              <StepShipping
+                data={shipping}
+                error={shippingError}
+                onChange={(next) => {
+                  setShipping(next);
+                  setShippingError(null);
+                }}
+                onNext={continueFromShipping}
+              />
             )}
             {step === 2 && (
-              <StepDelivery address={shipping} selectedRate={selectedRate} onSelect={setSelectedRate} />
+              <StepDelivery
+                address={shipping}
+                selectedRate={selectedRate}
+                onSelect={setSelectedRate}
+              />
             )}
-            {step === 3 && <StepReview shipping={shipping} selectedRate={selectedRate} />}
+            {step === 3 && (
+              <StepReview
+                shipping={shipping}
+                selectedRate={selectedRate}
+                onEditShipping={() => setStep(1)}
+                onEditDelivery={() => setStep(2)}
+              />
+            )}
           </div>
 
           <div className="flex h-fit flex-col gap-6">
@@ -110,7 +156,10 @@ function CheckoutPage() {
               <h2 className="font-display text-xl text-ink">Order Summary</h2>
               <ul className="mt-5 divide-y divide-border">
                 {items.map((it) => (
-                  <li key={`${it.id}-${JSON.stringify(it.customization ?? {})}`} className="flex gap-3 py-3">
+                  <li
+                    key={`${it.id}-${JSON.stringify(it.customization ?? {})}`}
+                    className="flex gap-3 py-3"
+                  >
                     <div className="relative">
                       <img src={it.img} alt="" className="h-16 w-14 rounded-sm object-cover" />
                       <span className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-[10px] font-semibold text-background">
@@ -120,7 +169,9 @@ function CheckoutPage() {
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-sm text-ink">{it.name}</span>
                       {it.customization?.size && (
-                        <span className="text-[11px] text-muted-foreground">Size {it.customization.size}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          Size {it.customization.size}
+                        </span>
                       )}
                       {(it.customization?.text ||
                         it.customization?.photoPath ||
@@ -196,7 +247,9 @@ function CheckoutPage() {
                     className="inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Lock className="h-3.5 w-3.5" />
-                    {submitting ? "Redirecting to secure payment..." : `Complete Payment · ${formatUSD(total)}`}
+                    {submitting
+                      ? "Redirecting to secure payment..."
+                      : `Complete Payment · ${formatUSD(total)}`}
                   </button>
                 </div>
               </div>
@@ -242,6 +295,7 @@ function Steps({ step }: { step: Step }) {
 
 function StepShipping({
   data,
+  error,
   onChange,
   onNext,
 }: {
@@ -254,6 +308,7 @@ function StepShipping({
     zip: string;
     state: string;
   };
+  error: string | null;
   onChange: (v: typeof data) => void;
   onNext: () => void;
 }) {
@@ -334,6 +389,11 @@ function StepShipping({
           />
         </Field>
       </div>
+      {error && (
+        <p className="mt-3 text-xs text-destructive" role="alert">
+          {error}
+        </p>
+      )}
       <button
         type="submit"
         className="mt-8 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
@@ -428,7 +488,9 @@ function StepDelivery({
                 </div>
               </div>
             </div>
-            <span className="shrink-0 text-sm font-medium text-ink">{formatUSD(Number(rate.amount))}</span>
+            <span className="shrink-0 text-sm font-medium text-ink">
+              {formatUSD(Number(rate.amount))}
+            </span>
           </button>
         ))}
       </div>
@@ -439,9 +501,21 @@ function StepDelivery({
 function StepReview({
   shipping,
   selectedRate,
+  onEditShipping,
+  onEditDelivery,
 }: {
-  shipping: { name: string; email: string; phone: string; address: string; city: string; state: string; zip: string };
+  shipping: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
   selectedRate: ShippoRate | null;
+  onEditShipping: () => void;
+  onEditDelivery: () => void;
 }) {
   return (
     <div className="rounded-sm border border-border bg-card p-6 md:p-8">
@@ -458,16 +532,25 @@ function StepReview({
       <div className="mt-6 grid gap-4">
         <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
           <User className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-          <div className="text-sm">
-            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Contact</div>
+          <div className="min-w-0 flex-1 text-sm">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Contact
+            </div>
             <div className="mt-1 text-ink">{shipping.name}</div>
             <div className="text-foreground/75">{shipping.email}</div>
           </div>
+          <button
+            type="button"
+            onClick={onEditShipping}
+            className="text-[10px] uppercase tracking-[0.18em] text-gold hover:underline"
+          >
+            Edit
+          </button>
         </div>
 
         <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
           <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-          <div className="text-sm">
+          <div className="min-w-0 flex-1 text-sm">
             <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
               Shipping Address
             </div>
@@ -475,25 +558,50 @@ function StepReview({
               {shipping.address}, {shipping.city}, {shipping.state} {shipping.zip}
             </div>
           </div>
+          <button
+            type="button"
+            onClick={onEditShipping}
+            className="text-[10px] uppercase tracking-[0.18em] text-gold hover:underline"
+          >
+            Edit
+          </button>
         </div>
 
         <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
           <Phone className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-          <div className="text-sm">
-            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Phone</div>
+          <div className="min-w-0 flex-1 text-sm">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Phone
+            </div>
             <div className="mt-1 text-foreground/75">{shipping.phone}</div>
           </div>
+          <button
+            type="button"
+            onClick={onEditShipping}
+            className="text-[10px] uppercase tracking-[0.18em] text-gold hover:underline"
+          >
+            Edit
+          </button>
         </div>
 
         {selectedRate && (
           <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
             <Truck className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-            <div className="text-sm">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Delivery</div>
+            <div className="min-w-0 flex-1 text-sm">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                Delivery
+              </div>
               <div className="mt-1 text-foreground/75">
                 {selectedRate.provider} {selectedRate.service}
               </div>
             </div>
+            <button
+              type="button"
+              onClick={onEditDelivery}
+              className="text-[10px] uppercase tracking-[0.18em] text-gold hover:underline"
+            >
+              Edit
+            </button>
           </div>
         )}
       </div>
