@@ -11,6 +11,7 @@ export const SOCIAL_LINKS = {
   facebook: import.meta.env.VITE_SOCIAL_FACEBOOK ?? "",
   tiktok: import.meta.env.VITE_SOCIAL_TIKTOK ?? "",
   pinterest: import.meta.env.VITE_SOCIAL_PINTEREST ?? "",
+  etsy: import.meta.env.VITE_SOCIAL_ETSY ?? "",
 };
 
 export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL ?? "";

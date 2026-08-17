@@ -6,10 +6,11 @@ function offlineId(prefix: string) {
   return `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
-function storeOfflineSubmission(key: string, payload: unknown) {
+function storeOfflineSubmission(key: string, payload: Record<string, unknown>) {
   if (typeof window === "undefined") return;
   try {
-    const existing = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    const existing = Array.isArray(parsed) ? parsed : [];
     window.localStorage.setItem(
       key,
       JSON.stringify([...existing, { ...payload, createdAt: new Date().toISOString() }]),

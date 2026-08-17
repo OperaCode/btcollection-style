@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Header, Footer, PageBanner } from "@/components/site/SiteChrome";
-import { CONTACT_EMAIL } from "@/lib/site-config";
+import { useSiteSettings } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/returns")({
   head: () => ({
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/returns")({
 });
 
 function ReturnsPage() {
+  const { contactEmail } = useSiteSettings();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -40,7 +41,7 @@ function ReturnsPage() {
           </Section>
 
           <Section title="Damaged or Incorrect Orders">
-            If your order arrives damaged or isn't what you ordered, email us at {CONTACT_EMAIL}{" "}
+            If your order arrives damaged or isn't what you ordered, email us at {contactEmail}{" "}
             within 7 days with a photo, and we'll make it right with a replacement or refund.
           </Section>
 

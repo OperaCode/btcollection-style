@@ -11,25 +11,9 @@ import {
 import { getCustomizationPhotoUrl } from "@/lib/admin-storage";
 import { COLOR_SWATCHES } from "@/lib/colors";
 
-export const Route = createFileRoute("/admin/_layout/custom-requests")({
+export const Route = createFileRoute("/admin/_layout/orders/custom")({
   component: AdminCustomRequests,
 });
-
-const STATUSES = [
-  "reviewing",
-  "awaiting_payment",
-  "processing",
-  "ready",
-  "shipped",
-  "delivered",
-  "cancelled",
-] as const;
-
-// "processing" is only ever set automatically by a confirmed Stripe payment
-// (see confirmCustomRequestPayment) — all payment goes through the site, so
-// it can't be picked manually from this dropdown, even though it can still
-// be the current value once payment has gone through.
-const MANUAL_DISABLED_STATUSES = new Set(["processing"]);
 
 function formatUSD(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
@@ -72,13 +56,7 @@ function AdminCustomRequests() {
 
   return (
     <div>
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="font-display text-3xl text-ink">Custom Requests</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Review custom order leads, track quote status, and follow up with customers.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <div className="rounded-full border border-gold/50 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-gold">
           {requests.data?.filter((request) => request.status === "reviewing").length ?? 0} Reviewing
         </div>
@@ -115,25 +93,73 @@ function AdminCustomRequests() {
                   </p>
                 </div>
 
-                <select
-                  value={request.status}
-                  onChange={(event) => {
-                    const status = event.target.value as CustomRequest["status"];
-                    if (status === "awaiting_payment") {
-                      setQuotingId(request.id);
-                      return;
-                    }
-                    setStatus.mutate({ request, status });
-                  }}
-                  className="h-10 rounded-full border border-border bg-background px-4 text-[11px] uppercase tracking-[0.18em] text-foreground/80 outline-none focus:border-gold"
-                >
-                  {STATUSES.map((status) => (
-                    <option key={status} value={status} disabled={MANUAL_DISABLED_STATUSES.has(status)}>
-                      {status.replaceAll("_", " ")}
-                      {status === "processing" ? " (auto after payment)" : ""}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex flex-wrap items-center gap-2">
+                  {request.status === "reviewing" && (
+                    <button
+                      type="button"
+                      onClick={() => setQuotingId(request.id)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-ink transition hover:border-gold hover:bg-gold/20"
+                    >
+                      Send Quote
+                    </button>
+                  )}
+                  {request.status === "awaiting_payment" && (
+                    <button
+                      type="button"
+                      onClick={() => setQuotingId(request.id)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-ink transition hover:border-gold hover:bg-gold/20"
+                    >
+                      Edit Quote
+                    </button>
+                  )}
+                  {request.status === "processing" && (
+                    <button
+                      type="button"
+                      onClick={() => setStatus.mutate({ request, status: "ready" })}
+                      disabled={setStatus.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-ink transition hover:border-gold hover:bg-gold/20 disabled:opacity-60"
+                    >
+                      Mark Ready
+                    </button>
+                  )}
+                  {request.status === "ready" && (
+                    <button
+                      type="button"
+                      onClick={() => setStatus.mutate({ request, status: "shipped" })}
+                      disabled={setStatus.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-ink transition hover:border-gold hover:bg-gold/20 disabled:opacity-60"
+                    >
+                      Mark Shipped
+                    </button>
+                  )}
+                  {request.status === "shipped" && (
+                    <button
+                      type="button"
+                      onClick={() => setStatus.mutate({ request, status: "delivered" })}
+                      disabled={setStatus.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-ink transition hover:border-gold hover:bg-gold/20 disabled:opacity-60"
+                    >
+                      Mark Delivered
+                    </button>
+                  )}
+                  {(request.status === "reviewing" ||
+                    request.status === "awaiting_payment" ||
+                    request.status === "processing" ||
+                    request.status === "ready") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm("Cancel this request? This can't be undone from here.")) {
+                          setStatus.mutate({ request, status: "cancelled" });
+                        }
+                      }}
+                      disabled={setStatus.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition hover:border-destructive hover:text-destructive disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
 
               <dl className="mt-5 grid gap-3 border-t border-border pt-5 text-sm sm:grid-cols-2 lg:grid-cols-4">

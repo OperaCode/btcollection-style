@@ -1,19 +1,15 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestUrl } from "@tanstack/react-start/server";
 import { sendCustomRequestStatusUpdate } from "@/lib/custom-request-email";
+import { createSquareCheckout, getSquareOrderStatus } from "@/lib/square";
+import type { Database, Tables } from "@/integrations/supabase/types";
 
-// Checkout Sessions are created on demand (not pre-generated when the quote
-// email is sent) so they never go stale — Stripe expires sessions after 24h,
-// and a quote might sit unopened for days before the customer clicks "Pay".
+// Checkout links are created on demand (not pre-generated when the quote
+// email is sent) so they never go stale.
 export const createCustomRequestCheckoutUrl = createServerFn({ method: "POST" })
   .validator((data: { id: string }) => data)
   .handler(async ({ data }): Promise<{ url?: string; error?: string }> => {
-    const { getStripe } = await import("@/lib/stripe.server");
-    const stripe = getStripe();
-    if (!stripe) {
-      return { error: "Online payment isn't set up yet. Please contact us to arrange payment." };
-    }
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: request, error } = await supabaseAdmin
       .from("custom_requests")
@@ -28,38 +24,74 @@ export const createCustomRequestCheckoutUrl = createServerFn({ method: "POST" })
 
     const origin = getRequestUrl().origin;
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: request.email,
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            unit_amount: Math.round(request.quoted_price * 100),
-            product_data: {
-              name: `Custom Order${request.item_type ? ` — ${request.item_type}` : ""}`,
-              description: request.quote_note?.slice(0, 500) || undefined,
-            },
+    try {
+      const checkout = await createSquareCheckout({
+        orderId: request.id,
+        items: [
+          {
+            id: request.id,
+            slug: request.id,
+            name: `Custom Order${request.item_type ? ` — ${request.item_type}` : ""}`.slice(0, 500),
+            price: request.quoted_price,
+            img: "",
+            qty: 1,
           },
-          quantity: 1,
-        },
-      ],
-      success_url: `${origin}/custom/pay/${request.id}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/custom/pay/${request.id}`,
-      metadata: { custom_request_id: request.id },
-    });
+        ],
+        shippingLabel: null,
+        shippingAmount: 0,
+        buyerEmail: request.email,
+        buyerName: request.full_name,
+        buyerPhone: request.phone ?? undefined,
+        redirectUrl: `${origin}/custom/pay/${request.id}/success`,
+      });
 
-    await supabaseAdmin
-      .from("custom_requests")
-      .update({ stripe_session_id: session.id })
-      .eq("id", request.id);
+      await supabaseAdmin
+        .from("custom_requests")
+        .update({ square_checkout_order_id: checkout.squareOrderId })
+        .eq("id", request.id);
 
-    if (!session.url) return { error: "Could not start checkout. Please try again." };
-    return { url: session.url };
+      return { url: checkout.url };
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "Could not start checkout." };
+    }
   });
 
+// Shared by both the customer's return-from-Square redirect and the Square
+// webhook — same race-tolerant pattern as markOrderPaid in order-payment.ts.
+async function markCustomRequestPaid(
+  supabaseAdmin: SupabaseClient<Database>,
+  request: Tables<"custom_requests">,
+  paymentId: string | null,
+) {
+  if (request.paid_at) return { paid: true as const };
+
+  const { data: updated, error } = await supabaseAdmin
+    .from("custom_requests")
+    .update({
+      status: "processing",
+      paid_at: new Date().toISOString(),
+      square_payment_id: paymentId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", request.id)
+    .is("paid_at", null)
+    .select("id");
+
+  if (error) throw error;
+  if (!updated || updated.length === 0) {
+    // Someone else (webhook vs. redirect) already marked this paid.
+    return { paid: true as const };
+  }
+
+  await sendCustomRequestStatusUpdate({
+    data: { id: request.id, fullName: request.full_name, email: request.email, status: "processing" },
+  });
+
+  return { paid: true as const };
+}
+
 export const confirmCustomRequestPayment = createServerFn({ method: "POST" })
-  .validator((data: { id: string; sessionId: string }) => data)
+  .validator((data: { id: string }) => data)
   .handler(async ({ data }): Promise<{ paid: boolean; error?: string }> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: request, error } = await supabaseAdmin
@@ -69,35 +101,31 @@ export const confirmCustomRequestPayment = createServerFn({ method: "POST" })
       .single();
 
     if (error || !request) return { paid: false, error: "Request not found." };
+    if (request.paid_at) return markCustomRequestPaid(supabaseAdmin, request, request.square_payment_id);
 
-    // Already processed — idempotent success if the customer refreshes this page.
-    if (request.paid_at) return { paid: true };
-
-    if (request.stripe_session_id !== data.sessionId) {
-      return { paid: false, error: "This payment link does not match this request." };
+    if (!request.square_checkout_order_id) {
+      return { paid: false, error: "This request has no payment attached yet." };
     }
 
-    const { getStripe } = await import("@/lib/stripe.server");
-    const stripe = getStripe();
-    if (!stripe) return { paid: false, error: "Online payment isn't set up yet." };
-
-    const session = await stripe.checkout.sessions.retrieve(data.sessionId);
-    if (session.payment_status !== "paid" || session.metadata?.custom_request_id !== request.id) {
-      return { paid: false, error: "Payment was not completed." };
+    const status = await getSquareOrderStatus(request.square_checkout_order_id);
+    if (!status.paid) {
+      return { paid: false, error: "Payment has not completed yet. If you just paid, please refresh in a moment." };
     }
 
-    await supabaseAdmin
-      .from("custom_requests")
-      .update({
-        status: "processing",
-        paid_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", request.id);
-
-    await sendCustomRequestStatusUpdate({
-      data: { id: request.id, fullName: request.full_name, email: request.email, status: "processing" },
-    });
-
-    return { paid: true };
+    return markCustomRequestPaid(supabaseAdmin, request, status.paymentId);
   });
+
+// Called from the Square webhook (src/lib/square-webhook.ts) — the reliable
+// source of truth regardless of whether the customer's browser ever makes
+// it back to the success page.
+export async function markCustomRequestPaidBySquareOrderId(squareOrderId: string, paymentId: string | null) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: request, error } = await supabaseAdmin
+    .from("custom_requests")
+    .select("*")
+    .eq("square_checkout_order_id", squareOrderId)
+    .single();
+  if (error || !request) return;
+
+  await markCustomRequestPaid(supabaseAdmin, request, paymentId);
+}

@@ -10,6 +10,13 @@ export type ShippingAddress = {
   zip?: string;
 };
 
+export type ParcelInput = {
+  length: string;
+  width: string;
+  height: string;
+  weight: string;
+};
+
 export type ShippoRate = {
   object_id: string;
   provider: string;
@@ -59,30 +66,70 @@ function requireEnv(name: string) {
   return value;
 }
 
-function getFromAddress() {
+type SiteSettingsRow = {
+  shippo_from_name: string | null;
+  shippo_from_company: string | null;
+  shippo_from_street1: string | null;
+  shippo_from_street2: string | null;
+  shippo_from_city: string | null;
+  shippo_from_state: string | null;
+  shippo_from_zip: string | null;
+  shippo_from_country: string | null;
+  shippo_from_phone: string | null;
+  shippo_from_email: string | null;
+  parcel_length: string | null;
+  parcel_width: string | null;
+  parcel_height: string | null;
+  parcel_weight: string | null;
+} | null;
+
+async function getSettingsRow(): Promise<SiteSettingsRow> {
+  const { data } = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
+  return data;
+}
+
+function getFromAddress(settings: SiteSettingsRow) {
   return {
-    name: requireEnv("SHIPPO_FROM_NAME"),
-    company: process.env.SHIPPO_FROM_COMPANY || "BT Collection LLC",
-    street1: requireEnv("SHIPPO_FROM_STREET1"),
-    street2: process.env.SHIPPO_FROM_STREET2 || undefined,
-    city: requireEnv("SHIPPO_FROM_CITY"),
-    state: requireEnv("SHIPPO_FROM_STATE"),
-    zip: requireEnv("SHIPPO_FROM_ZIP"),
-    country: process.env.SHIPPO_FROM_COUNTRY || "US",
-    phone: requireEnv("SHIPPO_FROM_PHONE"),
-    email: requireEnv("SHIPPO_FROM_EMAIL"),
+    name: settings?.shippo_from_name || requireEnv("SHIPPO_FROM_NAME"),
+    company: settings?.shippo_from_company || process.env.SHIPPO_FROM_COMPANY || "BT Collection LLC",
+    street1: settings?.shippo_from_street1 || requireEnv("SHIPPO_FROM_STREET1"),
+    street2: settings?.shippo_from_street2 || process.env.SHIPPO_FROM_STREET2 || undefined,
+    city: settings?.shippo_from_city || requireEnv("SHIPPO_FROM_CITY"),
+    state: settings?.shippo_from_state || requireEnv("SHIPPO_FROM_STATE"),
+    zip: settings?.shippo_from_zip || requireEnv("SHIPPO_FROM_ZIP"),
+    country: settings?.shippo_from_country || process.env.SHIPPO_FROM_COUNTRY || "US",
+    phone: settings?.shippo_from_phone || requireEnv("SHIPPO_FROM_PHONE"),
+    email: settings?.shippo_from_email || requireEnv("SHIPPO_FROM_EMAIL"),
   };
 }
 
-function getDefaultParcel() {
+function getDefaultParcel(settings: SiteSettingsRow) {
   return {
-    length: process.env.SHIPPO_PARCEL_LENGTH || "10",
-    width: process.env.SHIPPO_PARCEL_WIDTH || "8",
-    height: process.env.SHIPPO_PARCEL_HEIGHT || "4",
+    length: settings?.parcel_length || process.env.SHIPPO_PARCEL_LENGTH || "10",
+    width: settings?.parcel_width || process.env.SHIPPO_PARCEL_WIDTH || "8",
+    height: settings?.parcel_height || process.env.SHIPPO_PARCEL_HEIGHT || "4",
     distance_unit: "in",
-    weight: process.env.SHIPPO_PARCEL_WEIGHT || "2",
+    weight: settings?.parcel_weight || process.env.SHIPPO_PARCEL_WEIGHT || "2",
     mass_unit: "lb",
   };
+}
+
+// The Settings-level parcel is only ever a rough estimate for a rate quote
+// before anything is packed. Once an order is actually boxed and weighed,
+// the admin measures the real package and that always wins — falling back
+// to the estimate only when she hasn't entered real numbers yet.
+function resolveParcel(settings: SiteSettingsRow, override?: ParcelInput | null) {
+  if (override && override.length && override.width && override.height && override.weight) {
+    return {
+      length: override.length,
+      width: override.width,
+      height: override.height,
+      distance_unit: "in",
+      weight: override.weight,
+      mass_unit: "lb",
+    };
+  }
+  return getDefaultParcel(settings);
 }
 
 async function verifyAdmin(accessToken: string) {
@@ -144,7 +191,7 @@ function mapShippoRates(rates: ShippoShipmentResponse["rates"]): ShippoRate[] {
 }
 
 const createShipmentRates = createServerFn({ method: "POST" })
-  .validator((data: { orderId: string; accessToken: string }) => data)
+  .validator((data: { orderId: string; accessToken: string; parcel?: ParcelInput }) => data)
   .handler(async ({ data }) => {
     const supabaseAdmin = await verifyAdmin(data.accessToken);
     const { data: order, error } = await supabaseAdmin
@@ -154,11 +201,12 @@ const createShipmentRates = createServerFn({ method: "POST" })
       .single();
     if (error || !order) throw error ?? new Error("Order not found.");
 
+    const settings = await getSettingsRow();
     const shippingAddress = (order.shipping_address ?? {}) as ShippingAddress;
     const shipment = await shippoRequest<ShippoShipmentResponse>("/shipments/", {
-      address_from: getFromAddress(),
+      address_from: getFromAddress(settings),
       address_to: orderAddressToShippo(shippingAddress, order.email),
-      parcels: [getDefaultParcel()],
+      parcels: [resolveParcel(settings, data.parcel)],
       async: false,
       metadata: `Order ${order.id}`,
     });
@@ -177,10 +225,11 @@ const createShipmentRates = createServerFn({ method: "POST" })
 const createCheckoutRates = createServerFn({ method: "POST" })
   .validator((data: { address: ShippingAddress }) => data)
   .handler(async ({ data }) => {
+    const settings = await getSettingsRow();
     const shipment = await shippoRequest<ShippoShipmentResponse>("/shipments/", {
-      address_from: getFromAddress(),
+      address_from: getFromAddress(settings),
       address_to: orderAddressToShippo(data.address, data.address.email ?? "", true),
-      parcels: [getDefaultParcel()],
+      parcels: [getDefaultParcel(settings)],
       async: false,
     });
 
@@ -226,6 +275,10 @@ const purchaseLabel = createServerFn({ method: "POST" })
         tracking_number: transaction.tracking_number ?? null,
         tracking_url: transaction.tracking_url_provider ?? null,
         label_purchased_at: new Date().toISOString(),
+        // Buying the label is the real-world "it's on its way" moment —
+        // status follows automatically instead of relying on the admin to
+        // remember to flip a dropdown.
+        status: "shipped",
       })
       .eq("id", data.orderId);
 
@@ -243,10 +296,57 @@ async function getAccessToken() {
   return accessToken;
 }
 
-export async function getShippoRates(orderId: string) {
-  return createShipmentRates({ data: { orderId, accessToken: await getAccessToken() } });
+export async function getShippoRates(orderId: string, parcel?: ParcelInput) {
+  return createShipmentRates({ data: { orderId, parcel, accessToken: await getAccessToken() } });
 }
 
 export async function buyShippoLabel(orderId: string, rateId: string) {
   return purchaseLabel({ data: { orderId, rateId, accessToken: await getAccessToken() } });
+}
+
+// Read-only peek at the server env-var fallbacks, so the admin Settings form
+// can show what's actually in effect today (not just what's saved in the
+// database) before the admin has entered anything. None of these are secrets
+// — they're the return address and box size that already go out on every
+// label — so this is safe to expose to a verified admin.
+const readEnvShippingDefaults = createServerFn({ method: "POST" })
+  .validator((data: { accessToken: string }) => data)
+  .handler(async ({ data }) => {
+    await verifyAdmin(data.accessToken);
+    return {
+      shippo_from_name: process.env.SHIPPO_FROM_NAME || "",
+      shippo_from_company: process.env.SHIPPO_FROM_COMPANY || "",
+      shippo_from_street1: process.env.SHIPPO_FROM_STREET1 || "",
+      shippo_from_street2: process.env.SHIPPO_FROM_STREET2 || "",
+      shippo_from_city: process.env.SHIPPO_FROM_CITY || "",
+      shippo_from_state: process.env.SHIPPO_FROM_STATE || "",
+      shippo_from_zip: process.env.SHIPPO_FROM_ZIP || "",
+      shippo_from_country: process.env.SHIPPO_FROM_COUNTRY || "",
+      shippo_from_phone: process.env.SHIPPO_FROM_PHONE || "",
+      shippo_from_email: process.env.SHIPPO_FROM_EMAIL || "",
+      parcel_length: process.env.SHIPPO_PARCEL_LENGTH || "",
+      parcel_width: process.env.SHIPPO_PARCEL_WIDTH || "",
+      parcel_height: process.env.SHIPPO_PARCEL_HEIGHT || "",
+      parcel_weight: process.env.SHIPPO_PARCEL_WEIGHT || "",
+    };
+  });
+
+export async function getEnvShippingDefaults() {
+  return readEnvShippingDefaults({ data: { accessToken: await getAccessToken() } });
+}
+
+// The current effective default parcel (settings override, else env), used
+// only to pre-fill the per-order package fields with a starting point the
+// admin then confirms or corrects against the real, measured package.
+const readDefaultParcel = createServerFn({ method: "POST" })
+  .validator((data: { accessToken: string }) => data)
+  .handler(async ({ data }) => {
+    await verifyAdmin(data.accessToken);
+    const settings = await getSettingsRow();
+    const parcel = getDefaultParcel(settings);
+    return { length: parcel.length, width: parcel.width, height: parcel.height, weight: parcel.weight };
+  });
+
+export async function getDefaultParcelValues() {
+  return readDefaultParcel({ data: { accessToken: await getAccessToken() } });
 }

@@ -8,38 +8,50 @@ export const Route = createFileRoute("/custom/pay/$id/success")({
   head: () => ({
     meta: [{ title: "Payment Confirmed — Breakthrough Collection LLC" }, { name: "robots", content: "noindex" }],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    session_id: typeof search.session_id === "string" ? search.session_id : "",
-  }),
   component: PaySuccessPage,
 });
 
 function PaySuccessPage() {
   const { id } = Route.useParams();
-  const { session_id } = Route.useSearch();
   const [state, setState] = useState<"loading" | "paid" | "error">("loading");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!session_id) {
-      setState("error");
-      setError("Missing payment session.");
-      return;
-    }
-    confirmCustomRequestPayment({ data: { id, sessionId: session_id } })
-      .then((result) => {
+    let cancelled = false;
+    let attempt = 0;
+
+    async function check() {
+      try {
+        const result = await confirmCustomRequestPayment({ data: { id } });
+        if (cancelled) return;
+
         if (result.paid) {
           setState("paid");
+          return;
+        }
+
+        // Square may take a moment to finalize the order after redirecting
+        // back — retry a few times before treating it as a real failure.
+        attempt += 1;
+        if (attempt < 4) {
+          setTimeout(check, 1500);
         } else {
           setState("error");
           setError(result.error ?? "Payment could not be confirmed.");
         }
-      })
-      .catch(() => {
-        setState("error");
-        setError("Payment could not be confirmed.");
-      });
-  }, [id, session_id]);
+      } catch {
+        if (!cancelled) {
+          setState("error");
+          setError("Payment could not be confirmed.");
+        }
+      }
+    }
+
+    check();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">

@@ -1,15 +1,15 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import {
-  ClipboardList,
   LayoutDashboard,
-  Mail,
   Package,
+  Settings,
   ShoppingBag,
   Images,
   LogOut,
 } from "lucide-react";
 import { useAdminAuth } from "@/lib/admin-auth";
+import logoMark from "@/assets/bclogo.jpeg";
 
 export const Route = createFileRoute("/admin/_layout")({
   component: AdminProtectedLayout,
@@ -18,10 +18,9 @@ export const Route = createFileRoute("/admin/_layout")({
 const NAV = [
   { label: "Dashboard", to: "/admin/dashboard" as const, icon: LayoutDashboard },
   { label: "Orders", to: "/admin/orders" as const, icon: ShoppingBag },
-  { label: "Custom", to: "/admin/custom-requests" as const, icon: ClipboardList },
   { label: "Products", to: "/admin/products" as const, icon: Package },
   { label: "Gallery", to: "/admin/gallery" as const, icon: Images },
-  { label: "Subscribers", to: "/admin/subscribers" as const, icon: Mail },
+  { label: "Settings", to: "/admin/settings" as const, icon: Settings },
 ];
 
 function AdminProtectedLayout() {
@@ -52,7 +51,7 @@ function AdminProtectedLayout() {
         <div>
           <h1 className="font-display text-2xl text-ink">Access Denied</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {user.email} does not have admin access to this store.
+            {user?.email} does not have admin access to this store.
           </p>
           {authError && <p className="mt-3 max-w-md text-sm text-destructive">{authError}</p>}
           <button
@@ -67,18 +66,18 @@ function AdminProtectedLayout() {
   }
 
   return (
-    <div className="grid min-h-screen grid-cols-1 bg-background text-foreground md:grid-cols-[220px_1fr]">
-      <aside className="border-b border-border bg-ink text-background md:border-b-0 md:border-r">
+    <div className="grid min-h-screen grid-cols-1 bg-background text-foreground md:h-screen md:grid-cols-[220px_1fr] md:overflow-hidden">
+      <aside className="border-b border-border bg-ink text-background md:flex md:h-screen md:flex-col md:border-b-0 md:border-r">
         <div className="flex items-center gap-3 border-b border-white/10 px-6 py-5">
-          <div className="grid h-9 w-9 place-items-center rounded-full border border-gold/60 font-display italic text-gold">
-            BT
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-gold/60 bg-white">
+            <img src={logoMark} alt="Breakthrough Collection LLC" className="h-6 w-6 object-contain" />
           </div>
           <div className="font-display text-lg">Admin</div>
         </div>
-        <nav className="flex flex-row gap-1 overflow-x-auto px-3 py-3 md:flex-col md:overflow-visible">
+        <nav className="flex flex-row gap-1 overflow-x-auto px-3 py-3 md:flex-1 md:flex-col md:overflow-y-auto">
           {NAV.map((n) => {
             const Icon = n.icon;
-            const active = pathname === n.to;
+            const active = pathname === n.to || pathname.startsWith(`${n.to}/`);
             return (
               <Link
                 key={n.to}
@@ -95,7 +94,7 @@ function AdminProtectedLayout() {
           })}
         </nav>
         <div className="border-t border-white/10 px-6 py-4">
-          <p className="truncate text-xs text-background/60">{user.email}</p>
+          <p className="truncate text-xs text-background/60">{user?.email}</p>
           <button
             onClick={() => signOut()}
             className="mt-3 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-background/75 hover:text-gold"
@@ -105,7 +104,7 @@ function AdminProtectedLayout() {
         </div>
       </aside>
 
-      <main className="px-4 py-8 md:px-10 md:py-10">
+      <main className="px-4 py-8 md:overflow-y-auto md:px-10 md:py-10">
         <Outlet />
       </main>
     </div>

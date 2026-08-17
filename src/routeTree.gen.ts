@@ -25,20 +25,20 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as InspirationSlugRouteImport } from './routes/inspiration.$slug'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
-import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
 import { Route as AdminLayoutIndexRouteImport } from './routes/admin/_layout/index'
 import { Route as CustomPayIdRouteImport } from './routes/custom.pay.$id'
-import { Route as AdminLayoutSubscribersRouteImport } from './routes/admin/_layout/subscribers'
+import { Route as AdminLayoutSettingsRouteImport } from './routes/admin/_layout/settings'
 import { Route as AdminLayoutProductsRouteImport } from './routes/admin/_layout/products'
 import { Route as AdminLayoutOrdersRouteImport } from './routes/admin/_layout/orders'
 import { Route as AdminLayoutGalleryRouteImport } from './routes/admin/_layout/gallery'
 import { Route as AdminLayoutDashboardRouteImport } from './routes/admin/_layout/dashboard'
-import { Route as AdminLayoutCustomRequestsRouteImport } from './routes/admin/_layout/custom-requests'
 import { Route as AdminLayoutProductsIndexRouteImport } from './routes/admin/_layout/products.index'
+import { Route as AdminLayoutOrdersIndexRouteImport } from './routes/admin/_layout/orders.index'
 import { Route as CustomPayIdSuccessRouteImport } from './routes/custom.pay.$id.success'
 import { Route as AdminLayoutProductsNewRouteImport } from './routes/admin/_layout/products.new'
 import { Route as AdminLayoutProductsIdRouteImport } from './routes/admin/_layout/products.$id'
+import { Route as AdminLayoutOrdersCustomRouteImport } from './routes/admin/_layout/orders.custom'
 import { Route as AdminLayoutGalleryNewRouteImport } from './routes/admin/_layout/gallery.new'
 
 const TermsRoute = TermsRouteImport.update({
@@ -121,11 +121,6 @@ const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
   path: '/success',
   getParentRoute: () => CheckoutRoute,
 } as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminLayoutRoute = AdminLayoutRouteImport.update({
   id: '/_layout',
   getParentRoute: () => AdminRoute,
@@ -140,9 +135,9 @@ const CustomPayIdRoute = CustomPayIdRouteImport.update({
   path: '/pay/$id',
   getParentRoute: () => CustomRoute,
 } as any)
-const AdminLayoutSubscribersRoute = AdminLayoutSubscribersRouteImport.update({
-  id: '/subscribers',
-  path: '/subscribers',
+const AdminLayoutSettingsRoute = AdminLayoutSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
 const AdminLayoutProductsRoute = AdminLayoutProductsRouteImport.update({
@@ -165,18 +160,17 @@ const AdminLayoutDashboardRoute = AdminLayoutDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
-const AdminLayoutCustomRequestsRoute =
-  AdminLayoutCustomRequestsRouteImport.update({
-    id: '/custom-requests',
-    path: '/custom-requests',
-    getParentRoute: () => AdminLayoutRoute,
-  } as any)
 const AdminLayoutProductsIndexRoute =
   AdminLayoutProductsIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => AdminLayoutProductsRoute,
   } as any)
+const AdminLayoutOrdersIndexRoute = AdminLayoutOrdersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminLayoutOrdersRoute,
+} as any)
 const CustomPayIdSuccessRoute = CustomPayIdSuccessRouteImport.update({
   id: '/success',
   path: '/success',
@@ -191,6 +185,11 @@ const AdminLayoutProductsIdRoute = AdminLayoutProductsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AdminLayoutProductsRoute,
+} as any)
+const AdminLayoutOrdersCustomRoute = AdminLayoutOrdersCustomRouteImport.update({
+  id: '/custom',
+  path: '/custom',
+  getParentRoute: () => AdminLayoutOrdersRoute,
 } as any)
 const AdminLayoutGalleryNewRoute = AdminLayoutGalleryNewRouteImport.update({
   id: '/new',
@@ -212,22 +211,22 @@ export interface FileRoutesByFullPath {
   '/shipping': typeof ShippingRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
-  '/admin/login': typeof AdminLoginRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
-  '/admin/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/dashboard': typeof AdminLayoutDashboardRoute
   '/admin/gallery': typeof AdminLayoutGalleryRouteWithChildren
-  '/admin/orders': typeof AdminLayoutOrdersRoute
+  '/admin/orders': typeof AdminLayoutOrdersRouteWithChildren
   '/admin/products': typeof AdminLayoutProductsRouteWithChildren
-  '/admin/subscribers': typeof AdminLayoutSubscribersRoute
+  '/admin/settings': typeof AdminLayoutSettingsRoute
   '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
   '/admin/': typeof AdminLayoutIndexRoute
   '/admin/gallery/new': typeof AdminLayoutGalleryNewRoute
+  '/admin/orders/custom': typeof AdminLayoutOrdersCustomRoute
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
   '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
+  '/admin/orders/': typeof AdminLayoutOrdersIndexRoute
   '/admin/products/': typeof AdminLayoutProductsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -244,20 +243,19 @@ export interface FileRoutesByTo {
   '/shipping': typeof ShippingRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
-  '/admin/login': typeof AdminLoginRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
-  '/admin/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/dashboard': typeof AdminLayoutDashboardRoute
   '/admin/gallery': typeof AdminLayoutGalleryRouteWithChildren
-  '/admin/orders': typeof AdminLayoutOrdersRoute
-  '/admin/subscribers': typeof AdminLayoutSubscribersRoute
+  '/admin/settings': typeof AdminLayoutSettingsRoute
   '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
   '/admin/gallery/new': typeof AdminLayoutGalleryNewRoute
+  '/admin/orders/custom': typeof AdminLayoutOrdersCustomRoute
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
   '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
+  '/admin/orders': typeof AdminLayoutOrdersIndexRoute
   '/admin/products': typeof AdminLayoutProductsIndexRoute
 }
 export interface FileRoutesById {
@@ -276,22 +274,22 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/admin/_layout': typeof AdminLayoutRouteWithChildren
-  '/admin/login': typeof AdminLoginRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
-  '/admin/_layout/custom-requests': typeof AdminLayoutCustomRequestsRoute
   '/admin/_layout/dashboard': typeof AdminLayoutDashboardRoute
   '/admin/_layout/gallery': typeof AdminLayoutGalleryRouteWithChildren
-  '/admin/_layout/orders': typeof AdminLayoutOrdersRoute
+  '/admin/_layout/orders': typeof AdminLayoutOrdersRouteWithChildren
   '/admin/_layout/products': typeof AdminLayoutProductsRouteWithChildren
-  '/admin/_layout/subscribers': typeof AdminLayoutSubscribersRoute
+  '/admin/_layout/settings': typeof AdminLayoutSettingsRoute
   '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
   '/admin/_layout/': typeof AdminLayoutIndexRoute
   '/admin/_layout/gallery/new': typeof AdminLayoutGalleryNewRoute
+  '/admin/_layout/orders/custom': typeof AdminLayoutOrdersCustomRoute
   '/admin/_layout/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/_layout/products/new': typeof AdminLayoutProductsNewRoute
   '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
+  '/admin/_layout/orders/': typeof AdminLayoutOrdersIndexRoute
   '/admin/_layout/products/': typeof AdminLayoutProductsIndexRoute
 }
 export interface FileRouteTypes {
@@ -310,22 +308,22 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/shop'
     | '/terms'
-    | '/admin/login'
     | '/checkout/success'
     | '/inspiration/$slug'
     | '/product/$slug'
-    | '/admin/custom-requests'
     | '/admin/dashboard'
     | '/admin/gallery'
     | '/admin/orders'
     | '/admin/products'
-    | '/admin/subscribers'
+    | '/admin/settings'
     | '/custom/pay/$id'
     | '/admin/'
     | '/admin/gallery/new'
+    | '/admin/orders/custom'
     | '/admin/products/$id'
     | '/admin/products/new'
     | '/custom/pay/$id/success'
+    | '/admin/orders/'
     | '/admin/products/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -342,20 +340,19 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/shop'
     | '/terms'
-    | '/admin/login'
     | '/checkout/success'
     | '/inspiration/$slug'
     | '/product/$slug'
-    | '/admin/custom-requests'
     | '/admin/dashboard'
     | '/admin/gallery'
-    | '/admin/orders'
-    | '/admin/subscribers'
+    | '/admin/settings'
     | '/custom/pay/$id'
     | '/admin/gallery/new'
+    | '/admin/orders/custom'
     | '/admin/products/$id'
     | '/admin/products/new'
     | '/custom/pay/$id/success'
+    | '/admin/orders'
     | '/admin/products'
   id:
     | '__root__'
@@ -373,22 +370,22 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/admin/_layout'
-    | '/admin/login'
     | '/checkout/success'
     | '/inspiration/$slug'
     | '/product/$slug'
-    | '/admin/_layout/custom-requests'
     | '/admin/_layout/dashboard'
     | '/admin/_layout/gallery'
     | '/admin/_layout/orders'
     | '/admin/_layout/products'
-    | '/admin/_layout/subscribers'
+    | '/admin/_layout/settings'
     | '/custom/pay/$id'
     | '/admin/_layout/'
     | '/admin/_layout/gallery/new'
+    | '/admin/_layout/orders/custom'
     | '/admin/_layout/products/$id'
     | '/admin/_layout/products/new'
     | '/custom/pay/$id/success'
+    | '/admin/_layout/orders/'
     | '/admin/_layout/products/'
   fileRoutesById: FileRoutesById
 }
@@ -523,13 +520,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutSuccessRouteImport
       parentRoute: typeof CheckoutRoute
     }
-    '/admin/login': {
-      id: '/admin/login'
-      path: '/login'
-      fullPath: '/admin/login'
-      preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/_layout': {
       id: '/admin/_layout'
       path: ''
@@ -551,11 +541,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomPayIdRouteImport
       parentRoute: typeof CustomRoute
     }
-    '/admin/_layout/subscribers': {
-      id: '/admin/_layout/subscribers'
-      path: '/subscribers'
-      fullPath: '/admin/subscribers'
-      preLoaderRoute: typeof AdminLayoutSubscribersRouteImport
+    '/admin/_layout/settings': {
+      id: '/admin/_layout/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminLayoutSettingsRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
     '/admin/_layout/products': {
@@ -586,19 +576,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutDashboardRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
-    '/admin/_layout/custom-requests': {
-      id: '/admin/_layout/custom-requests'
-      path: '/custom-requests'
-      fullPath: '/admin/custom-requests'
-      preLoaderRoute: typeof AdminLayoutCustomRequestsRouteImport
-      parentRoute: typeof AdminLayoutRoute
-    }
     '/admin/_layout/products/': {
       id: '/admin/_layout/products/'
       path: '/'
       fullPath: '/admin/products/'
       preLoaderRoute: typeof AdminLayoutProductsIndexRouteImport
       parentRoute: typeof AdminLayoutProductsRoute
+    }
+    '/admin/_layout/orders/': {
+      id: '/admin/_layout/orders/'
+      path: '/'
+      fullPath: '/admin/orders/'
+      preLoaderRoute: typeof AdminLayoutOrdersIndexRouteImport
+      parentRoute: typeof AdminLayoutOrdersRoute
     }
     '/custom/pay/$id/success': {
       id: '/custom/pay/$id/success'
@@ -621,6 +611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutProductsIdRouteImport
       parentRoute: typeof AdminLayoutProductsRoute
     }
+    '/admin/_layout/orders/custom': {
+      id: '/admin/_layout/orders/custom'
+      path: '/custom'
+      fullPath: '/admin/orders/custom'
+      preLoaderRoute: typeof AdminLayoutOrdersCustomRouteImport
+      parentRoute: typeof AdminLayoutOrdersRoute
+    }
     '/admin/_layout/gallery/new': {
       id: '/admin/_layout/gallery/new'
       path: '/new'
@@ -642,6 +639,19 @@ const AdminLayoutGalleryRouteChildren: AdminLayoutGalleryRouteChildren = {
 const AdminLayoutGalleryRouteWithChildren =
   AdminLayoutGalleryRoute._addFileChildren(AdminLayoutGalleryRouteChildren)
 
+interface AdminLayoutOrdersRouteChildren {
+  AdminLayoutOrdersCustomRoute: typeof AdminLayoutOrdersCustomRoute
+  AdminLayoutOrdersIndexRoute: typeof AdminLayoutOrdersIndexRoute
+}
+
+const AdminLayoutOrdersRouteChildren: AdminLayoutOrdersRouteChildren = {
+  AdminLayoutOrdersCustomRoute: AdminLayoutOrdersCustomRoute,
+  AdminLayoutOrdersIndexRoute: AdminLayoutOrdersIndexRoute,
+}
+
+const AdminLayoutOrdersRouteWithChildren =
+  AdminLayoutOrdersRoute._addFileChildren(AdminLayoutOrdersRouteChildren)
+
 interface AdminLayoutProductsRouteChildren {
   AdminLayoutProductsIdRoute: typeof AdminLayoutProductsIdRoute
   AdminLayoutProductsNewRoute: typeof AdminLayoutProductsNewRoute
@@ -658,22 +668,20 @@ const AdminLayoutProductsRouteWithChildren =
   AdminLayoutProductsRoute._addFileChildren(AdminLayoutProductsRouteChildren)
 
 interface AdminLayoutRouteChildren {
-  AdminLayoutCustomRequestsRoute: typeof AdminLayoutCustomRequestsRoute
   AdminLayoutDashboardRoute: typeof AdminLayoutDashboardRoute
   AdminLayoutGalleryRoute: typeof AdminLayoutGalleryRouteWithChildren
-  AdminLayoutOrdersRoute: typeof AdminLayoutOrdersRoute
+  AdminLayoutOrdersRoute: typeof AdminLayoutOrdersRouteWithChildren
   AdminLayoutProductsRoute: typeof AdminLayoutProductsRouteWithChildren
-  AdminLayoutSubscribersRoute: typeof AdminLayoutSubscribersRoute
+  AdminLayoutSettingsRoute: typeof AdminLayoutSettingsRoute
   AdminLayoutIndexRoute: typeof AdminLayoutIndexRoute
 }
 
 const AdminLayoutRouteChildren: AdminLayoutRouteChildren = {
-  AdminLayoutCustomRequestsRoute: AdminLayoutCustomRequestsRoute,
   AdminLayoutDashboardRoute: AdminLayoutDashboardRoute,
   AdminLayoutGalleryRoute: AdminLayoutGalleryRouteWithChildren,
-  AdminLayoutOrdersRoute: AdminLayoutOrdersRoute,
+  AdminLayoutOrdersRoute: AdminLayoutOrdersRouteWithChildren,
   AdminLayoutProductsRoute: AdminLayoutProductsRouteWithChildren,
-  AdminLayoutSubscribersRoute: AdminLayoutSubscribersRoute,
+  AdminLayoutSettingsRoute: AdminLayoutSettingsRoute,
   AdminLayoutIndexRoute: AdminLayoutIndexRoute,
 }
 
@@ -683,12 +691,10 @@ const AdminLayoutRouteWithChildren = AdminLayoutRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminLayoutRoute: typeof AdminLayoutRouteWithChildren
-  AdminLoginRoute: typeof AdminLoginRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminLayoutRoute: AdminLayoutRouteWithChildren,
-  AdminLoginRoute: AdminLoginRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

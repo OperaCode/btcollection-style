@@ -83,7 +83,7 @@ export async function listCustomRequests() {
 // Statuses where the customer should automatically get an email when the
 // owner moves the request there. "awaiting_payment" is handled separately
 // by sendCustomRequestQuoteAndNotify since it needs a price. "processing" is
-// only ever set by confirmCustomRequestPayment on successful Stripe payment
+// only ever set by confirmCustomRequestPayment on successful Square payment
 // — all payment goes through the site, so it's excluded from the admin's
 // manual status dropdown, but stays in this set as defense in depth in case
 // it's ever set through another path. "reviewing" is the automatic starting

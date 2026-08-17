@@ -8,6 +8,10 @@ function requireEnv(name: string) {
   return value;
 }
 
+export function isSquareConfigured() {
+  return Boolean(process.env.SQUARE_ACCESS_TOKEN && process.env.VITE_SQUARE_LOCATION_ID);
+}
+
 function squareBaseUrl() {
   const env = (process.env.VITE_SQUARE_ENVIRONMENT || "sandbox").toLowerCase();
   return env === "production" ? "https://connect.squareup.com" : "https://connect.squareupsandbox.com";
