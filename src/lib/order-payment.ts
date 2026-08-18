@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { getRequestUrl } from "@tanstack/react-start/server";
 import type { CartItem } from "@/lib/cart";
 import type { Database, Tables } from "@/integrations/supabase/types";
@@ -168,16 +168,21 @@ export const confirmOrderPayment = createServerFn({ method: "POST" })
 
 // Called from the Square webhook (src/lib/square-webhook.ts), which is the
 // reliable source of truth — it fires regardless of whether the customer's
-// browser ever makes it back to /checkout/success.
-export async function markOrderPaidBySquareOrderId(squareOrderId: string, paymentId: string | null) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+// browser ever makes it back to /checkout/success. Wrapped in
+// createServerOnlyFn (rather than createServerFn) since this is invoked
+// directly from server code, not over an RPC — it just needs to be kept out
+// of the client bundle.
+export const markOrderPaidBySquareOrderId = createServerOnlyFn(
+  async (squareOrderId: string, paymentId: string | null) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const { data: order, error } = await supabaseAdmin
-    .from("orders")
-    .select("*")
-    .eq("square_checkout_order_id", squareOrderId)
-    .single();
-  if (error || !order) return;
+    const { data: order, error } = await supabaseAdmin
+      .from("orders")
+      .select("*")
+      .eq("square_checkout_order_id", squareOrderId)
+      .single();
+    if (error || !order) return;
 
-  await markOrderPaid(supabaseAdmin, order, paymentId);
-}
+    await markOrderPaid(supabaseAdmin, order, paymentId);
+  },
+);

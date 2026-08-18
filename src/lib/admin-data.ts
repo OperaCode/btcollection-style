@@ -26,6 +26,32 @@ export async function getProduct(id: string) {
   return data;
 }
 
+export async function uploadProductImage(file: File) {
+  const allowed = ["image/png", "image/jpeg", "image/webp", "image/heic"];
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  const type =
+    file.type ||
+    (extension === "jpg" || extension === "jpeg" ? "image/jpeg" : `image/${extension ?? "jpg"}`);
+
+  if (!allowed.includes(type)) {
+    throw new Error("Please upload a PNG, JPEG, WEBP, or HEIC image.");
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error("Image must be smaller than 8MB.");
+  }
+
+  const ext = extension || "jpg";
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("product-images")
+    .upload(path, file, { contentType: type, upsert: false });
+
+  if (error) throw new Error(error.message || "Product image upload failed.");
+
+  const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function createProduct(input: TablesInsert<"products">) {
   const { data, error } = await supabase.from("products").insert(input).select("id").single();
   if (error) throw error;
@@ -91,7 +117,10 @@ export async function listCustomRequests() {
 // usually a conversation the owner would rather have directly.
 const STATUS_NOTIFY = new Set(["processing", "ready", "shipped", "delivered"]);
 
-export async function updateCustomRequestStatus(request: CustomRequest, status: CustomRequest["status"]) {
+export async function updateCustomRequestStatus(
+  request: CustomRequest,
+  status: CustomRequest["status"],
+) {
   const { error } = await supabase
     .from("custom_requests")
     .update({ status, updated_at: new Date().toISOString() })
@@ -146,7 +175,10 @@ export async function getDashboardStats() {
     supabase.from("products").select("id", { count: "exact", head: true }).eq("in_stock", true),
     supabase.from("products").select("id", { count: "exact", head: true }).eq("in_stock", false),
     supabase.from("newsletter_subscribers").select("id", { count: "exact", head: true }),
-    supabase.from("custom_requests").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
+    supabase
+      .from("custom_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "reviewing"),
   ]);
 
   const revenue = (orderTotals ?? []).reduce((sum, o) => sum + Number(o.total ?? 0), 0);

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Heart, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { GALLERY_QUERY_KEY, listPublicGallery, type GalleryProject } from "@/lib/gallery";
+import { OCCASIONS } from "@/lib/occasions";
 
 export const Route = createFileRoute("/inspiration")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -20,17 +21,6 @@ export const Route = createFileRoute("/inspiration")({
   }),
   component: InspirationPage,
 });
-
-const OCCASIONS = [
-  ["Birthday", "Make their day personal."],
-  ["Wedding", "Celebrate their beginning."],
-  ["Anniversary", "Turn memories into keepsakes."],
-  ["Graduation", "Mark the moment."],
-  ["Mother's Day", "For someone who means everything."],
-  ["Faith & Encouragement", "Gifts with meaning."],
-  ["Corporate & Appreciation", "Say thank you beautifully."],
-  ["Just Because", "Sometimes no occasion is needed."],
-] as const;
 
 const PEOPLE = ["Mom", "Dad", "Her", "Him", "Couples", "Friends", "Coworkers", "Family"];
 

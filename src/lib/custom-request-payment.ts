@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { getRequestUrl } from "@tanstack/react-start/server";
 import { sendCustomRequestStatusUpdate } from "@/lib/custom-request-email";
 import { createSquareCheckout, getSquareOrderStatus } from "@/lib/square";
@@ -117,15 +117,19 @@ export const confirmCustomRequestPayment = createServerFn({ method: "POST" })
 
 // Called from the Square webhook (src/lib/square-webhook.ts) — the reliable
 // source of truth regardless of whether the customer's browser ever makes
-// it back to the success page.
-export async function markCustomRequestPaidBySquareOrderId(squareOrderId: string, paymentId: string | null) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: request, error } = await supabaseAdmin
-    .from("custom_requests")
-    .select("*")
-    .eq("square_checkout_order_id", squareOrderId)
-    .single();
-  if (error || !request) return;
+// it back to the success page. Wrapped in createServerOnlyFn (rather than
+// createServerFn) since this is invoked directly from server code, not over
+// an RPC — it just needs to be kept out of the client bundle.
+export const markCustomRequestPaidBySquareOrderId = createServerOnlyFn(
+  async (squareOrderId: string, paymentId: string | null) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: request, error } = await supabaseAdmin
+      .from("custom_requests")
+      .select("*")
+      .eq("square_checkout_order_id", squareOrderId)
+      .single();
+    if (error || !request) return;
 
-  await markCustomRequestPaid(supabaseAdmin, request, paymentId);
-}
+    await markCustomRequestPaid(supabaseAdmin, request, paymentId);
+  },
+);

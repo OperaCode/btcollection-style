@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
-import { PRODUCT_CATEGORIES, type AdminProduct } from "@/lib/admin-data";
+import { ArrowRight, ImagePlus, UploadCloud, X } from "lucide-react";
+import { PRODUCT_CATEGORIES, type AdminProduct, uploadProductImage } from "@/lib/admin-data";
 
 export type ProductFormValues = {
   name: string;
@@ -39,16 +39,44 @@ export function AdminProductForm({
   const [slugTouched, setSlugTouched] = useState(Boolean(initial));
   const [category, setCategory] = useState(initial?.category ?? PRODUCT_CATEGORIES[0]);
   const [basePrice, setBasePrice] = useState(initial ? String(initial.base_price) : "");
-  const [textAddonPrice, setTextAddonPrice] = useState(initial ? String(initial.text_addon_price) : "0");
-  const [imageAddonPrice, setImageAddonPrice] = useState(initial ? String(initial.image_addon_price) : "0");
+  const [textAddonPrice, setTextAddonPrice] = useState(
+    initial ? String(initial.text_addon_price) : "0",
+  );
+  const [imageAddonPrice, setImageAddonPrice] = useState(
+    initial ? String(initial.image_addon_price) : "0",
+  );
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [images, setImages] = useState((initial?.images ?? []).join("\n"));
+  const [images, setImages] = useState<string[]>(initial?.images ?? []);
   const [customizable, setCustomizable] = useState(initial?.customizable ?? false);
   const [featured, setFeatured] = useState(initial?.featured ?? false);
   const [bestSeller, setBestSeller] = useState(initial?.best_seller ?? false);
   const [inStock, setInStock] = useState(initial?.in_stock ?? true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [error, setError] = useState("");
+
+  async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+
+    setError("");
+    setUploadingImages(true);
+
+    try {
+      const uploadedUrls = await Promise.all(
+        files.map(async (file) => {
+          const url = await uploadProductImage(file);
+          return url;
+        }),
+      );
+      setImages((current) => [...current, ...uploadedUrls]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Image upload failed.");
+    } finally {
+      setUploadingImages(false);
+      event.target.value = "";
+    }
+  }
 
   return (
     <form
@@ -65,10 +93,7 @@ export function AdminProductForm({
             text_addon_price: Number(textAddonPrice) || 0,
             image_addon_price: Number(imageAddonPrice) || 0,
             description,
-            images: images
-              .split("\n")
-              .map((s) => s.trim())
-              .filter(Boolean),
+            images,
             customizable,
             featured,
             best_seller: bestSeller,
@@ -108,7 +133,11 @@ export function AdminProductForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Category">
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className={inputCls}
+          >
             {PRODUCT_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -163,14 +192,47 @@ export function AdminProductForm({
         />
       </Field>
 
-      <Field label="Image URLs (one per line)">
-        <textarea
-          rows={3}
-          value={images}
-          onChange={(e) => setImages(e.target.value)}
-          placeholder="https://example.com/image1.jpg"
-          className={inputCls}
-        />
+      <Field label="Product Images">
+        <div className="grid gap-3">
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-dashed border-border bg-background px-4 py-3 text-sm text-muted-foreground transition hover:border-gold hover:text-gold">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/heic"
+              multiple
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+            <UploadCloud className="h-4 w-4" />
+            <span>{uploadingImages ? "Uploading..." : "Upload product images"}</span>
+          </label>
+
+          {images.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {images.map((image, index) => (
+                <div
+                  key={`${image}-${index}`}
+                  className="group relative overflow-hidden rounded-sm border border-border bg-background"
+                >
+                  <img
+                    src={image}
+                    alt={`Product image ${index + 1}`}
+                    className="h-24 w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Remove image ${index + 1}`}
+                    onClick={() => setImages((current) => current.filter((_, i) => i !== index))}
+                    className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-ink/80 text-white transition hover:bg-gold hover:text-ink"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No product images uploaded yet.</p>
+          )}
+        </div>
       </Field>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -216,7 +278,12 @@ function Checkbox({
 }) {
   return (
     <label className="flex items-center gap-2 text-xs text-foreground/80">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-gold" />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 accent-gold"
+      />
       {label}
     </label>
   );

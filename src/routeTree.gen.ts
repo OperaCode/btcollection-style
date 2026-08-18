@@ -35,6 +35,7 @@ import { Route as AdminLayoutGalleryRouteImport } from './routes/admin/_layout/g
 import { Route as AdminLayoutDashboardRouteImport } from './routes/admin/_layout/dashboard'
 import { Route as AdminLayoutProductsIndexRouteImport } from './routes/admin/_layout/products.index'
 import { Route as AdminLayoutOrdersIndexRouteImport } from './routes/admin/_layout/orders.index'
+import { Route as AdminLayoutGalleryIndexRouteImport } from './routes/admin/_layout/gallery.index'
 import { Route as CustomPayIdSuccessRouteImport } from './routes/custom.pay.$id.success'
 import { Route as AdminLayoutProductsNewRouteImport } from './routes/admin/_layout/products.new'
 import { Route as AdminLayoutProductsIdRouteImport } from './routes/admin/_layout/products.$id'
@@ -171,6 +172,11 @@ const AdminLayoutOrdersIndexRoute = AdminLayoutOrdersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminLayoutOrdersRoute,
 } as any)
+const AdminLayoutGalleryIndexRoute = AdminLayoutGalleryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminLayoutGalleryRoute,
+} as any)
 const CustomPayIdSuccessRoute = CustomPayIdSuccessRouteImport.update({
   id: '/success',
   path: '/success',
@@ -226,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
   '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
+  '/admin/gallery/': typeof AdminLayoutGalleryIndexRoute
   '/admin/orders/': typeof AdminLayoutOrdersIndexRoute
   '/admin/products/': typeof AdminLayoutProductsIndexRoute
 }
@@ -247,7 +254,6 @@ export interface FileRoutesByTo {
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/dashboard': typeof AdminLayoutDashboardRoute
-  '/admin/gallery': typeof AdminLayoutGalleryRouteWithChildren
   '/admin/settings': typeof AdminLayoutSettingsRoute
   '/custom/pay/$id': typeof CustomPayIdRouteWithChildren
   '/admin/gallery/new': typeof AdminLayoutGalleryNewRoute
@@ -255,6 +261,7 @@ export interface FileRoutesByTo {
   '/admin/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/products/new': typeof AdminLayoutProductsNewRoute
   '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
+  '/admin/gallery': typeof AdminLayoutGalleryIndexRoute
   '/admin/orders': typeof AdminLayoutOrdersIndexRoute
   '/admin/products': typeof AdminLayoutProductsIndexRoute
 }
@@ -289,6 +296,7 @@ export interface FileRoutesById {
   '/admin/_layout/products/$id': typeof AdminLayoutProductsIdRoute
   '/admin/_layout/products/new': typeof AdminLayoutProductsNewRoute
   '/custom/pay/$id/success': typeof CustomPayIdSuccessRoute
+  '/admin/_layout/gallery/': typeof AdminLayoutGalleryIndexRoute
   '/admin/_layout/orders/': typeof AdminLayoutOrdersIndexRoute
   '/admin/_layout/products/': typeof AdminLayoutProductsIndexRoute
 }
@@ -323,6 +331,7 @@ export interface FileRouteTypes {
     | '/admin/products/$id'
     | '/admin/products/new'
     | '/custom/pay/$id/success'
+    | '/admin/gallery/'
     | '/admin/orders/'
     | '/admin/products/'
   fileRoutesByTo: FileRoutesByTo
@@ -344,7 +353,6 @@ export interface FileRouteTypes {
     | '/inspiration/$slug'
     | '/product/$slug'
     | '/admin/dashboard'
-    | '/admin/gallery'
     | '/admin/settings'
     | '/custom/pay/$id'
     | '/admin/gallery/new'
@@ -352,6 +360,7 @@ export interface FileRouteTypes {
     | '/admin/products/$id'
     | '/admin/products/new'
     | '/custom/pay/$id/success'
+    | '/admin/gallery'
     | '/admin/orders'
     | '/admin/products'
   id:
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/admin/_layout/products/$id'
     | '/admin/_layout/products/new'
     | '/custom/pay/$id/success'
+    | '/admin/_layout/gallery/'
     | '/admin/_layout/orders/'
     | '/admin/_layout/products/'
   fileRoutesById: FileRoutesById
@@ -590,6 +600,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutOrdersIndexRouteImport
       parentRoute: typeof AdminLayoutOrdersRoute
     }
+    '/admin/_layout/gallery/': {
+      id: '/admin/_layout/gallery/'
+      path: '/'
+      fullPath: '/admin/gallery/'
+      preLoaderRoute: typeof AdminLayoutGalleryIndexRouteImport
+      parentRoute: typeof AdminLayoutGalleryRoute
+    }
     '/custom/pay/$id/success': {
       id: '/custom/pay/$id/success'
       path: '/success'
@@ -630,10 +647,12 @@ declare module '@tanstack/react-router' {
 
 interface AdminLayoutGalleryRouteChildren {
   AdminLayoutGalleryNewRoute: typeof AdminLayoutGalleryNewRoute
+  AdminLayoutGalleryIndexRoute: typeof AdminLayoutGalleryIndexRoute
 }
 
 const AdminLayoutGalleryRouteChildren: AdminLayoutGalleryRouteChildren = {
   AdminLayoutGalleryNewRoute: AdminLayoutGalleryNewRoute,
+  AdminLayoutGalleryIndexRoute: AdminLayoutGalleryIndexRoute,
 }
 
 const AdminLayoutGalleryRouteWithChildren =
