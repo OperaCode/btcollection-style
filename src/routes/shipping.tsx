@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Header, Footer, PageBanner } from "@/components/site/SiteChrome";
-import { CONTACT_EMAIL } from "@/lib/site-config";
+import { useSiteSettings } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/shipping")({
   head: () => ({
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/shipping")({
 });
 
 function ShippingPage() {
+  const { contactEmail } = useSiteSettings();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -48,7 +49,7 @@ function ShippingPage() {
           </Section>
 
           <Section title="Questions">
-            Reach out any time at {CONTACT_EMAIL} for a status update on your order.
+            Reach out any time at {contactEmail} for a status update on your order.
           </Section>
         </div>
       </section>

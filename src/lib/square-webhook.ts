@@ -58,7 +58,13 @@ export async function handleSquareWebhook(request: Request): Promise<Response> {
 
   try {
     const { markOrderPaidBySquareOrderId } = await import("@/lib/order-payment");
-    await markOrderPaidBySquareOrderId(payment.order_id, payment.id ?? null);
+    const { markCustomRequestPaidBySquareOrderId } = await import("@/lib/custom-request-payment");
+    // A given square order_id only ever matches one of these two tables —
+    // both are no-ops when the id isn't theirs, so calling both is safe.
+    await Promise.all([
+      markOrderPaidBySquareOrderId(payment.order_id, payment.id ?? null),
+      markCustomRequestPaidBySquareOrderId(payment.order_id, payment.id ?? null),
+    ]);
   } catch (error) {
     // Non-2xx tells Square to retry — better than silently losing the event.
     console.error("Square webhook: failed to mark order paid.", error);

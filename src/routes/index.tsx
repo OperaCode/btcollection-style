@@ -15,7 +15,7 @@ import {
   Truck,
   PackageCheck,
   HandHeart,
-  Instagram,
+  Store,
   ChevronDown,
 } from "lucide-react";
 import heroImg from "@/assets/hero.jpg";
@@ -29,7 +29,7 @@ import p3 from "@/assets/p3.jpg";
 import p4 from "@/assets/p4.jpg";
 import { Announcement, Header, Footer } from "@/components/site/SiteChrome";
 import { subscribeNewsletter } from "@/lib/commerce";
-import { SOCIAL_LINKS } from "@/lib/site-config";
+import { useSiteSettings } from "@/lib/site-settings";
 import { listPublicProducts, PRODUCTS_QUERY_KEY } from "@/lib/catalog";
 import { formatUSD } from "@/lib/cart";
 
@@ -568,8 +568,10 @@ function Pill({ icon: Icon, label }: { icon: typeof Truck; label: string }) {
 }
 
 const FOLLOW_IMAGES = [p1, catMugs, p3, catGifts, p2, catAccessories];
-
+ 
 function FollowAlong() {
+  const { social } = useSiteSettings();
+  const etsyHref = social.etsy || "https://www.etsy.com/shop/BTCollectionLLC?ref=l2-about-shopname&from_page=listing";
   return (
     <section className="bg-cream">
       <div className="mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-24">
@@ -582,31 +584,31 @@ function FollowAlong() {
             See our latest designs, behind-the-scenes, and real gifts unboxed by our community.
           </p>
           <a
-            href={SOCIAL_LINKS.instagram || "https://instagram.com"}
+            href={etsyHref}
             target="_blank"
             rel="noreferrer"
             className="mt-5 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-ink hover:text-gold"
           >
-            <Instagram className="h-4 w-4" /> Open Instagram
+            <Store className="h-4 w-4" /> Shop on Etsy
           </a>
         </div>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
           {FOLLOW_IMAGES.map((img, i) => (
             <a
               key={i}
-              href={SOCIAL_LINKS.instagram || "https://instagram.com"}
+              href={etsyHref}
               target="_blank"
               rel="noreferrer"
               className="group relative aspect-square overflow-hidden rounded-sm bg-muted"
             >
               <img
                 src={img}
-                alt="Breakthrough Collection LLC on Instagram"
+                alt="Breakthrough Collection LLC on Etsy"
                 loading="lazy"
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-ink/0 transition group-hover:bg-ink/30">
-                <Instagram className="h-5 w-5 text-background opacity-0 transition group-hover:opacity-100" />
+                <Store className="h-5 w-5 text-background opacity-0 transition group-hover:opacity-100" />
               </div>
             </a>
           ))}

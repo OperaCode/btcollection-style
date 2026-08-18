@@ -80,7 +80,7 @@ function ShopPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 pb-20 pt-10 md:px-8 md:pb-24 md:pt-14">
+      <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 md:px-8 md:pb-24 md:pt-14">
         <div className="mb-8 flex flex-col gap-6 border-b border-border pb-6 md:mb-10 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="inline-flex rounded-full border border-gold/45 bg-gold/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-ink">
@@ -102,11 +102,11 @@ function ShopPage() {
             </span>
             <span className="text-left">
               <span className="block text-[10px] rounded-full border border-gold/45 bg-gold/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-ink">
-                See Our Work
+                VIEW CATALOGUE
               </span>
              
               <span className="mt-0.5 inline-flex items-center gap-1.5 font-display text-base text-ink">
-                Browse the Catalogue
+                Browse the Our Works
                 <ArrowRight className="h-4 w-4 transition duration-300 group-hover:translate-x-1" />
               </span>
             </span>

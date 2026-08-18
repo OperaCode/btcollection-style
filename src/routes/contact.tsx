@@ -4,7 +4,7 @@ import { Mail, MapPin, Clock, Instagram, Facebook, MessageCircle, ArrowRight } f
 import { Header, Footer, PageBanner } from "@/components/site/SiteChrome";
 import heroImg from "@/assets/hero.jpg";
 import { saveContactMessage } from "@/lib/commerce";
-import { SOCIAL_LINKS, WHATSAPP_URL, CONTACT_EMAIL } from "@/lib/site-config";
+import { useSiteSettings } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -23,15 +23,15 @@ export const Route = createFileRoute("/contact")({
   component: ContactPage,
 });
 
-const INFO = [
-  { icon: Mail, label: "Email", value: CONTACT_EMAIL },
-  { icon: Clock, label: "Studio Hours", value: "Mon – Fri · 9am – 5pm EST" },
-  { icon: MapPin, label: "Studio", value: "Made with love in the USA" },
-];
-
 function ContactPage() {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const { social, whatsappUrl, contactEmail } = useSiteSettings();
+  const info = [
+    { icon: Mail, label: "Email", value: contactEmail },
+    { icon: Clock, label: "Studio Hours", value: "Mon – Fri · 9am – 5pm EST" },
+    { icon: MapPin, label: "Studio", value: "Made with love in the USA" },
+  ];
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -55,7 +55,7 @@ function ContactPage() {
           </p>
 
           <ul className="mt-10 space-y-6">
-            {INFO.map(({ icon: Icon, label, value }) => (
+            {info.map(({ icon: Icon, label, value }) => (
               <li key={label} className="flex items-start gap-4">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-gold/60 text-gold">
                   <Icon className="h-4 w-4" />
@@ -71,9 +71,9 @@ function ContactPage() {
           </ul>
 
           <div className="mt-10 flex gap-2">
-            {WHATSAPP_URL && (
+            {whatsappUrl && (
               <a
-                href={WHATSAPP_URL}
+                href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="WhatsApp"
@@ -83,20 +83,20 @@ function ContactPage() {
               </a>
             )}
             <a
-              href={SOCIAL_LINKS.instagram || "#"}
-              target={SOCIAL_LINKS.instagram ? "_blank" : undefined}
-              rel={SOCIAL_LINKS.instagram ? "noreferrer" : undefined}
+              href={social.instagram || "#"}
+              target={social.instagram ? "_blank" : undefined}
+              rel={social.instagram ? "noreferrer" : undefined}
               aria-label="Instagram"
-              className={`grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold ${!SOCIAL_LINKS.instagram ? "pointer-events-none opacity-40" : ""}`}
+              className={`grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold ${!social.instagram ? "pointer-events-none opacity-40" : ""}`}
             >
               <Instagram className="h-4 w-4" />
             </a>
             <a
-              href={SOCIAL_LINKS.facebook || "#"}
-              target={SOCIAL_LINKS.facebook ? "_blank" : undefined}
-              rel={SOCIAL_LINKS.facebook ? "noreferrer" : undefined}
+              href={social.facebook || "#"}
+              target={social.facebook ? "_blank" : undefined}
+              rel={social.facebook ? "noreferrer" : undefined}
               aria-label="Facebook"
-              className={`grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold ${!SOCIAL_LINKS.facebook ? "pointer-events-none opacity-40" : ""}`}
+              className={`grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition hover:border-gold hover:text-gold ${!social.facebook ? "pointer-events-none opacity-40" : ""}`}
             >
               <Facebook className="h-4 w-4" />
             </a>

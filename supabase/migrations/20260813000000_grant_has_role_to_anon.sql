@@ -1,0 +1,11 @@
+-- has_role() was only ever granted EXECUTE to `authenticated`, never `anon`.
+-- This stayed invisible because most public-read policies use a constant
+-- `using (true)`, which Postgres's planner optimizes away before it ever
+-- needs to touch has_role() for the anon role. But any policy with a real
+-- per-row check (e.g. gallery_projects' `published = true`, or the
+-- gallery_images EXISTS subquery) forces the planner to keep the OR'd
+-- admin-policy predicate — including the has_role() call — in the plan,
+-- which then fails with "permission denied for function has_role" for anon,
+-- even though the has_role() call would always evaluate to false for a
+-- signed-out visitor anyway.
+grant execute on function public.has_role(uuid, public.app_role) to anon;

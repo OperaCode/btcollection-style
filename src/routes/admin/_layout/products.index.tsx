@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, Star, Sparkles } from "lucide-react";
-import { listProducts, deleteProduct, updateProduct, type AdminProduct } from "@/lib/admin-data";
+import { listProducts, deleteProduct, updateProduct, PRODUCT_CATEGORIES, type AdminProduct } from "@/lib/admin-data";
 import { formatUSD } from "@/lib/cart";
 
 export const Route = createFileRoute("/admin/_layout/products/")({
@@ -11,6 +12,11 @@ export const Route = createFileRoute("/admin/_layout/products/")({
 function AdminProductsPage() {
   const queryClient = useQueryClient();
   const products = useQuery({ queryKey: ["admin", "products"], queryFn: listProducts });
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const visibleProducts = useMemo(
+    () => (products.data ?? []).filter((product) => categoryFilter === "All" || product.category === categoryFilter),
+    [categoryFilter, products.data],
+  );
 
   const toggleField = useMutation({
     mutationFn: async ({ id, field, value }: { id: string; field: "in_stock" | "featured" | "best_seller"; value: boolean }) =>
@@ -38,7 +44,25 @@ function AdminProductsPage() {
         </Link>
       </div>
 
-      <div className="mt-8 overflow-x-auto rounded-sm border border-border bg-card">
+      <div className="mt-8 flex flex-wrap items-center gap-2">
+        <span className="mr-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Category</span>
+        {["All", ...PRODUCT_CATEGORIES].map((category) => (
+          <button
+            key={category}
+            type="button"
+            onClick={() => setCategoryFilter(category)}
+            className={`rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] transition ${
+              categoryFilter === category
+                ? "border-gold bg-gold/15 text-ink"
+                : "border-border text-muted-foreground hover:border-gold hover:text-ink"
+            }`}
+          >
+            {category} ({category === "All" ? products.data?.length ?? 0 : (products.data ?? []).filter((product) => product.category === category).length})
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-5 overflow-x-auto rounded-sm border border-border bg-card">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b border-border text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             <tr>
@@ -52,7 +76,7 @@ function AdminProductsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {(products.data ?? []).map((p: AdminProduct) => (
+            {visibleProducts.map((p: AdminProduct) => (
               <tr key={p.id}>
                 <td className="px-5 py-3 text-ink">{p.name}</td>
                 <td className="px-5 py-3 text-foreground/75">{p.category}</td>
@@ -100,6 +124,9 @@ function AdminProductsPage() {
           <p className="px-5 py-10 text-center text-sm text-muted-foreground">
             No products yet — create your first one.
           </p>
+        )}
+        {products.data && products.data.length > 0 && visibleProducts.length === 0 && (
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground">No products in this category yet.</p>
         )}
       </div>
     </div>

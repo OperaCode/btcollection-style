@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Header, Footer, PageBanner } from "@/components/site/SiteChrome";
-import { CONTACT_EMAIL } from "@/lib/site-config";
+import { useSiteSettings } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/privacy")({
 });
 
 function PrivacyPage() {
+  const { contactEmail } = useSiteSettings();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -54,7 +55,7 @@ function PrivacyPage() {
           </Section>
 
           <Section title="Contact">
-            Questions about this policy can be sent to {CONTACT_EMAIL}.
+            Questions about this policy can be sent to {contactEmail}.
           </Section>
         </div>
       </section>

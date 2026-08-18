@@ -15,7 +15,7 @@ import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { listPublicProducts, PRODUCTS_QUERY_KEY } from "@/lib/catalog";
 import { formatUSD } from "@/lib/cart";
-import { SOCIAL_LINKS, WHATSAPP_URL } from "@/lib/site-config";
+import { useSiteSettings } from "@/lib/site-settings";
 // import logoMark from "@/assets/logo-mark.png";
 import logoMark from "@/assets/bclogo.jpeg";
 
@@ -25,7 +25,7 @@ export const NAV = [
   // { label: "Catalogue", to: "/inspiration" as const },
   { label: "Custom Order", to: "/custom" as const },
   { label: "About", to: "/about" as const },
-  // { label: "Contact", to: "/contact" as const },
+ 
 ];
 
 export function Announcement() {
@@ -346,6 +346,7 @@ function FooterCol({ title, items }: { title: string; items: { label: string; to
 }
 
 export function Footer() {
+  const { social, whatsappUrl } = useSiteSettings();
   return (
     <footer className="bg-ink text-background">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-16 md:grid-cols-5 md:px-8">
@@ -372,10 +373,10 @@ export function Footer() {
             with care in the United States.
           </p>
           <div className="mt-6 flex gap-2">
-            <Social icon={Instagram} href={SOCIAL_LINKS.instagram} label="Instagram" />
-            <Social icon={Facebook} href={SOCIAL_LINKS.facebook} label="Facebook" />
-            <Social icon={TikTokIcon} href={SOCIAL_LINKS.tiktok} label="TikTok" />
-            <Social icon={MessageCircle} href={WHATSAPP_URL} label="WhatsApp" />
+            <Social icon={Instagram} href={social.instagram} label="Instagram" />
+            <Social icon={Facebook} href={social.facebook} label="Facebook" />
+            <Social icon={TikTokIcon} href={social.tiktok} label="TikTok" />
+            <Social icon={MessageCircle} href={whatsappUrl} label="WhatsApp" />
           </div>
         </div>
 

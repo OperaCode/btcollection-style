@@ -12,12 +12,22 @@ type AdminAuthCtx = {
 };
 
 const AUTH_CHECK_TIMEOUT_MS = 10000;
+const SESSION_CHECK_TIMEOUT_MS = 5000;
 
 function withTimeout<T>(promise: PromiseLike<T>, message: string): Promise<T> {
   return Promise.race([
     Promise.resolve(promise),
     new Promise<T>((_, reject) => {
       window.setTimeout(() => reject(new Error(message)), AUTH_CHECK_TIMEOUT_MS);
+    }),
+  ]);
+}
+
+function withSessionTimeout<T>(promise: PromiseLike<T>, message: string): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), SESSION_CHECK_TIMEOUT_MS);
     }),
   ]);
 }
@@ -78,17 +88,27 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    supabase.auth
-      .getSession()
+    void withSessionTimeout(
+      supabase.auth.getSession(),
+      "Session check timed out. Check your Supabase connection and auth settings.",
+    )
       .then(async ({ data, error }) => {
         if (!active) return;
         if (error) throw error;
         const currentUser = data.session?.user ?? null;
         setUser(currentUser);
+        if (!currentUser) {
+          setIsAdmin(false);
+          setAuthError(null);
+          return;
+        }
         await checkAdmin(currentUser);
       })
       .catch((error) => {
+        if (!active) return;
         console.error("Admin session check failed", error);
+        setUser(null);
+        setIsAdmin(false);
         setAuthError("Could not connect to Supabase auth. Check your .env settings and network.");
       })
       .finally(() => {
@@ -98,7 +118,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      void checkAdmin(currentUser).finally(() => setLoading(false));
+      void checkAdmin(currentUser).finally(() => {
+        if (active) setLoading(false);
+      });
     });
 
     return () => {

@@ -212,13 +212,13 @@ export const sendCustomRequestQuote = createServerFn({ method: "POST" })
     const greeting = data.fullName ? `Hi ${data.fullName},` : "Hi there,";
     const price = formatUSD(data.quotedPrice);
 
-    const { getStripe } = await import("@/lib/stripe.server");
-    const stripeConfigured = Boolean(getStripe());
+    const { isSquareConfigured } = await import("@/lib/square");
+    const squareConfigured = isSquareConfigured();
 
     let cta: { label: string; url: string } | undefined;
     let actionCopy: string;
 
-    if (stripeConfigured) {
+    if (squareConfigured) {
       const { getRequestUrl } = await import("@tanstack/react-start/server");
       const origin = getRequestUrl().origin;
       cta = { label: `Pay ${price} to Approve`, url: `${origin}/custom/pay/${data.id}` };

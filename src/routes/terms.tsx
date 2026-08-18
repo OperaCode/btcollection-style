@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Header, Footer, PageBanner } from "@/components/site/SiteChrome";
-import { CONTACT_EMAIL } from "@/lib/site-config";
+import { useSiteSettings } from "@/lib/site-settings";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/terms")({
 });
 
 function TermsPage() {
+  const { contactEmail } = useSiteSettings();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -55,7 +56,7 @@ function TermsPage() {
           </Section>
 
           <Section title="Contact">
-            Questions about these terms can be sent to {CONTACT_EMAIL}.
+            Questions about these terms can be sent to {contactEmail}.
           </Section>
         </div>
       </section>
