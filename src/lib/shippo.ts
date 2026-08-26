@@ -200,6 +200,9 @@ const createShipmentRates = createServerFn({ method: "POST" })
       .eq("id", data.orderId)
       .single();
     if (error || !order) throw error ?? new Error("Order not found.");
+    if (order.status !== "paid" && order.status !== "processing") {
+      throw new Error("Shipping labels can only be created for paid orders.");
+    }
 
     const settings = await getSettingsRow();
     const shippingAddress = (order.shipping_address ?? {}) as ShippingAddress;
@@ -253,6 +256,15 @@ const purchaseLabel = createServerFn({ method: "POST" })
   .validator((data: { orderId: string; rateId: string; accessToken: string }) => data)
   .handler(async ({ data }) => {
     const supabaseAdmin = await verifyAdmin(data.accessToken);
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from("orders")
+      .select("status")
+      .eq("id", data.orderId)
+      .single();
+    if (orderError || !order) throw orderError ?? new Error("Order not found.");
+    if (order.status !== "paid" && order.status !== "processing") {
+      throw new Error("Shipping labels can only be purchased for paid orders.");
+    }
     const transaction = await shippoRequest<ShippoTransactionResponse>("/transactions", {
       rate: data.rateId,
       async: false,

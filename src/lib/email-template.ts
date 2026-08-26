@@ -3,6 +3,9 @@
 // layout for Outlook/Gmail compatibility; colors are hex approximations of
 // the site's oklch brand tokens since email clients don't support oklch().
 const YEAR = new Date().getFullYear();
+// Absolute URL required — email clients (Outlook desktop especially) won't
+// load a relative path or bundled/hashed Vite asset.
+const LOGO_URL = "https://breakthroughcollection.com/logo.jpg";
 
 export function brandedEmailHtml(options: {
   eyebrow: string;
@@ -16,11 +19,18 @@ export function brandedEmailHtml(options: {
     <div style="background-color:#f7f2ea; padding:32px 16px; font-family: Arial, Helvetica, sans-serif;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; margin:0 auto; background-color:#ffffff; border:1px solid #ece4d3; border-radius:4px;">
         <tr>
-          <td style="background-color:#1f1d2b; padding:32px 24px; text-align:center; border-radius:4px 4px 0 0;">
-            <div style="font-family: Georgia, 'Times New Roman', serif; font-size:20px; letter-spacing:3px; text-transform:uppercase; color:#c8a45c;">
-              Breakthrough Collection <span style="font-style:italic; color:#e4cfa0;">LLC</span>
+          <td style="background-color:#f7f2ea; padding:28px 24px; text-align:center; border-bottom:1px solid #ece4d3; border-radius:4px 4px 0 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;">
+              <tr>
+                <td style="width:56px; height:56px; border-radius:50%; background-color:#ffffff; border:1px solid rgba(200,164,92,0.6); text-align:center; vertical-align:middle;">
+                  <img src="${LOGO_URL}" width="40" height="40" alt="Breakthrough Collection LLC" style="display:inline-block; width:40px; height:40px; margin-top:8px; border-radius:50%; object-fit:cover;" />
+                </td>
+              </tr>
+            </table>
+            <div style="font-family: Georgia, 'Times New Roman', serif; font-size:20px; letter-spacing:3px; text-transform:uppercase; color:#1f1d2b;">
+              Breakthrough Collection <span style="font-style:italic; color:#c8a45c;">LLC</span>
             </div>
-            <div style="margin-top:8px; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,0.55);">
+            <div style="margin-top:8px; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:#8c8579;">
               Every Stitch Tells a Story
             </div>
           </td>

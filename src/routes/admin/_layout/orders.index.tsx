@@ -26,7 +26,6 @@ export const Route = createFileRoute("/admin/_layout/orders/")({
 });
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: "border-border text-muted-foreground",
   paid: "border-gold/50 bg-gold/10 text-ink",
   processing: "border-gold/50 bg-gold/10 text-ink",
   shipped: "border-ink bg-ink text-background",
@@ -34,7 +33,7 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: "border-destructive/40 bg-destructive/10 text-destructive",
 };
 
-const ORDER_STATUSES = ["All", "pending", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
+const ORDER_STATUSES = ["All", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
 
 function AdminOrdersPage() {
   const queryClient = useQueryClient();
@@ -109,7 +108,7 @@ function AdminOrdersPage() {
                     <PackageCheck className="h-3.5 w-3.5" /> Mark Delivered
                   </button>
                 )}
-                {(o.status === "pending" || o.status === "paid" || o.status === "processing") && (
+                {(o.status === "paid" || o.status === "processing") && (
                   <button
                     type="button"
                     onClick={() => {
