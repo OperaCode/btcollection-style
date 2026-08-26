@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart, formatUSD } from "@/lib/cart";
-import { startOrderCheckout } from "@/lib/order-payment";
+import { startOrderCheckout } from "@/lib/paid-order-checkout";
 import { getCheckoutShippingRates, type ShippingAddress, type ShippoRate } from "@/lib/shippo";
 
 export const Route = createFileRoute("/checkout")({

@@ -4,9 +4,9 @@ import confetti from "canvas-confetti";
 import { Loader2, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart } from "@/lib/cart";
-import { confirmOrderPayment } from "@/lib/order-payment";
+import { confirmOrderPayment } from "@/lib/paid-order-checkout";
 
-export const Route = createFileRoute("/checkout/success")({
+export const Route = createFileRoute("/checkout_/success")({
   head: () => ({
     meta: [
       { title: "Order Confirmed — Breakthrough Collection LLC" },
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/checkout/success")({
 const CONFETTI_COLORS = ["#C8A45C", "#E4CFA0", "#F7F2EA", "#1F1D2B"];
 
 function fireConfetti() {
-  const end = Date.now() + 2200;
+  const end = Date.now() + 1000;
 
   confetti({
     particleCount: 100,

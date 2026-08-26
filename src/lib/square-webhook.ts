@@ -57,7 +57,7 @@ export async function handleSquareWebhook(request: Request): Promise<Response> {
   }
 
   try {
-    const { markOrderPaidBySquareOrderId } = await import("@/lib/order-payment");
+    const { markOrderPaidBySquareOrderId } = await import("@/lib/paid-order-checkout");
     const { markCustomRequestPaidBySquareOrderId } = await import("@/lib/custom-request-payment");
     // A given square order_id only ever matches one of these two tables —
     // both are no-ops when the id isn't theirs, so calling both is safe.

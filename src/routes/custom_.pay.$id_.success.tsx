@@ -4,7 +4,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { confirmCustomRequestPayment } from "@/lib/custom-request-payment";
 
-export const Route = createFileRoute("/custom/pay/$id/success")({
+export const Route = createFileRoute("/custom_/pay/$id_/success")({
   head: () => ({
     meta: [{ title: "Payment Confirmed — Breakthrough Collection LLC" }, { name: "robots", content: "noindex" }],
   }),

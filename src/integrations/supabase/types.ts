@@ -150,6 +150,51 @@ export type Database = {
         }
         Relationships: []
       }
+      checkout_sessions: {
+        Row: {
+          created_at: string
+          delivery_method: string | null
+          email: string
+          id: string
+          items: Json
+          paid_at: string | null
+          shipping: number
+          shipping_address: Json
+          square_checkout_order_id: string | null
+          square_payment_id: string | null
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          delivery_method?: string | null
+          email: string
+          id?: string
+          items: Json
+          paid_at?: string | null
+          shipping?: number
+          shipping_address: Json
+          square_checkout_order_id?: string | null
+          square_payment_id?: string | null
+          subtotal: number
+          total: number
+        }
+        Update: {
+          created_at?: string
+          delivery_method?: string | null
+          email?: string
+          id?: string
+          items?: Json
+          paid_at?: string | null
+          shipping?: number
+          shipping_address?: Json
+          square_checkout_order_id?: string | null
+          square_payment_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Relationships: []
+      }
       gallery_images: {
         Row: {
           alt_text: string | null
