@@ -5,7 +5,7 @@ export const OCCASIONS = [
   ["Wedding", "Celebrate their beginning."],
   ["Anniversary", "Turn memories into keepsakes."],
   ["Graduation", "Mark the moment."],
-  ["Mother's Day", "For someone who means everything."],
+  ["Mother's Day / Father's Day", "For someone who means everything."],
   ["Faith & Encouragement", "Gifts with meaning."],
   ["Corporate & Appreciation", "Say thank you beautifully."],
   ["Just Because", "Sometimes no occasion is needed."],
