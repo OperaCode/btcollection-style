@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleSquareWebhook } from "./lib/square-webhook";
+import { handleOrderReminderRequest } from "./lib/order-reminder";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -51,6 +52,12 @@ export default {
         console.error(error);
         return new Response("Internal error", { status: 500 });
       }
+    }
+
+    // Triggered by a free external scheduler (e.g. cron-job.org) with a
+    // plain GET + shared secret — see src/lib/order-reminder.ts.
+    if (url.pathname === "/cron/order-reminder" && request.method === "GET") {
+      return handleOrderReminderRequest(request);
     }
 
     try {

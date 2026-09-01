@@ -1,5 +1,8 @@
-// Standalone reminder job — run on a schedule by
-// .github/workflows/order-reminder.yml, not part of the deployed app.
+// Standalone local/manual test script for the same logic as the deployed
+// GET /cron/order-reminder endpoint (src/lib/order-reminder.ts), which is
+// what actually runs on a schedule (triggered by an external scheduler like
+// cron-job.org). Run this directly with the env vars below set (e.g. from
+// .env) to dry-run a reminder without deploying or waiting for the cron.
 // Counts orders stuck at status "paid" (paid but fulfillment hasn't
 // started) and texts a reminder via Twilio if there are any.
 import { createClient } from "@supabase/supabase-js";
