@@ -268,22 +268,22 @@ function ProductPage() {
                 <Sparkles className="h-3.5 w-3.5" /> Personalize This Piece
               </div>
               <div className="mt-4 grid gap-4">
-                <label className="grid gap-2">
-                  <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-foreground/70">
-                    Name, phrase, logo text, or monogram
-                    {product.text_addon_price > 0 && (
+                {product.text_addon_price > 0 && (
+                  <label className="grid gap-2">
+                    <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-foreground/70">
+                      Name, phrase, logo text, or monogram
                       <span className="font-semibold text-gold">
                         +{formatUSD(product.text_addon_price)}
                       </span>
-                    )}
-                  </span>
-                  <input
-                    value={personalization}
-                    onChange={(e) => setPersonalization(e.target.value)}
-                    placeholder="Example: Faith Over Fear"
-                    className="h-11 rounded-sm border border-ink/20 bg-background px-3 text-sm shadow-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
-                  />
-                </label>
+                    </span>
+                    <input
+                      value={personalization}
+                      onChange={(e) => setPersonalization(e.target.value)}
+                      placeholder="Example: Faith Over Fear"
+                      className="h-11 rounded-sm border border-ink/20 bg-background px-3 text-sm shadow-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
+                    />
+                  </label>
+                )}
 
                 <label className="grid gap-2">
                   <span className="text-[11px] uppercase tracking-[0.2em] text-foreground/70">
@@ -297,53 +297,53 @@ function ProductPage() {
                   />
                 </label>
 
-                <div className="grid gap-2">
-                  <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-foreground/70">
-                    Upload a photo (optional)
-                    {product.image_addon_price > 0 && (
+                {product.image_addon_price > 0 && (
+                  <div className="grid gap-2">
+                    <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-foreground/70">
+                      Upload a photo (optional)
                       <span className="font-semibold text-gold">
                         +{formatUSD(product.image_addon_price)}
                       </span>
+                    </span>
+                    {photoPreview ? (
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={photoPreview}
+                          alt="Upload preview"
+                          className="h-16 w-16 rounded-sm border border-ink/20 object-cover"
+                        />
+                        {uploading ? (
+                          <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading...
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={removePhoto}
+                            className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-3.5 w-3.5" /> Remove
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <label className="flex h-11 w-fit cursor-pointer items-center gap-2 rounded-sm border border-dashed border-ink/30 bg-background px-4 text-sm text-foreground/75 shadow-sm hover:border-gold hover:text-gold">
+                        <ImagePlus className="h-4 w-4" /> Choose photo
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/heic"
+                          className="hidden"
+                          onChange={handlePhotoChange}
+                        />
+                      </label>
                     )}
-                  </span>
-                  {photoPreview ? (
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={photoPreview}
-                        alt="Upload preview"
-                        className="h-16 w-16 rounded-sm border border-ink/20 object-cover"
-                      />
-                      {uploading ? (
-                        <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading...
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={removePhoto}
-                          className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="h-3.5 w-3.5" /> Remove
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <label className="flex h-11 w-fit cursor-pointer items-center gap-2 rounded-sm border border-dashed border-ink/30 bg-background px-4 text-sm text-foreground/75 shadow-sm hover:border-gold hover:text-gold">
-                      <ImagePlus className="h-4 w-4" /> Choose photo
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/heic"
-                        className="hidden"
-                        onChange={handlePhotoChange}
-                      />
-                    </label>
-                  )}
-                  {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
-                  <p className="text-[11px] leading-snug text-muted-foreground">
-                    Use a clear, high-resolution photo — blurry, low-res, or watermarked images can
-                    delay your order.
-                  </p>
-                </div>
+                    {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+                    <p className="text-[11px] leading-snug text-muted-foreground">
+                      Use a clear, high-resolution photo — blurry, low-res, or watermarked images can
+                      delay your order.
+                    </p>
+                  </div>
+                )}
 
                 <label className="grid gap-2">
                   <span className="text-[11px] uppercase tracking-[0.2em] text-foreground/70">
