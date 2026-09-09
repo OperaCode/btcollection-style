@@ -3,9 +3,12 @@
 // three separate, drifting lists existed across the codebase.
 export const CATEGORIES = [
   "Faith Apparel",
-  "Mugs & Tumblers",
-  "Accessories",
+  "Drinkware",
   "Gift Sets",
+  "Accessories",
+  "Kids/Baby",
+  "Embroidered",
+  "Engraved",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
