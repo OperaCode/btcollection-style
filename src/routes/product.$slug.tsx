@@ -30,7 +30,7 @@ const CATEGORY_COPY: Record<string, { materials: string; care: string; processin
     care: "Machine wash cold, inside out, with like colors. Tumble dry low and avoid ironing directly over any design.",
     processing: "Personalized apparel ships in 5–7 business days.",
   },
-  "Mugs & Tumblers": {
+  Drinkware: {
     materials:
       "Durable ceramic or double-wall insulated stainless steel with a glossy, fade-resistant print.",
     care: "Ceramic mugs are dishwasher and microwave safe. Insulated tumblers should be hand washed.",
@@ -45,6 +45,17 @@ const CATEGORY_COPY: Record<string, { materials: string; care: string; processin
     materials: "Curated pieces packed together in gift-ready presentation.",
     care: "Follow the care instructions for each individual piece included in the set.",
     processing: "Gift sets ship in 5–7 business days.",
+  },
+  Engraved: {
+    materials:
+      "Durable ceramic or double-wall insulated stainless steel with a permanent laser-engraved finish.",
+    care: "Ceramic mugs are dishwasher and microwave safe. Insulated tumblers should be hand washed.",
+    processing: "Custom engraving ships in 3–5 business days.",
+  },
+  Embroidered: {
+    materials: "Premium fabric with a durable, thread-stitched embroidered design.",
+    care: "Machine wash cold, inside out, with like colors. Tumble dry low and avoid ironing directly over the embroidery.",
+    processing: "Personalized embroidery ships in 5–7 business days.",
   },
 };
 
@@ -141,9 +152,8 @@ function ProductPage() {
 
   const thumbs = product.images;
   const activeThumb = thumbs[active] ?? thumbs[0];
-  const isDrinkware =
-    product.category === "Mugs & Tumblers" || product.category === "Engraved Drinkware";
-  const inspirationCategory = isDrinkware ? "Mugs & Tumblers" : "";
+  const isDrinkware = product.category === "Drinkware" || product.category === "Engraved";
+  const inspirationCategory = isDrinkware ? "Drinkware" : "";
   const copy = CATEGORY_COPY[product.category] ?? CATEGORY_COPY.Accessories;
 
   return (
