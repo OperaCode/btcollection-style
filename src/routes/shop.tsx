@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -14,7 +14,7 @@ import { Header, Footer } from "@/components/site/SiteChrome";
 import { listPublicProducts, PRODUCTS_QUERY_KEY, type Product } from "@/lib/catalog";
 import { useCart, formatUSD } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
-import { CATEGORIES } from "@/lib/categories";
+import { listCategories, CATEGORIES_QUERY_KEY } from "@/lib/categories";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -35,12 +35,11 @@ export const Route = createFileRoute("/shop")({
   component: ShopPage,
 });
 
-const FILTERS = ["All", ...CATEGORIES] as const;
 const SORTS = ["Newest", "Price: Low to High", "Price: High to Low", "Popular"] as const;
 const PRICE_RANGES = ["All", "Under $30", "$30 - $60", "$60+"] as const;
 
 function ShopPage() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const [filter, setFilter] = useState<string>("All");
   const [priceRange, setPriceRange] = useState<(typeof PRICE_RANGES)[number]>("All");
   const [sort, setSort] = useState<(typeof SORTS)[number]>("Newest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -49,6 +48,14 @@ function ShopPage() {
   const { add } = useCart();
   const wishlist = useWishlist();
   const products = useQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: listPublicProducts });
+  const categories = useQuery({ queryKey: CATEGORIES_QUERY_KEY, queryFn: listCategories });
+  const filters = useMemo(() => ["All", ...(categories.data ?? []).map((c) => c.name)], [categories.data]);
+
+  useEffect(() => {
+    if (filter !== "All" && categories.data && !categories.data.some((c) => c.name === filter)) {
+      setFilter("All");
+    }
+  }, [categories.data, filter]);
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -147,7 +154,7 @@ function ShopPage() {
                   Category
                 </p>
                 <ul className="space-y-0.5">
-                  {FILTERS.map((f) => (
+                  {filters.map((f) => (
                     <li key={f}>
                       <button
                         type="button"

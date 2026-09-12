@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, Star, Sparkles } from "lucide-react";
-import { listProducts, deleteProduct, updateProduct, PRODUCT_CATEGORIES, type AdminProduct } from "@/lib/admin-data";
+import { listProducts, deleteProduct, updateProduct, type AdminProduct } from "@/lib/admin-data";
+import { listCategories, CATEGORIES_QUERY_KEY } from "@/lib/categories";
 import { formatUSD } from "@/lib/cart";
 
 export const Route = createFileRoute("/admin/_layout/products/")({
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/admin/_layout/products/")({
 function AdminProductsPage() {
   const queryClient = useQueryClient();
   const products = useQuery({ queryKey: ["admin", "products"], queryFn: listProducts });
+  const categories = useQuery({ queryKey: CATEGORIES_QUERY_KEY, queryFn: listCategories });
   const [categoryFilter, setCategoryFilter] = useState("All");
   const visibleProducts = useMemo(
     () => (products.data ?? []).filter((product) => categoryFilter === "All" || product.category === categoryFilter),
@@ -46,7 +48,7 @@ function AdminProductsPage() {
 
       <div className="mt-8 flex flex-wrap items-center gap-2">
         <span className="mr-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Category</span>
-        {["All", ...PRODUCT_CATEGORIES].map((category) => (
+        {["All", ...(categories.data ?? []).map((c) => c.name)].map((category) => (
           <button
             key={category}
             type="button"
