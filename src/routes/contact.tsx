@@ -30,7 +30,7 @@ function ContactPage() {
   const info = [
     { icon: Mail, label: "Email", value: contactEmail },
     { icon: Clock, label: "Studio Hours", value: "Mon – Fri · 9am – 5pm EST" },
-    { icon: MapPin, label: "Studio", value: "Made with love in the USA" },
+    { icon: MapPin, label: "Studio", value: "1324 Forest Ave, Suite 108 Staten Island, 10302, New York" },
   ];
   return (
     <div className="min-h-screen bg-background text-foreground">

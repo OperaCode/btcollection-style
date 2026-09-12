@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
-import { CATEGORIES } from "@/lib/categories";
 import { sendCustomRequestQuote, sendCustomRequestStatusUpdate } from "@/lib/custom-request-email";
 
 export type AdminProduct = Tables<"products">;
@@ -8,8 +7,6 @@ export type AdminOrder = Tables<"orders">;
 export type AdminOrderItem = Tables<"order_items">;
 export type NewsletterSubscriber = Tables<"newsletter_subscribers">;
 export type CustomRequest = Tables<"custom_requests">;
-
-export const PRODUCT_CATEGORIES = CATEGORIES;
 
 export async function listProducts() {
   const { data, error } = await supabase

@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ImagePlus, UploadCloud, X } from "lucide-react";
-import { PRODUCT_CATEGORIES, type AdminProduct, uploadProductImage } from "@/lib/admin-data";
+import { type AdminProduct, uploadProductImage } from "@/lib/admin-data";
+import { listCategories, CATEGORIES_QUERY_KEY } from "@/lib/categories";
 
 export type ProductFormValues = {
   name: string;
@@ -37,7 +39,14 @@ export function AdminProductForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(initial));
-  const [category, setCategory] = useState(initial?.category ?? PRODUCT_CATEGORIES[0]);
+  const categories = useQuery({ queryKey: CATEGORIES_QUERY_KEY, queryFn: listCategories });
+  const [category, setCategory] = useState(initial?.category ?? "");
+
+  useEffect(() => {
+    if (!initial && !category && categories.data?.length) {
+      setCategory(categories.data[0].name);
+    }
+  }, [categories.data, initial, category]);
   const [basePrice, setBasePrice] = useState(initial ? String(initial.base_price) : "");
   const [textAddonPrice, setTextAddonPrice] = useState(
     initial ? String(initial.text_addon_price) : "0",
@@ -83,6 +92,10 @@ export function AdminProductForm({
       onSubmit={async (e) => {
         e.preventDefault();
         setError("");
+        if (!category) {
+          setError("No categories exist yet — add one on the Categories page first.");
+          return;
+        }
         setSubmitting(true);
         try {
           await onSubmit({
@@ -136,11 +149,16 @@ export function AdminProductForm({
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
+            disabled={categories.isLoading}
             className={inputCls}
           >
-            {PRODUCT_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
+            {categories.isLoading && <option value="">Loading categories...</option>}
+            {initial && category && !categories.data?.some((c) => c.name === category) && (
+              <option value={category}>{category} (not in category list)</option>
+            )}
+            {(categories.data ?? []).map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
               </option>
             ))}
           </select>

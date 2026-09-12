@@ -33,6 +33,7 @@ import { Route as AdminLayoutProductsRouteImport } from './routes/admin/_layout/
 import { Route as AdminLayoutOrdersRouteImport } from './routes/admin/_layout/orders'
 import { Route as AdminLayoutGalleryRouteImport } from './routes/admin/_layout/gallery'
 import { Route as AdminLayoutDashboardRouteImport } from './routes/admin/_layout/dashboard'
+import { Route as AdminLayoutCategoriesRouteImport } from './routes/admin/_layout/categories'
 import { Route as AdminLayoutProductsIndexRouteImport } from './routes/admin/_layout/products.index'
 import { Route as AdminLayoutOrdersIndexRouteImport } from './routes/admin/_layout/orders.index'
 import { Route as AdminLayoutGalleryIndexRouteImport } from './routes/admin/_layout/gallery.index'
@@ -161,6 +162,11 @@ const AdminLayoutDashboardRoute = AdminLayoutDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
+const AdminLayoutCategoriesRoute = AdminLayoutCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
 const AdminLayoutProductsIndexRoute =
   AdminLayoutProductsIndexRouteImport.update({
     id: '/',
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/checkout/success': typeof CheckoutSuccessRoute
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/categories': typeof AdminLayoutCategoriesRoute
   '/admin/dashboard': typeof AdminLayoutDashboardRoute
   '/admin/gallery': typeof AdminLayoutGalleryRouteWithChildren
   '/admin/orders': typeof AdminLayoutOrdersRouteWithChildren
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/checkout/success': typeof CheckoutSuccessRoute
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/categories': typeof AdminLayoutCategoriesRoute
   '/admin/dashboard': typeof AdminLayoutDashboardRoute
   '/admin/settings': typeof AdminLayoutSettingsRoute
   '/custom/pay/$id': typeof CustomPayIdRoute
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/checkout_/success': typeof CheckoutSuccessRoute
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/_layout/categories': typeof AdminLayoutCategoriesRoute
   '/admin/_layout/dashboard': typeof AdminLayoutDashboardRoute
   '/admin/_layout/gallery': typeof AdminLayoutGalleryRouteWithChildren
   '/admin/_layout/orders': typeof AdminLayoutOrdersRouteWithChildren
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
     | '/checkout/success'
     | '/inspiration/$slug'
     | '/product/$slug'
+    | '/admin/categories'
     | '/admin/dashboard'
     | '/admin/gallery'
     | '/admin/orders'
@@ -352,6 +362,7 @@ export interface FileRouteTypes {
     | '/checkout/success'
     | '/inspiration/$slug'
     | '/product/$slug'
+    | '/admin/categories'
     | '/admin/dashboard'
     | '/admin/settings'
     | '/custom/pay/$id'
@@ -382,6 +393,7 @@ export interface FileRouteTypes {
     | '/checkout_/success'
     | '/inspiration/$slug'
     | '/product/$slug'
+    | '/admin/_layout/categories'
     | '/admin/_layout/dashboard'
     | '/admin/_layout/gallery'
     | '/admin/_layout/orders'
@@ -588,6 +600,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutDashboardRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
+    '/admin/_layout/categories': {
+      id: '/admin/_layout/categories'
+      path: '/categories'
+      fullPath: '/admin/categories'
+      preLoaderRoute: typeof AdminLayoutCategoriesRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
     '/admin/_layout/products/': {
       id: '/admin/_layout/products/'
       path: '/'
@@ -689,6 +708,7 @@ const AdminLayoutProductsRouteWithChildren =
   AdminLayoutProductsRoute._addFileChildren(AdminLayoutProductsRouteChildren)
 
 interface AdminLayoutRouteChildren {
+  AdminLayoutCategoriesRoute: typeof AdminLayoutCategoriesRoute
   AdminLayoutDashboardRoute: typeof AdminLayoutDashboardRoute
   AdminLayoutGalleryRoute: typeof AdminLayoutGalleryRouteWithChildren
   AdminLayoutOrdersRoute: typeof AdminLayoutOrdersRouteWithChildren
@@ -698,6 +718,7 @@ interface AdminLayoutRouteChildren {
 }
 
 const AdminLayoutRouteChildren: AdminLayoutRouteChildren = {
+  AdminLayoutCategoriesRoute: AdminLayoutCategoriesRoute,
   AdminLayoutDashboardRoute: AdminLayoutDashboardRoute,
   AdminLayoutGalleryRoute: AdminLayoutGalleryRouteWithChildren,
   AdminLayoutOrdersRoute: AdminLayoutOrdersRouteWithChildren,
