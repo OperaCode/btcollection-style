@@ -26,6 +26,8 @@ export const Route = createFileRoute("/contact")({
 function ContactPage() {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [submitNote, setSubmitNote] = useState("");
+  const [formRenderedAt] = useState(() => Date.now());
   const { social, whatsappUrl, contactEmail } = useSiteSettings();
   const info = [
     { icon: Mail, label: "Email", value: contactEmail },
@@ -108,12 +110,29 @@ function ContactPage() {
             e.preventDefault();
             setSending(true);
             const form = new FormData(e.currentTarget);
-            await saveContactMessage(Object.fromEntries(form.entries()));
+            const result = await saveContactMessage({ ...Object.fromEntries(form.entries()), formRenderedAt });
             setSending(false);
             setSent(true);
+            setSubmitNote(
+              result.offline
+                ? "We couldn't send this just now, so we saved it on this device — please also reach us directly at " +
+                    contactEmail +
+                    " in the meantime."
+                : "",
+            );
           }}
           className="rounded-sm border border-border bg-card p-8 md:p-10"
         >
+          {/* Honeypot: hidden from real visitors, left empty by them, but
+              often auto-filled by generic form-filling bots. */}
+          <input
+            type="text"
+            name="company"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="absolute left-[-9999px] h-0 w-0 opacity-0"
+          />
           {sent ? (
             <div className="grid place-items-center py-10 text-center">
               <div className="grid h-14 w-14 place-items-center rounded-full bg-gold/15 text-gold">
@@ -121,7 +140,7 @@ function ContactPage() {
               </div>
               <h3 className="mt-5 font-display text-3xl text-ink">Message received</h3>
               <p className="mt-3 max-w-sm text-sm text-foreground/75">
-                Thank you for reaching out. We’ll be in your inbox within one business day.
+                {submitNote || "Thank you for reaching out. We’ll be in your inbox within one business day."}
               </p>
             </div>
           ) : (

@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import logoMark from "@/assets/bclogo.jpeg";
+import defaultOgImage from "@/assets/hero.jpg";
 import { CartProvider } from "@/lib/cart";
 import { WishlistProvider } from "@/lib/wishlist";
 import { CartDrawer } from "@/components/site/CartDrawer";
@@ -87,7 +88,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Breakthrough Collection LLC — Every Stitch Tells a Story" },
       { property: "og:description", content: "Faith-inspired, personalized apparel and curated gift sets, thoughtfully made with love." },
       { property: "og:type", content: "website" },
+      // Fallback for any route that doesn't set its own og:image/twitter:image
+      // (product, home, about, contact and custom pages already override this).
+      { property: "og:image", content: defaultOgImage },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: defaultOgImage },
+      { name: "robots", content: "index, follow" },
     ],
     links: [
       {

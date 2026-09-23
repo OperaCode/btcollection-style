@@ -1,5 +1,6 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { brandedEmailHtml } from "@/lib/email-template";
+import { verifyAdmin } from "@/lib/verify-admin";
 
 function formatUSD(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
@@ -38,13 +39,18 @@ function field(label: string, value?: string | number | null) {
   return `<p><strong>${label}:</strong> ${escapeHtml(String(value || "Not provided"))}</p>`;
 }
 
-export const sendCustomRequestNotification = createServerFn({ method: "POST" })
-  .validator((data: CustomRequestEmailInput) => ({
-    ...data,
-    fullName: data.fullName.trim(),
-    email: data.email.trim().toLowerCase(),
-  }))
-  .handler(async ({ data }): Promise<CustomRequestEmailResult> => {
+function greetingOf(fullName: string) {
+  return fullName ? `Hi ${escapeHtml(fullName)},` : "Hi there,";
+}
+
+// createServerOnlyFn, not createServerFn: this notifies the *owner* that a
+// custom request came in, and it's only ever called right after
+// createCustomRequestRecord actually writes that request to the database
+// (see commerce.ts) — never reachable as a standalone RPC that could be used
+// to spam the owner's inbox with fabricated "customer" details.
+export const sendCustomRequestNotification = createServerOnlyFn(
+  async (rawData: CustomRequestEmailInput): Promise<CustomRequestEmailResult> => {
+    const data = { ...rawData, fullName: rawData.fullName.trim(), email: rawData.email.trim().toLowerCase() };
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.RESEND_FROM_EMAIL ?? "Breakthrough Collection LLC <onboarding@resend.dev>";
     const to =
@@ -132,7 +138,8 @@ export const sendCustomRequestNotification = createServerFn({ method: "POST" })
       .eq("id", data.id);
 
     return { sent: true };
-  });
+  },
+);
 
 async function sendCustomerEmail(input: {
   id: string;
@@ -174,13 +181,13 @@ async function sendCustomerEmail(input: {
   return { sent: true };
 }
 
-export const sendCustomRequestConfirmation = createServerFn({ method: "POST" })
-  .validator((data: { id: string; fullName: string; email: string }) => ({
-    ...data,
-    email: data.email.trim().toLowerCase(),
-  }))
-  .handler(async ({ data }): Promise<CustomRequestEmailResult> => {
-    const greeting = data.fullName ? `Hi ${data.fullName},` : "Hi there,";
+// createServerOnlyFn: same reasoning as sendCustomRequestNotification above —
+// only ever called right after a real request row is written, so it can't be
+// used as an open relay to confirm a made-up "request" to any address.
+export const sendCustomRequestConfirmation = createServerOnlyFn(
+  async (rawData: { id: string; fullName: string; email: string }): Promise<CustomRequestEmailResult> => {
+    const data = { ...rawData, email: rawData.email.trim().toLowerCase() };
+    const greeting = greetingOf(data.fullName);
     const html = brandedEmailHtml({
       eyebrow: "Custom Quote Request",
       heading: "Your request is under review",
@@ -190,7 +197,7 @@ export const sendCustomRequestConfirmation = createServerFn({ method: "POST" })
           Thank you for sending your custom order request. We've received it and it's now being
           reviewed. We'll follow up with a quote shortly.
         </p>
-        <p style="margin:0; font-size:12px; color:#8c8579;">Reference: ${data.id.slice(0, 8)}</p>
+        <p style="margin:0; font-size:12px; color:#8c8579;">Reference: ${escapeHtml(data.id.slice(0, 8))}</p>
       `,
     });
 
@@ -201,16 +208,33 @@ export const sendCustomRequestConfirmation = createServerFn({ method: "POST" })
       html,
       text: `${greeting}\n\nThank you for sending your custom order request. We've received it and it's now being reviewed. We'll follow up with a quote shortly.\n\nReference: ${data.id.slice(0, 8)}`,
     });
-  });
+  },
+);
 
+// Admin-only from here down: quoting a price and pushing a status update are
+// actions the owner takes from /admin/orders/custom, not something a visitor
+// should ever be able to trigger for an arbitrary email address. Both take
+// an accessToken and are verified with verifyAdmin before anything is sent.
 export const sendCustomRequestQuote = createServerFn({ method: "POST" })
-  .validator((data: { id: string; fullName: string; email: string; quotedPrice: number; quoteNote?: string | null }) => ({
-    ...data,
-    email: data.email.trim().toLowerCase(),
-  }))
+  .validator(
+    (data: {
+      id: string;
+      fullName: string;
+      email: string;
+      quotedPrice: number;
+      quoteNote?: string | null;
+      accessToken: string;
+    }) => ({
+      ...data,
+      email: data.email.trim().toLowerCase(),
+    }),
+  )
   .handler(async ({ data }): Promise<CustomRequestEmailResult> => {
-    const greeting = data.fullName ? `Hi ${data.fullName},` : "Hi there,";
+    await verifyAdmin(data.accessToken);
+
+    const greeting = greetingOf(data.fullName);
     const price = formatUSD(data.quotedPrice);
+    const quoteNote = data.quoteNote ? escapeHtml(data.quoteNote) : null;
 
     const { isSquareConfigured } = await import("@/lib/square");
     const squareConfigured = isSquareConfigured();
@@ -247,8 +271,8 @@ export const sendCustomRequestQuote = createServerFn({ method: "POST" })
           ${price}
         </p>
         ${
-          data.quoteNote
-            ? `<p style="margin:0 0 16px; font-size:14px; line-height:1.7; color:#3a3630; white-space:pre-line;">${data.quoteNote}</p>`
+          quoteNote
+            ? `<p style="margin:0 0 16px; font-size:14px; line-height:1.7; color:#3a3630; white-space:pre-line;">${quoteNote}</p>`
             : ""
         }
         <p style="margin:0 0 28px; font-size:14px; line-height:1.7; color:#3a3630;">
@@ -286,30 +310,43 @@ const STATUS_COPY: Record<string, { heading: string; body: string }> = {
   },
 };
 
+type StatusUpdateInput = { id: string; fullName: string; email: string; status: string };
+
+async function buildAndSendStatusUpdate(rawData: StatusUpdateInput): Promise<CustomRequestEmailResult> {
+  const data = { ...rawData, email: rawData.email.trim().toLowerCase() };
+  const copy = STATUS_COPY[data.status];
+  if (!copy) return { sent: false, skipped: true, error: "No email template for this status." };
+
+  const greeting = greetingOf(data.fullName);
+  const html = brandedEmailHtml({
+    eyebrow: "Custom Quote Request",
+    heading: copy.heading,
+    bodyHtml: `
+      <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#3a3630;">${greeting}</p>
+      <p style="margin:0; font-size:15px; line-height:1.7; color:#3a3630;">${copy.body}</p>
+    `,
+  });
+
+  return sendCustomerEmail({
+    id: data.id,
+    email: data.email,
+    subject: copy.heading,
+    html,
+    text: `${greeting}\n\n${copy.body}`,
+  });
+}
+
+// Fired automatically the moment Square confirms payment (see
+// custom-request-payment.ts) — there's no admin session at that point, just
+// a webhook or the customer's own browser returning from checkout, so this
+// stays a createServerOnlyFn with no auth gate rather than an RPC.
+export const sendCustomRequestStatusUpdateInternal = createServerOnlyFn(buildAndSendStatusUpdate);
+
+// The admin-triggered counterpart, used when the owner manually moves a
+// request to "ready" / "shipped" / "delivered" from /admin/orders/custom.
 export const sendCustomRequestStatusUpdate = createServerFn({ method: "POST" })
-  .validator((data: { id: string; fullName: string; email: string; status: string }) => ({
-    ...data,
-    email: data.email.trim().toLowerCase(),
-  }))
+  .validator((data: StatusUpdateInput & { accessToken: string }) => data)
   .handler(async ({ data }): Promise<CustomRequestEmailResult> => {
-    const copy = STATUS_COPY[data.status];
-    if (!copy) return { sent: false, skipped: true, error: "No email template for this status." };
-
-    const greeting = data.fullName ? `Hi ${data.fullName},` : "Hi there,";
-    const html = brandedEmailHtml({
-      eyebrow: "Custom Quote Request",
-      heading: copy.heading,
-      bodyHtml: `
-        <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#3a3630;">${greeting}</p>
-        <p style="margin:0; font-size:15px; line-height:1.7; color:#3a3630;">${copy.body}</p>
-      `,
-    });
-
-    return sendCustomerEmail({
-      id: data.id,
-      email: data.email,
-      subject: copy.heading,
-      html,
-      text: `${greeting}\n\n${copy.body}`,
-    });
+    await verifyAdmin(data.accessToken);
+    return buildAndSendStatusUpdate(data);
   });

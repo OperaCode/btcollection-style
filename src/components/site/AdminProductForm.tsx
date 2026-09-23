@@ -13,6 +13,7 @@ export type ProductFormValues = {
   image_addon_price: number;
   description: string;
   images: string[];
+  sizes: string[] | null;
   customizable: boolean;
   featured: boolean;
   best_seller: boolean;
@@ -25,6 +26,24 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+// The client's ask: apparel needs a quick way to say which sizes a piece
+// comes in, S through 3XL. Kept as one-click toggles rather than free text
+// so the storefront's size picker always shows a consistent set — a "Other"
+// input below still covers non-apparel sizing (drinkware ounces, "One
+// Size", etc.) without forcing every product into the apparel scale.
+const STANDARD_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
+
+function sortSizes(list: string[]) {
+  return [...list].sort((a, b) => {
+    const ai = STANDARD_SIZES.indexOf(a);
+    const bi = STANDARD_SIZES.indexOf(b);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return 0;
+  });
 }
 
 export function AdminProductForm({
@@ -56,6 +75,8 @@ export function AdminProductForm({
   );
   const [description, setDescription] = useState(initial?.description ?? "");
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
+  const [sizes, setSizes] = useState<string[]>(initial?.sizes ?? []);
+  const [customSize, setCustomSize] = useState("");
   const [customizable, setCustomizable] = useState(initial?.customizable ?? false);
   const [featured, setFeatured] = useState(initial?.featured ?? false);
   const [bestSeller, setBestSeller] = useState(initial?.best_seller ?? false);
@@ -63,6 +84,28 @@ export function AdminProductForm({
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [error, setError] = useState("");
+
+  function toggleStandardSize(size: string) {
+    setSizes((current) =>
+      sortSizes(current.includes(size) ? current.filter((s) => s !== size) : [...current, size]),
+    );
+  }
+
+  function addCustomSize() {
+    const value = customSize.trim();
+    if (!value || sizes.includes(value)) {
+      setCustomSize("");
+      return;
+    }
+    setSizes((current) => sortSizes([...current, value]));
+    setCustomSize("");
+  }
+
+  function removeSize(size: string) {
+    setSizes((current) => current.filter((s) => s !== size));
+  }
+
+  const customSizes = sizes.filter((s) => !STANDARD_SIZES.includes(s));
 
   async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -107,6 +150,7 @@ export function AdminProductForm({
             image_addon_price: Number(imageAddonPrice) || 0,
             description,
             images,
+            sizes: sizes.length > 0 ? sizes : null,
             customizable,
             featured,
             best_seller: bestSeller,
@@ -250,6 +294,75 @@ export function AdminProductForm({
           ) : (
             <p className="text-xs text-muted-foreground">No product images uploaded yet.</p>
           )}
+        </div>
+      </Field>
+
+      <Field label="Available Sizes">
+        <div className="flex flex-wrap gap-2">
+          {STANDARD_SIZES.map((size) => {
+            const active = sizes.includes(size);
+            return (
+              <button
+                key={size}
+                type="button"
+                onClick={() => toggleStandardSize(size)}
+                aria-pressed={active}
+                className={`rounded-full border px-3.5 py-1.5 text-xs font-medium uppercase tracking-wide transition ${
+                  active
+                    ? "border-gold bg-gold/15 text-ink"
+                    : "border-border text-muted-foreground hover:border-gold/60"
+                }`}
+              >
+                {size}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          For apparel, pick every size this piece comes in. Leave all unchecked for one-size items.
+        </p>
+
+        {customSizes.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {customSizes.map((size) => (
+              <span
+                key={size}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-foreground/80"
+              >
+                {size}
+                <button
+                  type="button"
+                  onClick={() => removeSize(size)}
+                  aria-label={`Remove size ${size}`}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <input
+            value={customSize}
+            onChange={(e) => setCustomSize(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addCustomSize();
+              }
+            }}
+            placeholder="Other size (e.g. One Size, 11oz)"
+            className={inputCls}
+          />
+          <button
+            type="button"
+            onClick={addCustomSize}
+            className="shrink-0 rounded-sm border border-border px-4 text-xs uppercase tracking-wide text-foreground/75 transition hover:border-gold hover:text-gold"
+          >
+            Add
+          </button>
         </div>
       </Field>
 

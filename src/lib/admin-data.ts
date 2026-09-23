@@ -115,6 +115,13 @@ export async function listCustomRequests() {
 // usually a conversation the owner would rather have directly.
 const STATUS_NOTIFY = new Set(["processing", "ready", "shipped", "delivered"]);
 
+async function getAdminAccessToken() {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error("Admin session expired. Please sign in again.");
+  return accessToken;
+}
+
 export async function updateCustomRequestStatus(
   request: CustomRequest,
   status: CustomRequest["status"],
@@ -127,7 +134,13 @@ export async function updateCustomRequestStatus(
 
   if (STATUS_NOTIFY.has(status)) {
     await sendCustomRequestStatusUpdate({
-      data: { id: request.id, fullName: request.full_name, email: request.email, status },
+      data: {
+        id: request.id,
+        fullName: request.full_name,
+        email: request.email,
+        status,
+        accessToken: await getAdminAccessToken(),
+      },
     });
   }
 }
@@ -155,6 +168,7 @@ export async function sendCustomRequestQuoteAndNotify(
       email: request.email,
       quotedPrice,
       quoteNote: quoteNote || null,
+      accessToken: await getAdminAccessToken(),
     },
   });
 }

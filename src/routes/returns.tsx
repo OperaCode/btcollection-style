@@ -15,6 +15,8 @@ export const Route = createFileRoute("/returns")({
   component: ReturnsPage,
 });
 
+const LAST_UPDATED = "September 23, 2026";
+
 function ReturnsPage() {
   const { contactEmail } = useSiteSettings();
   return (
@@ -28,6 +30,10 @@ function ReturnsPage() {
       />
       <section className="mx-auto max-w-3xl px-4 py-16 md:px-8">
         <div className="space-y-8 text-sm leading-relaxed text-foreground/80">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Last updated: {LAST_UPDATED}
+          </p>
+
           <Section title="Personalized & Custom Items">
             Because every personalized or custom piece is made specifically for you, these items are
             final sale and cannot be returned or exchanged — unless they arrive damaged or

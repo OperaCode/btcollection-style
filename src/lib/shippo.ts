@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { verifyAdmin } from "@/lib/verify-admin";
 
 export type ShippingAddress = {
   name?: string;
@@ -132,29 +133,15 @@ function resolveParcel(settings: SiteSettingsRow, override?: ParcelInput | null)
   return getDefaultParcel(settings);
 }
 
-async function verifyAdmin(accessToken: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(accessToken);
-  if (userError || !userData.user) throw new Error("Unauthorized");
-
-  const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc("has_role", {
-    _user_id: userData.user.id,
-    _role: "admin",
-  });
-  if (roleError || !isAdmin) throw new Error("Unauthorized");
-
-  return supabaseAdmin;
-}
-
-async function shippoRequest<T>(path: string, body: unknown): Promise<T> {
+async function shippoRequest<T>(path: string, body: unknown, method = "POST"): Promise<T> {
   const response = await fetch(`https://api.goshippo.com${path}`, {
-    method: "POST",
+    method,
     headers: {
       Authorization: `ShippoToken ${requireEnv("SHIPPO_API_TOKEN")}`,
       "Content-Type": "application/json",
       "SHIPPO-API-VERSION": "2018-02-08",
     },
-    body: JSON.stringify(body),
+    body: method === "GET" ? undefined : JSON.stringify(body),
   });
 
   const data = (await response.json().catch(() => null)) as T | null;
@@ -163,6 +150,32 @@ async function shippoRequest<T>(path: string, body: unknown): Promise<T> {
   }
   if (!data) throw new Error("Shippo returned an empty response.");
   return data;
+}
+
+type ShippoRateDetail = {
+  object_id?: string;
+  amount?: string;
+  provider?: string;
+  servicelevel?: { name?: string; token?: string };
+};
+
+// Re-fetches a rate straight from Shippo by its id instead of trusting the
+// dollar amount the client sends back — a rate id is opaque and non-guessable,
+// but its price is looked up here, not taken on faith, so a tampered
+// shippingAmount in the checkout request can't under-charge shipping.
+export async function verifyShippingRate(
+  rateId: string,
+): Promise<{ amount: number; label: string } | null> {
+  try {
+    const rate = await shippoRequest<ShippoRateDetail>(`/rates/${rateId}/`, undefined, "GET");
+    if (!rate.amount) return null;
+    return {
+      amount: Number(rate.amount),
+      label: `${rate.provider || "Carrier"} ${rate.servicelevel?.name || rate.servicelevel?.token || "Service"}`,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function orderAddressToShippo(address: ShippingAddress, fallbackEmail: string, validate = false) {

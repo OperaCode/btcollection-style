@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { verifyAdmin } from "@/lib/verify-admin";
 
 // customization-uploads is a private bucket (see storage migration) — only
 // an admin should ever be able to view a specific customer's uploaded photo.
@@ -8,16 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 const getSignedCustomizationUrl = createServerFn({ method: "POST" })
   .validator((data: { path: string; accessToken: string }) => data)
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(data.accessToken);
-    if (userError || !userData.user) throw new Error("Unauthorized");
-
-    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc("has_role", {
-      _user_id: userData.user.id,
-      _role: "admin",
-    });
-    if (roleError || !isAdmin) throw new Error("Unauthorized");
+    const supabaseAdmin = await verifyAdmin(data.accessToken);
 
     const { data: signed, error } = await supabaseAdmin.storage
       .from("customization-uploads")

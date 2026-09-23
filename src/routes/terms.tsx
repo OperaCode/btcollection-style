@@ -15,6 +15,8 @@ export const Route = createFileRoute("/terms")({
   component: TermsPage,
 });
 
+const LAST_UPDATED = "September 23, 2026";
+
 function TermsPage() {
   const { contactEmail } = useSiteSettings();
   return (
@@ -28,10 +30,19 @@ function TermsPage() {
       />
       <section className="mx-auto max-w-3xl px-4 py-16 md:px-8">
         <div className="space-y-8 text-sm leading-relaxed text-foreground/80">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Last updated: {LAST_UPDATED}
+          </p>
+
           <Section title="Orders">
             By placing an order with Breakthrough Collection LLC, you confirm the shipping and
             personalization details you've provided are accurate. We are not responsible for delays
             or errors caused by incorrect information at checkout.
+          </Section>
+
+          <Section title="Payment">
+            Payment is collected securely through Square at checkout. Orders are not confirmed or
+            produced until payment is successfully received.
           </Section>
 
           <Section title="Pricing">

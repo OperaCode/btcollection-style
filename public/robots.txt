@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+Disallow: /custom/pay/
+
+Sitemap: https://breakthroughcollection.com/sitemap.xml

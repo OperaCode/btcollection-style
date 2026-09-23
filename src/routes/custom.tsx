@@ -91,6 +91,8 @@ function CustomPage() {
   const [samplePreview, setSamplePreview] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [formRenderedAt] = useState(() => Date.now());
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -140,6 +142,8 @@ function CustomPage() {
       deliveryPreference: form.deliveryPreference,
       sampleImagePath: samplePath,
       idea: form.description,
+      company: honeypot,
+      formRenderedAt,
     });
     setSending(false);
     setSent(true);
@@ -215,6 +219,17 @@ function CustomPage() {
             </div>
           ) : (
             <div className="grid gap-6">
+              {/* Honeypot: hidden from real visitors, left empty by them, but
+                  often auto-filled by generic form-filling bots. */}
+              <input
+                type="text"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="absolute left-[-9999px] h-0 w-0 opacity-0"
+              />
               <div>
                 <h3 className="font-display text-2xl text-ink">Start a Custom Quote</h3>
                 <p className="mt-2 text-sm text-muted-foreground">

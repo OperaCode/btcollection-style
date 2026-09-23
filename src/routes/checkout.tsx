@@ -71,12 +71,11 @@ function CheckoutPage() {
           email: shipping.email,
           shippingAddress: { ...shipping, phone: `+1${phoneDigits}` },
           items,
-          subtotal,
-          shipping: shippingCost,
-          total,
-          deliveryMethod: selectedRate
-            ? `${selectedRate.provider} ${selectedRate.service}`
-            : undefined,
+          // The dollar amount is never trusted from the client — the server
+          // re-fetches this rate id from Shippo and prices the order from
+          // there. subtotal/shippingCost above are for the summary display
+          // only.
+          shippingRateId: selectedRate?.object_id ?? null,
         },
       });
       window.location.href = result.url;

@@ -15,6 +15,8 @@ export const Route = createFileRoute("/shipping")({
   component: ShippingPage,
 });
 
+const LAST_UPDATED = "September 23, 2026";
+
 function ShippingPage() {
   const { contactEmail } = useSiteSettings();
   return (
@@ -28,6 +30,10 @@ function ShippingPage() {
       />
       <section className="mx-auto max-w-3xl px-4 py-16 md:px-8">
         <div className="space-y-8 text-sm leading-relaxed text-foreground/80">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Last updated: {LAST_UPDATED}
+          </p>
+
           <Section title="Processing Time">
             Personalized and custom pieces are hand-finished to order — please allow 7–8 business
             days for production before your order ships. Ready-to-ship items typically leave our

@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerOnlyFn } from "@tanstack/react-start";
 import { brandedEmailHtml } from "@/lib/email-template";
 
 type NewsletterEmailInput = {
@@ -12,16 +12,21 @@ type NewsletterEmailResult = {
   error?: string;
 };
 
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
-export const sendNewsletterWelcomeEmail = createServerFn({ method: "POST" })
-  .validator((data: NewsletterEmailInput) => ({
-    email: normalizeEmail(data.email),
-    fullName: data.fullName?.trim() || undefined,
-  }))
-  .handler(async ({ data }): Promise<NewsletterEmailResult> => {
+// createServerOnlyFn, not createServerFn: only ever called from
+// upsertNewsletterSubscriber right after a real subscriber row is written
+// (see commerce.ts), so it's never reachable as a standalone RPC that
+// anyone could use to spam an arbitrary address a "welcome" email.
+export const sendNewsletterWelcomeEmail = createServerOnlyFn(
+  async (rawData: NewsletterEmailInput): Promise<NewsletterEmailResult> => {
+    const data = { email: rawData.email.trim().toLowerCase(), fullName: rawData.fullName?.trim() || undefined };
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.RESEND_FROM_EMAIL;
 
@@ -33,7 +38,7 @@ export const sendNewsletterWelcomeEmail = createServerFn({ method: "POST" })
       };
     }
 
-    const greeting = data.fullName ? `Hi ${data.fullName},` : "Hi there,";
+    const greeting = data.fullName ? `Hi ${escapeHtml(data.fullName)},` : "Hi there,";
     const shopUrl = "https://breakthroughcollection.com/shop";
 
     const html = brandedEmailHtml({
@@ -82,4 +87,5 @@ export const sendNewsletterWelcomeEmail = createServerFn({ method: "POST" })
       .eq("email", data.email);
 
     return { sent: true };
-  });
+  },
+);

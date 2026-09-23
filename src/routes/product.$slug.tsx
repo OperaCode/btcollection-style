@@ -248,7 +248,7 @@ function ProductPage() {
             {product.description}
           </div>
 
-          {product.sizes && (
+          {product.sizes && product.sizes.length > 0 && (
             <div className="mt-8">
               <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.22em]">
                 <span className="text-muted-foreground">Size</span>

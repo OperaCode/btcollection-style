@@ -671,12 +671,20 @@ function Newsletter() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading">("idle");
+  const [honeypot, setHoneypot] = useState("");
+  const [formRenderedAt] = useState(() => Date.now());
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("loading");
 
-    const result = await subscribeNewsletter({ email, fullName, source: "homepage" });
+    const result = await subscribeNewsletter({
+      email,
+      fullName,
+      source: "homepage",
+      honeypot,
+      formRenderedAt,
+    });
     setStatus("idle");
 
     if (result.ok) {
@@ -716,6 +724,17 @@ function Newsletter() {
           onSubmit={handleSubmit}
           className="mx-auto mt-9 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]"
         >
+          {/* Honeypot: hidden from real visitors, left empty by them, but
+              often auto-filled by generic form-filling bots. */}
+          <input
+            type="text"
+            value={honeypot}
+            onChange={(event) => setHoneypot(event.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="absolute left-[-9999px] h-0 w-0 opacity-0"
+          />
           <input
             type="text"
             required

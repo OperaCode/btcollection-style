@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { getRequestUrl } from "@tanstack/react-start/server";
-import { sendCustomRequestStatusUpdate } from "@/lib/custom-request-email";
+import { sendCustomRequestStatusUpdateInternal } from "@/lib/custom-request-email";
 import { createSquareCheckout, getSquareOrderStatus } from "@/lib/square";
 import type { Database, Tables } from "@/integrations/supabase/types";
 
@@ -83,8 +83,11 @@ async function markCustomRequestPaid(
     return { paid: true as const };
   }
 
-  await sendCustomRequestStatusUpdate({
-    data: { id: request.id, fullName: request.full_name, email: request.email, status: "processing" },
+  await sendCustomRequestStatusUpdateInternal({
+    id: request.id,
+    fullName: request.full_name,
+    email: request.email,
+    status: "processing",
   });
 
   return { paid: true as const };

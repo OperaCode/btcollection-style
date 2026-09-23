@@ -4,6 +4,7 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleSquareWebhook } from "./lib/square-webhook";
 import { handleOrderReminderRequest } from "./lib/order-reminder";
+import { handleSitemapRequest } from "./lib/sitemap";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -58,6 +59,15 @@ export default {
     // plain GET + shared secret — see src/lib/order-reminder.ts.
     if (url.pathname === "/cron/order-reminder" && request.method === "GET") {
       return handleOrderReminderRequest(request);
+    }
+
+    if (url.pathname === "/sitemap.xml" && request.method === "GET") {
+      try {
+        return await handleSitemapRequest(request);
+      } catch (error) {
+        console.error(error);
+        return new Response("Internal error", { status: 500 });
+      }
     }
 
     try {

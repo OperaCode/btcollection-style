@@ -1,6 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
+import { sendContactMessage } from "@/lib/contact-email";
 import { sendCustomRequestConfirmation, sendCustomRequestNotification } from "@/lib/custom-request-email";
 import { sendNewsletterWelcomeEmail } from "@/lib/newsletter-email";
+import { isLikelySpam } from "@/lib/spam-guard";
 
 function offlineId(prefix: string) {
   return `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -19,8 +22,27 @@ function storeOfflineSubmission(key: string, payload: Record<string, unknown>) {
 }
 
 export async function saveContactMessage(payload: Record<string, unknown>) {
-  storeOfflineSubmission("btc.contactMessages.v1", payload);
-  return { offline: true };
+  const firstName = String(payload.firstName ?? "").trim();
+  const lastName = String(payload.lastName ?? "").trim();
+  const email = String(payload.email ?? "").trim().toLowerCase();
+  const subject = String(payload.subject ?? "").trim() || "General question";
+  const message = String(payload.message ?? "").trim();
+  const honeypot = String(payload.company ?? "");
+  const formRenderedAt = Number(payload.formRenderedAt ?? 0) || undefined;
+
+  try {
+    const result = await sendContactMessage({
+      data: { firstName, lastName, email, subject, message, honeypot, formRenderedAt },
+    });
+    if (!result.sent) {
+      storeOfflineSubmission("btc.contactMessages.v1", { firstName, lastName, email, subject, message });
+      return { offline: true, error: result.error };
+    }
+    return { offline: false };
+  } catch (error) {
+    storeOfflineSubmission("btc.contactMessages.v1", { firstName, lastName, email, subject, message });
+    return { offline: true, error };
+  }
 }
 
 type CreateCustomRequestInput = {
@@ -37,15 +59,28 @@ type CreateCustomRequestInput = {
   designText: string | null;
   mediaDetails: string | null;
   idea: string | null;
+  honeypot?: string;
+  formRenderedAt?: number;
 };
 
 // anon can only INSERT on custom_requests, not SELECT (only admins can, via
 // has_role RLS) — an anon insert(...).select().single() to get the new id
 // back fails RLS the same way the newsletter upsert did. Service-role write,
 // same reasoning as createOrderRecord/upsertNewsletterSubscriber above.
+//
+// The notification (to the owner) and confirmation (to the customer) emails
+// are sent from inside this same handler, using only the row that was just
+// inserted — never from a separately callable RPC — so nobody can trigger
+// either email without an actual custom_requests row backing it.
 const createCustomRequestRecord = createServerFn({ method: "POST" })
   .validator((data: CreateCustomRequestInput) => data)
   .handler(async ({ data: input }) => {
+    // Pretend success so a bot gets no signal that it was caught — no row
+    // is written and no email goes out.
+    if (isLikelySpam(input)) {
+      return { id: randomUUID(), notificationWarning: undefined, confirmationWarning: undefined };
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data, error } = await supabaseAdmin
@@ -70,10 +105,23 @@ const createCustomRequestRecord = createServerFn({ method: "POST" })
       .single();
 
     if (error || !data) throw error ?? new Error("Custom request was not created.");
-    return { id: data.id as string };
+    const id = data.id as string;
+
+    const [notification, confirmation] = await Promise.all([
+      sendCustomRequestNotification({ id, ...input }),
+      sendCustomRequestConfirmation({ id, fullName: input.fullName, email: input.email }),
+    ]);
+
+    return {
+      id,
+      notificationWarning: notification.sent ? undefined : notification.error,
+      confirmationWarning: confirmation.sent ? undefined : confirmation.error,
+    };
   });
 
 export async function saveCustomRequest(payload: Record<string, unknown>) {
+  const honeypot = String(payload.company ?? "");
+  const formRenderedAt = Number(payload.formRenderedAt ?? 0) || undefined;
   const fullName = String(payload.name ?? "").trim();
   const email = String(payload.email ?? "").trim().toLowerCase();
   const phone = String(payload.phone ?? "").trim() || null;
@@ -90,7 +138,7 @@ export async function saveCustomRequest(payload: Record<string, unknown>) {
   const idea = String(payload.idea ?? "").trim() || null;
 
   try {
-    const { id } = await createCustomRequestRecord({
+    const { id, notificationWarning, confirmationWarning } = await createCustomRequestRecord({
       data: {
         fullName,
         email,
@@ -105,35 +153,12 @@ export async function saveCustomRequest(payload: Record<string, unknown>) {
         designText,
         mediaDetails,
         idea,
+        honeypot,
+        formRenderedAt,
       },
     });
 
-    const [notification, confirmation] = await Promise.all([
-      sendCustomRequestNotification({
-        data: {
-          id,
-          fullName,
-          email,
-          itemType,
-          occasion,
-          quantity,
-          deadline,
-          deliveryPreference,
-          sampleImagePath,
-          designText,
-          mediaDetails,
-          idea,
-        },
-      }),
-      sendCustomRequestConfirmation({ data: { id, fullName, email } }),
-    ]);
-
-    return {
-      id,
-      offline: false,
-      notificationWarning: notification.sent ? undefined : notification.error,
-      confirmationWarning: confirmation.sent ? undefined : confirmation.error,
-    };
+    return { id, offline: false, notificationWarning, confirmationWarning };
   } catch (error) {
     const id = offlineId("CUSTOM");
     storeOfflineSubmission("btc.customRequests.v1", { ...payload, id });
@@ -145,15 +170,23 @@ type SubscribeNewsletterInput = {
   email: string;
   fullName?: string;
   source?: string;
+  honeypot?: string;
+  formRenderedAt?: number;
 };
 
 // Anon role only has INSERT on newsletter_subscribers, no SELECT — an anon
 // upsert(...).select() to detect duplicates would fail RLS. This server
 // function writes with the service-role client instead, same reasoning as
-// createOrderRecord above.
+// createOrderRecord above. The welcome email is sent from inside this same
+// handler (not a separately callable RPC) so it only ever goes out to an
+// address that was actually just written to newsletter_subscribers.
 const upsertNewsletterSubscriber = createServerFn({ method: "POST" })
-  .validator((data: { email: string; fullName: string | null; source: string }) => data)
+  .validator((data: { email: string; fullName: string | null; source: string; honeypot?: string; formRenderedAt?: number }) => data)
   .handler(async ({ data: input }) => {
+    // Pretend success so a bot gets no signal that it was caught — no row
+    // is written and no email goes out.
+    if (isLikelySpam(input)) return { alreadySubscribed: false as const };
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data, error } = await supabaseAdmin
@@ -170,7 +203,18 @@ const upsertNewsletterSubscriber = createServerFn({ method: "POST" })
       .select("id");
 
     if (error) throw error;
-    return { alreadySubscribed: !data || data.length === 0 };
+    const alreadySubscribed = !data || data.length === 0;
+    if (alreadySubscribed) return { alreadySubscribed: true as const };
+
+    const emailResult = await sendNewsletterWelcomeEmail({
+      email: input.email,
+      fullName: input.fullName ?? undefined,
+    });
+
+    return {
+      alreadySubscribed: false as const,
+      emailWarning: emailResult.sent ? undefined : (emailResult.error ?? "The welcome email could not be sent yet."),
+    };
   });
 
 export async function subscribeNewsletter(input: SubscribeNewsletterInput) {
@@ -179,24 +223,21 @@ export async function subscribeNewsletter(input: SubscribeNewsletterInput) {
   const normalizedEmail = input.email.trim().toLowerCase();
 
   try {
-    const { alreadySubscribed } = await upsertNewsletterSubscriber({
-      data: { email: normalizedEmail, fullName, source },
+    const result = await upsertNewsletterSubscriber({
+      data: {
+        email: normalizedEmail,
+        fullName,
+        source,
+        honeypot: input.honeypot,
+        formRenderedAt: input.formRenderedAt,
+      },
     });
 
-    if (alreadySubscribed) {
+    if (result.alreadySubscribed) {
       return { ok: true, alreadySubscribed: true };
     }
 
-    let emailWarning: string | undefined;
-    const emailResult = await sendNewsletterWelcomeEmail({
-      data: { email: normalizedEmail, fullName: fullName ?? undefined },
-    });
-
-    if (!emailResult.sent) {
-      emailWarning = emailResult.error ?? "The welcome email could not be sent yet.";
-    }
-
-    return { ok: true, emailWarning };
+    return { ok: true, emailWarning: result.emailWarning };
   } catch (error) {
     storeOfflineSubmission("btc.newsletterSubscribers.v1", { email: normalizedEmail, fullName, source });
     return { ok: false, offline: true, error };

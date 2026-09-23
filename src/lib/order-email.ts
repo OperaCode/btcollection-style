@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerOnlyFn } from "@tanstack/react-start";
 import { brandedEmailHtml } from "@/lib/email-template";
 
 function formatUSD(value: number) {
@@ -63,9 +63,14 @@ function itemsText(items: OrderEmailItem[]) {
   return items.map((it) => `${it.qty}x ${it.name} — ${formatUSD(it.price * it.qty)}`).join("\n");
 }
 
-export const sendOrderConfirmation = createServerFn({ method: "POST" })
-  .validator((data: OrderEmailInput) => ({ ...data, email: data.email.trim().toLowerCase() }))
-  .handler(async ({ data }): Promise<OrderEmailResult> => {
+// Both of these are createServerOnlyFn (not createServerFn) on purpose:
+// they're only ever invoked from other server code right after Square
+// confirms a payment (see paid-order-checkout.ts), so keeping them out of
+// the client-callable RPC surface means nobody can trigger an arbitrary
+// "your order is confirmed" email to any address by hand.
+export const sendOrderConfirmation = createServerOnlyFn(
+  async (rawData: OrderEmailInput): Promise<OrderEmailResult> => {
+    const data = { ...rawData, email: rawData.email.trim().toLowerCase() };
     const greeting = data.customerName ? `Hi ${data.customerName},` : "Hi there,";
     const reference = data.orderId.slice(0, 8);
 
@@ -113,11 +118,11 @@ export const sendOrderConfirmation = createServerFn({ method: "POST" })
     ].join("\n");
 
     return sendEmail({ to: data.email, subject: `Order confirmed — ${reference}`, html, text });
-  });
+  },
+);
 
-export const sendOrderNotification = createServerFn({ method: "POST" })
-  .validator((data: OrderEmailInput) => data)
-  .handler(async ({ data }): Promise<OrderEmailResult> => {
+export const sendOrderNotification = createServerOnlyFn(
+  async (data: OrderEmailInput): Promise<OrderEmailResult> => {
     const to = process.env.RESEND_NOTIFY_EMAIL ?? process.env.CONTACT_EMAIL ?? process.env.VITE_CONTACT_EMAIL;
     if (!to) return { sent: false, error: "No notify address configured." };
 
@@ -146,4 +151,5 @@ export const sendOrderNotification = createServerFn({ method: "POST" })
     ].join("\n");
 
     return sendEmail({ to, subject: `New paid order from ${data.email}`, html, text });
-  });
+  },
+);
