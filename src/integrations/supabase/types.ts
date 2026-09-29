@@ -445,6 +445,7 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          delivered_at: string | null
           delivery_method: string | null
           discount_amount: number
           discount_code: string | null
@@ -454,6 +455,7 @@ export type Database = {
           notes: string | null
           shipping: number
           shipping_address: Json | null
+          shipping_label_path: string | null
           shipping_label_url: string | null
           shippo_rate_id: string | null
           shippo_shipment_id: string | null
@@ -470,6 +472,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delivered_at?: string | null
           delivery_method?: string | null
           discount_amount?: number
           discount_code?: string | null
@@ -479,6 +482,7 @@ export type Database = {
           notes?: string | null
           shipping?: number
           shipping_address?: Json | null
+          shipping_label_path?: string | null
           shipping_label_url?: string | null
           shippo_rate_id?: string | null
           shippo_shipment_id?: string | null
@@ -495,6 +499,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delivered_at?: string | null
           delivery_method?: string | null
           discount_amount?: number
           discount_code?: string | null
@@ -504,6 +509,7 @@ export type Database = {
           notes?: string | null
           shipping?: number
           shipping_address?: Json | null
+          shipping_label_path?: string | null
           shipping_label_url?: string | null
           shippo_rate_id?: string | null
           shippo_shipment_id?: string | null
@@ -722,13 +728,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      order_status:
-        | "pending"
-        | "paid"
-        | "processing"
-        | "shipped"
-        | "delivered"
-        | "cancelled"
+      order_status: "paid" | "shipped" | "delivered" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -860,14 +860,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      order_status: [
-        "pending",
-        "paid",
-        "processing",
-        "shipped",
-        "delivered",
-        "cancelled",
-      ],
+      order_status: ["paid", "shipped", "delivered", "cancelled"],
     },
   },
 } as const

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -53,6 +53,25 @@ function CheckoutPage() {
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; amount: number } | null>(null);
   const [discountError, setDiscountError] = useState("");
   const [checkingDiscount, setCheckingDiscount] = useState(false);
+
+  // If someone hits Pay, then navigates back before window.location.href
+  // finishes redirecting them to Square, the browser can restore this page
+  // from its back-forward cache with "submitting" frozen at true — the
+  // button looks stuck on "Redirecting..." forever. No payment or charge
+  // is at risk here (Square only charges once a card is actually submitted
+  // on their page, which never happened), but the page itself is dead until
+  // this resets. pageshow with event.persisted is exactly this "restored
+  // from bfcache" signal.
+  useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        setSubmitting(false);
+        setPayError(null);
+      }
+    }
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
 
   const shippingCost = selectedRate ? Number(selectedRate.amount) : 0;
   const discountAmount = appliedDiscount?.amount ?? 0;
@@ -153,15 +172,15 @@ function CheckoutPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-14">
-        <div className="mb-10">
+      <section className="mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-10">
+        <div className="mb-6">
           <p className="text-[11px] uppercase tracking-[0.32em] text-gold">Secure Checkout</p>
-          <h1 className="mt-2 font-display text-4xl text-ink md:text-5xl">Complete your order</h1>
+          <h1 className="mt-2 font-display text-3xl text-ink md:text-4xl">Complete your order</h1>
         </div>
 
         <Steps step={step} />
 
-        <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-[1.7fr_1fr]">
+        <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-[1.5fr_1fr]">
           <div>
             {step === 1 && (
               <StepShipping
@@ -192,7 +211,7 @@ function CheckoutPage() {
           </div>
 
           <div className="flex h-fit flex-col gap-6 lg:sticky lg:top-6">
-            <aside className="rounded-sm border border-border bg-cream/50 p-6 md:p-8">
+            <aside className="rounded-sm border border-border bg-cream/50 p-5 md:p-6">
               <h2 className="font-display text-xl text-ink">Order Summary</h2>
               <ul className="mt-5 divide-y divide-border">
                 {items.map((it) => (
@@ -317,7 +336,7 @@ function CheckoutPage() {
                   onClick={() => setStep(3)}
                   className="inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Continue to Review <ArrowRight className="h-4 w-4" />
+                  Review Order <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             )}
@@ -447,15 +466,16 @@ function StepShipping({
         e.preventDefault();
         onNext();
       }}
-      className="rounded-sm border border-border bg-card p-6 md:p-8"
+      className="rounded-sm border border-border bg-card p-5 md:p-7"
     >
-      <h2 className="font-display text-2xl text-ink">Shipping Information</h2>
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <h2 className="font-display text-xl text-ink">Shipping Information</h2>
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Full Name">
           <input
             required
             value={data.name}
             onChange={(e) => onChange({ ...data, name: e.target.value })}
+            placeholder="Jane Doe"
             className={inputCls}
           />
         </Field>
@@ -465,6 +485,7 @@ function StepShipping({
             type="email"
             value={data.email}
             onChange={(e) => onChange({ ...data, email: e.target.value })}
+            placeholder="jane@example.com"
             className={inputCls}
           />
         </Field>
@@ -488,6 +509,7 @@ function StepShipping({
             value={data.address}
             onChange={(e) => updateField({ address: e.target.value })}
             onBlur={handleAddressBlur}
+            placeholder="1324 Forest Ave, Suite 108"
             className={inputCls}
           />
         </Field>
@@ -499,6 +521,7 @@ function StepShipping({
             value={data.city}
             onChange={(e) => updateField({ city: e.target.value })}
             onBlur={handleAddressBlur}
+            placeholder="Staten Island"
             className={inputCls}
           />
         </Field>
@@ -509,6 +532,7 @@ function StepShipping({
             value={data.state}
             onChange={(e) => updateField({ state: e.target.value.toUpperCase() })}
             onBlur={handleAddressBlur}
+            placeholder="NY"
             className={inputCls}
           />
         </Field>
@@ -518,6 +542,7 @@ function StepShipping({
             value={data.zip}
             onChange={(e) => updateField({ zip: e.target.value })}
             onBlur={handleAddressBlur}
+            placeholder="10302"
             className={inputCls}
           />
         </Field>
@@ -538,7 +563,7 @@ function StepShipping({
       )}
       <button
         type="submit"
-        className="mt-8 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
+        className="mt-6 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
       >
         Continue to Delivery <ArrowRight className="h-4 w-4" />
       </button>

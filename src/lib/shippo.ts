@@ -1,6 +1,8 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { verifyAdmin } from "@/lib/verify-admin";
+import type { Database } from "@/integrations/supabase/types";
 
 export type ShippingAddress = {
   name?: string;
@@ -248,7 +250,7 @@ const createShipmentRates = createServerFn({ method: "POST" })
       .eq("id", data.orderId)
       .single();
     if (error || !order) throw error ?? new Error("Order not found.");
-    if (order.status !== "paid" && order.status !== "processing") {
+    if (order.status !== "paid") {
       throw new Error("Shipping labels can only be created for paid orders.");
     }
 
@@ -309,19 +311,51 @@ export async function getCheckoutShippingRates(address: ShippingAddress) {
   return createCheckoutRates({ data: { address } });
 }
 
+// Best-effort durable copy of the label PDF — Shippo's own label_url isn't
+// guaranteed to stay valid forever, so we pull it down once at purchase
+// time and keep our own copy. If this fails for any reason, the label
+// purchase itself still succeeded (this never throws) — Shippo's URL is
+// still stored as a fallback, there's just no backup copy for this one.
+async function backupLabelPdf(
+  supabaseAdmin: SupabaseClient<Database>,
+  orderId: string,
+  labelUrl: string,
+): Promise<string | null> {
+  try {
+    const response = await fetch(labelUrl);
+    if (!response.ok) return null;
+    const pdfBytes = await response.arrayBuffer();
+    const path = `${orderId}/${Date.now()}.pdf`;
+    const { error } = await supabaseAdmin.storage
+      .from("shipping-labels")
+      .upload(path, pdfBytes, { contentType: "application/pdf", upsert: false });
+    return error ? null : path;
+  } catch {
+    return null;
+  }
+}
+
 const purchaseLabel = createServerFn({ method: "POST" })
-  .validator((data: { orderId: string; rateId: string; accessToken: string }) => data)
+  .validator((data: { orderId: string; rateId: string; accessToken: string; confirmReplace?: boolean }) => data)
   .handler(async ({ data }) => {
     const supabaseAdmin = await verifyAdmin(data.accessToken);
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("status")
+      .select("status, shipping_label_url")
       .eq("id", data.orderId)
       .single();
     if (orderError || !order) throw orderError ?? new Error("Order not found.");
-    if (order.status !== "paid" && order.status !== "processing") {
+    if (order.status !== "paid") {
       throw new Error("Shipping labels can only be purchased for paid orders.");
     }
+    // A label was already bought for this order — require an explicit
+    // confirmation before charging for a second one, so a stray double
+    // click (or re-clicking "Get rates" then "Buy label" out of habit)
+    // can't silently buy and pay for a duplicate label.
+    if (order.shipping_label_url && !data.confirmReplace) {
+      throw new Error("A label has already been purchased for this order.");
+    }
+
     const transaction = await shippoRequest<ShippoTransactionResponse>("/transactions", {
       rate: data.rateId,
       async: false,
@@ -336,11 +370,16 @@ const purchaseLabel = createServerFn({ method: "POST" })
       throw new Error(message);
     }
 
+    const labelPath = transaction.label_url
+      ? await backupLabelPdf(supabaseAdmin, data.orderId, transaction.label_url)
+      : null;
+
     await supabaseAdmin
       .from("orders")
       .update({
         shippo_rate_id: data.rateId,
         shipping_label_url: transaction.label_url ?? null,
+        shipping_label_path: labelPath,
         tracking_number: transaction.tracking_number ?? null,
         tracking_url: transaction.tracking_url_provider ?? null,
         label_purchased_at: new Date().toISOString(),
@@ -358,6 +397,28 @@ const purchaseLabel = createServerFn({ method: "POST" })
     };
   });
 
+// Signed URL to the durable copy in shipping-labels storage, not Shippo's
+// own (possibly-expiring) label_url — same signed-URL-on-demand pattern as
+// getSignedCustomizationUrl in admin-storage.ts.
+const getSignedLabelUrl = createServerFn({ method: "POST" })
+  .validator((data: { orderId: string; accessToken: string }) => data)
+  .handler(async ({ data }) => {
+    const supabaseAdmin = await verifyAdmin(data.accessToken);
+    const { data: order, error } = await supabaseAdmin
+      .from("orders")
+      .select("shipping_label_path")
+      .eq("id", data.orderId)
+      .single();
+    if (error || !order?.shipping_label_path) {
+      throw new Error("No stored label copy for this order.");
+    }
+    const { data: signed, error: signError } = await supabaseAdmin.storage
+      .from("shipping-labels")
+      .createSignedUrl(order.shipping_label_path, 300);
+    if (signError || !signed) throw signError ?? new Error("Could not create a signed URL.");
+    return { url: signed.signedUrl };
+  });
+
 async function getAccessToken() {
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
@@ -369,8 +430,12 @@ export async function getShippoRates(orderId: string, parcel?: ParcelInput) {
   return createShipmentRates({ data: { orderId, parcel, accessToken: await getAccessToken() } });
 }
 
-export async function buyShippoLabel(orderId: string, rateId: string) {
-  return purchaseLabel({ data: { orderId, rateId, accessToken: await getAccessToken() } });
+export async function buyShippoLabel(orderId: string, rateId: string, confirmReplace = false) {
+  return purchaseLabel({ data: { orderId, rateId, confirmReplace, accessToken: await getAccessToken() } });
+}
+
+export async function getShippingLabelDownloadUrl(orderId: string) {
+  return getSignedLabelUrl({ data: { orderId, accessToken: await getAccessToken() } });
 }
 
 // Read-only peek at the server env-var fallbacks, so the admin Settings form

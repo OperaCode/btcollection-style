@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleSquareWebhook } from "./lib/square-webhook";
+import { handleShippoWebhook } from "./lib/shippo-webhook";
 import { handleOrderReminderRequest } from "./lib/order-reminder";
 import { handleSitemapRequest } from "./lib/sitemap";
 
@@ -49,6 +50,15 @@ export default {
     if (url.pathname === "/webhooks/square" && request.method === "POST") {
       try {
         return await handleSquareWebhook(request);
+      } catch (error) {
+        console.error(error);
+        return new Response("Internal error", { status: 500 });
+      }
+    }
+
+    if (url.pathname === "/webhooks/shippo" && request.method === "POST") {
+      try {
+        return await handleShippoWebhook(request);
       } catch (error) {
         console.error(error);
         return new Response("Internal error", { status: 500 });

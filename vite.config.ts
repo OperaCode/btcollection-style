@@ -9,7 +9,12 @@ export default defineConfig({
     tanstackStart({
       server: { entry: "server" },
     }),
-    nitro(),
+    // Explicit preset rather than relying on auto-detection — nitro is on a
+    // beta version (3.0.260603-beta), and auto-detecting the deploy target
+    // is exactly the kind of thing that can misfire in a beta build tool
+    // specifically when actually running on Vercel's infrastructure (which
+    // local `vite build`/`vite dev` can't fully replicate or catch).
+    nitro({ preset: "vercel" }),
     viteReact(),
     tailwindcss(),
   ],
