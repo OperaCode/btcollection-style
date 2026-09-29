@@ -149,6 +149,7 @@ function OrderItemsPanel({ order }: { order: AdminOrder }) {
   const [rates, setRates] = useState<ShippoRate[]>([]);
   const [selectedRate, setSelectedRate] = useState("");
   const [shippoError, setShippoError] = useState<string | null>(null);
+  const [addressWarning, setAddressWarning] = useState<string | null>(null);
   const [parcel, setParcel] = useState<ParcelInput>({ length: "", width: "", height: "", weight: "" });
 
   const items = useQuery({
@@ -174,6 +175,9 @@ function OrderItemsPanel({ order }: { order: AdminOrder }) {
       setShippoError(null);
       setRates(result.rates);
       setSelectedRate(result.rates[0]?.object_id ?? "");
+      setAddressWarning(
+        result.addressValid ? null : result.addressMessages[0] || "Shippo couldn't fully verify this address.",
+      );
       queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
     },
     onError: (error) => {
@@ -239,6 +243,7 @@ function OrderItemsPanel({ order }: { order: AdminOrder }) {
         loadingRates={ratesMutation.isPending}
         buyingLabel={labelMutation.isPending}
         error={shippoError}
+        addressWarning={addressWarning}
       />
     </div>
   );
@@ -256,6 +261,7 @@ function ShippingLabelPanel({
   loadingRates,
   buyingLabel,
   error,
+  addressWarning,
 }: {
   order: AdminOrder;
   rates: ShippoRate[];
@@ -268,6 +274,7 @@ function ShippingLabelPanel({
   loadingRates: boolean;
   buyingLabel: boolean;
   error: string | null;
+  addressWarning: string | null;
 }) {
   const parcelReady = parcel.length && parcel.width && parcel.height && parcel.weight;
 
@@ -368,6 +375,11 @@ function ShippingLabelPanel({
         </div>
       )}
 
+      {addressWarning && (
+        <p className="mt-3 rounded-sm border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-ink">
+          Shipping address: {addressWarning} Double-check it with the customer before buying this label.
+        </p>
+      )}
       {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
     </div>
   );

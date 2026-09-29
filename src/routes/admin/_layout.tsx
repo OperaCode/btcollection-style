@@ -7,6 +7,7 @@ import {
   ShoppingBag,
   Images,
   Tags,
+  Percent,
   LogOut,
 } from "lucide-react";
 import { useAdminAuth } from "@/lib/admin-auth";
@@ -21,6 +22,7 @@ const NAV = [
   { label: "Orders", to: "/admin/orders" as const, icon: ShoppingBag },
   { label: "Products", to: "/admin/products" as const, icon: Package },
   { label: "Categories", to: "/admin/categories" as const, icon: Tags },
+  { label: "Discounts", to: "/admin/discounts" as const, icon: Percent },
   { label: "Gallery", to: "/admin/gallery" as const, icon: Images },
   { label: "Settings", to: "/admin/settings" as const, icon: Settings },
 ];

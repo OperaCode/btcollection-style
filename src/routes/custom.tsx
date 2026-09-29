@@ -149,7 +149,7 @@ function CustomPage() {
     setSent(true);
     setSubmitNote(
       result.offline
-        ? "The request was saved on this device, but Supabase could not be reached."
+        ? "Something went wrong sending this. It's saved on this device — please try again in a moment."
         : result.notificationWarning
           ? `Your request was saved. Email notification needs attention: ${result.notificationWarning}`
           : "Your quote request was received. Check your inbox — we've sent a confirmation.",

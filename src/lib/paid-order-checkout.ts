@@ -1,26 +1,42 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
-import { getRequestUrl } from "@tanstack/react-start/server";
 import type { CartItem } from "@/lib/cart";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { createSquareCheckout, getSquareOrderStatus } from "@/lib/square";
 import { verifyShippingRate } from "@/lib/shippo";
+import { resolveDiscount } from "@/lib/discounts";
+import { resolveTaxRate } from "@/lib/tax";
 import { sendOrderConfirmation, sendOrderNotification } from "@/lib/order-email";
 
 type ShippingAddress = { name: string; email: string; phone: string; address: string; city: string; zip: string; state: string };
 
-// The client only ever proposes *which* products, quantities and delivery
-// rate it wants — never their prices. Every dollar amount charged is looked
-// up here from the products table and the live Shippo rate, so a tampered
-// request can't buy anything below its real price or ship for less (or
-// free) than the quoted rate.
+// The client only ever proposes *which* products, quantities, delivery rate
+// and discount code it wants — never their dollar values. Every amount
+// charged (item prices, shipping, tax, discount) is looked up or computed
+// here from the products table, a verified Shippo rate, the tax rate table,
+// and a validated discount_codes row, so a tampered request can't buy
+// anything below its real price.
 type StartCheckoutInput = {
   email: string;
   shippingAddress: ShippingAddress;
   items: Array<Pick<CartItem, "id" | "slug" | "img" | "qty" | "customization">>;
   shippingRateId: string | null;
+  discountCode: string | null;
 };
-type CheckoutSession = { id: string; email: string; shipping_address: Json; items: Json; subtotal: number; shipping: number; total: number; delivery_method: string | null; square_checkout_order_id: string | null };
+type CheckoutSession = {
+  id: string;
+  email: string;
+  shipping_address: Json;
+  items: Json;
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  discount_code: string | null;
+  discount_amount: number;
+  total: number;
+  delivery_method: string | null;
+  square_checkout_order_id: string | null;
+};
 
 export const startOrderCheckout = createServerFn({ method: "POST" })
   .validator((data: StartCheckoutInput) => data)
@@ -61,13 +77,32 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
     });
     const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
 
+    let discountCode: string | null = null;
+    let discountAmount = 0;
+    if (input.discountCode) {
+      const resolution = await resolveDiscount(supabaseAdmin, {
+        code: input.discountCode,
+        email: input.email,
+        subtotal,
+      });
+      if (!resolution.ok) throw new Error(resolution.error);
+      discountCode = resolution.code;
+      discountAmount = resolution.amount;
+    }
+
+    const taxRate = resolveTaxRate(input.shippingAddress.state);
+    const taxAmount = Math.round((subtotal - discountAmount) * taxRate * 100) / 100;
+
     const shippingRate = input.shippingRateId ? await verifyShippingRate(input.shippingRateId) : null;
     if (input.shippingRateId && !shippingRate) {
       throw new Error("Your selected shipping option has expired. Please choose delivery again.");
     }
     const shipping = shippingRate?.amount ?? 0;
     const deliveryMethod = shippingRate?.label;
-    const total = subtotal + shipping;
+    const total = subtotal - discountAmount + taxAmount + shipping;
+    if (total <= 0) {
+      throw new Error("This discount brings your order to $0 — please contact us directly to place it.");
+    }
 
     const { data: session, error } = await supabaseAdmin
       .from("checkout_sessions")
@@ -77,6 +112,9 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
         items: items as unknown as Json,
         subtotal,
         shipping,
+        tax: taxAmount,
+        discount_code: discountCode,
+        discount_amount: discountAmount,
         total,
         delivery_method: deliveryMethod ?? null,
       })
@@ -84,11 +122,20 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
       .single();
     if (error || !session) throw error ?? new Error("Checkout could not be started.");
 
+    const extraLines: Array<{ label: string; amount: number }> = [];
+    if (taxAmount > 0) extraLines.push({ label: "Sales Tax", amount: taxAmount });
+
+    // Dynamic import, not top-level: this file is reachable from client
+    // code (checkout.tsx), and @tanstack/react-start/server is server-only.
+    const { getRequestUrl } = await import("@tanstack/react-start/server");
+
     const checkout = await createSquareCheckout({
       orderId: session.id,
       items,
       shippingLabel: deliveryMethod ?? null,
       shippingAmount: shipping,
+      extraLines,
+      discount: discountAmount > 0 ? { label: `Discount (${discountCode})`, amount: discountAmount } : undefined,
       buyerEmail: input.email,
       buyerName: input.shippingAddress.name,
       buyerPhone: input.shippingAddress.phone,
@@ -108,7 +155,8 @@ async function createPaidOrder(supabaseAdmin: SupabaseClient<Database>, session:
   if (sessionError) throw sessionError;
   const { error: orderError } = await supabaseAdmin.from("orders").insert({
     id: session.id, email: session.email, shipping_address: session.shipping_address, subtotal: session.subtotal, shipping: session.shipping,
-    tax: 0, total: session.total, status: "paid", delivery_method: session.delivery_method, square_payment_id: paymentId,
+    tax: session.tax, discount_code: session.discount_code, discount_amount: session.discount_amount,
+    total: session.total, status: "paid", delivery_method: session.delivery_method, square_payment_id: paymentId,
   });
   if (orderError) {
     if (orderError.code === "23505") return { paid: true as const, orderId: session.id };
@@ -117,7 +165,18 @@ async function createPaidOrder(supabaseAdmin: SupabaseClient<Database>, session:
   const items = session.items as unknown as CartItem[];
   const { error: itemError } = await supabaseAdmin.from("order_items").insert(items.map((item) => ({ order_id: session.id, product_id: item.id, name: item.name, price: item.price, quantity: item.qty, customization: item.customization ?? null })));
   if (itemError) throw itemError;
-  const emailInput = { orderId: session.id, email: session.email, items: items.map((item) => ({ name: item.name, price: item.price, qty: item.qty })), subtotal: Number(session.subtotal), shipping: Number(session.shipping), total: Number(session.total), deliveryMethod: session.delivery_method };
+  const emailInput = {
+    orderId: session.id,
+    email: session.email,
+    items: items.map((item) => ({ name: item.name, price: item.price, qty: item.qty })),
+    subtotal: Number(session.subtotal),
+    shipping: Number(session.shipping),
+    tax: Number(session.tax),
+    discountCode: session.discount_code,
+    discountAmount: Number(session.discount_amount),
+    total: Number(session.total),
+    deliveryMethod: session.delivery_method,
+  };
   await Promise.all([sendOrderConfirmation(emailInput), sendOrderNotification(emailInput)]);
   return { paid: true as const, orderId: session.id };
 }

@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
-import { getRequestUrl } from "@tanstack/react-start/server";
 import { sendCustomRequestStatusUpdateInternal } from "@/lib/custom-request-email";
 import { createSquareCheckout, getSquareOrderStatus } from "@/lib/square";
 import type { Database, Tables } from "@/integrations/supabase/types";
@@ -22,6 +21,10 @@ export const createCustomRequestCheckoutUrl = createServerFn({ method: "POST" })
       return { error: "This quote is not currently awaiting payment." };
     }
 
+    // Dynamic import, not top-level: this file is reachable from client
+    // code (custom.pay.$id.tsx), and @tanstack/react-start/server is
+    // server-only.
+    const { getRequestUrl } = await import("@tanstack/react-start/server");
     const origin = getRequestUrl().origin;
 
     try {

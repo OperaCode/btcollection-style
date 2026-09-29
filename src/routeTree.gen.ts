@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as ShippingRouteImport } from './routes/shipping'
@@ -32,6 +33,7 @@ import { Route as AdminLayoutSettingsRouteImport } from './routes/admin/_layout/
 import { Route as AdminLayoutProductsRouteImport } from './routes/admin/_layout/products'
 import { Route as AdminLayoutOrdersRouteImport } from './routes/admin/_layout/orders'
 import { Route as AdminLayoutGalleryRouteImport } from './routes/admin/_layout/gallery'
+import { Route as AdminLayoutDiscountsRouteImport } from './routes/admin/_layout/discounts'
 import { Route as AdminLayoutDashboardRouteImport } from './routes/admin/_layout/dashboard'
 import { Route as AdminLayoutCategoriesRouteImport } from './routes/admin/_layout/categories'
 import { Route as AdminLayoutProductsIndexRouteImport } from './routes/admin/_layout/products.index'
@@ -43,6 +45,11 @@ import { Route as AdminLayoutProductsIdRouteImport } from './routes/admin/_layou
 import { Route as AdminLayoutOrdersCustomRouteImport } from './routes/admin/_layout/orders.custom'
 import { Route as AdminLayoutGalleryNewRouteImport } from './routes/admin/_layout/gallery.new'
 
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -157,6 +164,11 @@ const AdminLayoutGalleryRoute = AdminLayoutGalleryRouteImport.update({
   path: '/gallery',
   getParentRoute: () => AdminLayoutRoute,
 } as any)
+const AdminLayoutDiscountsRoute = AdminLayoutDiscountsRouteImport.update({
+  id: '/discounts',
+  path: '/discounts',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
 const AdminLayoutDashboardRoute = AdminLayoutDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -223,11 +235,13 @@ export interface FileRoutesByFullPath {
   '/shipping': typeof ShippingRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/categories': typeof AdminLayoutCategoriesRoute
   '/admin/dashboard': typeof AdminLayoutDashboardRoute
+  '/admin/discounts': typeof AdminLayoutDiscountsRoute
   '/admin/gallery': typeof AdminLayoutGalleryRouteWithChildren
   '/admin/orders': typeof AdminLayoutOrdersRouteWithChildren
   '/admin/products': typeof AdminLayoutProductsRouteWithChildren
@@ -257,11 +271,13 @@ export interface FileRoutesByTo {
   '/shipping': typeof ShippingRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/categories': typeof AdminLayoutCategoriesRoute
   '/admin/dashboard': typeof AdminLayoutDashboardRoute
+  '/admin/discounts': typeof AdminLayoutDiscountsRoute
   '/admin/settings': typeof AdminLayoutSettingsRoute
   '/custom/pay/$id': typeof CustomPayIdRoute
   '/admin/gallery/new': typeof AdminLayoutGalleryNewRoute
@@ -288,12 +304,14 @@ export interface FileRoutesById {
   '/shipping': typeof ShippingRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/admin/_layout': typeof AdminLayoutRouteWithChildren
   '/checkout_/success': typeof CheckoutSuccessRoute
   '/inspiration/$slug': typeof InspirationSlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/_layout/categories': typeof AdminLayoutCategoriesRoute
   '/admin/_layout/dashboard': typeof AdminLayoutDashboardRoute
+  '/admin/_layout/discounts': typeof AdminLayoutDiscountsRoute
   '/admin/_layout/gallery': typeof AdminLayoutGalleryRouteWithChildren
   '/admin/_layout/orders': typeof AdminLayoutOrdersRouteWithChildren
   '/admin/_layout/products': typeof AdminLayoutProductsRouteWithChildren
@@ -325,11 +343,13 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/shop'
     | '/terms'
+    | '/unsubscribe'
     | '/checkout/success'
     | '/inspiration/$slug'
     | '/product/$slug'
     | '/admin/categories'
     | '/admin/dashboard'
+    | '/admin/discounts'
     | '/admin/gallery'
     | '/admin/orders'
     | '/admin/products'
@@ -359,11 +379,13 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/shop'
     | '/terms'
+    | '/unsubscribe'
     | '/checkout/success'
     | '/inspiration/$slug'
     | '/product/$slug'
     | '/admin/categories'
     | '/admin/dashboard'
+    | '/admin/discounts'
     | '/admin/settings'
     | '/custom/pay/$id'
     | '/admin/gallery/new'
@@ -389,12 +411,14 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/shop'
     | '/terms'
+    | '/unsubscribe'
     | '/admin/_layout'
     | '/checkout_/success'
     | '/inspiration/$slug'
     | '/product/$slug'
     | '/admin/_layout/categories'
     | '/admin/_layout/dashboard'
+    | '/admin/_layout/discounts'
     | '/admin/_layout/gallery'
     | '/admin/_layout/orders'
     | '/admin/_layout/products'
@@ -425,6 +449,7 @@ export interface RootRouteChildren {
   ShippingRoute: typeof ShippingRoute
   ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   ProductSlugRoute: typeof ProductSlugRoute
   CustomPayIdSuccessRoute: typeof CustomPayIdSuccessRoute
@@ -432,6 +457,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -593,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLayoutGalleryRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
+    '/admin/_layout/discounts': {
+      id: '/admin/_layout/discounts'
+      path: '/discounts'
+      fullPath: '/admin/discounts'
+      preLoaderRoute: typeof AdminLayoutDiscountsRouteImport
+      parentRoute: typeof AdminLayoutRoute
+    }
     '/admin/_layout/dashboard': {
       id: '/admin/_layout/dashboard'
       path: '/dashboard'
@@ -710,6 +749,7 @@ const AdminLayoutProductsRouteWithChildren =
 interface AdminLayoutRouteChildren {
   AdminLayoutCategoriesRoute: typeof AdminLayoutCategoriesRoute
   AdminLayoutDashboardRoute: typeof AdminLayoutDashboardRoute
+  AdminLayoutDiscountsRoute: typeof AdminLayoutDiscountsRoute
   AdminLayoutGalleryRoute: typeof AdminLayoutGalleryRouteWithChildren
   AdminLayoutOrdersRoute: typeof AdminLayoutOrdersRouteWithChildren
   AdminLayoutProductsRoute: typeof AdminLayoutProductsRouteWithChildren
@@ -720,6 +760,7 @@ interface AdminLayoutRouteChildren {
 const AdminLayoutRouteChildren: AdminLayoutRouteChildren = {
   AdminLayoutCategoriesRoute: AdminLayoutCategoriesRoute,
   AdminLayoutDashboardRoute: AdminLayoutDashboardRoute,
+  AdminLayoutDiscountsRoute: AdminLayoutDiscountsRoute,
   AdminLayoutGalleryRoute: AdminLayoutGalleryRouteWithChildren,
   AdminLayoutOrdersRoute: AdminLayoutOrdersRouteWithChildren,
   AdminLayoutProductsRoute: AdminLayoutProductsRouteWithChildren,
@@ -778,6 +819,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShippingRoute: ShippingRoute,
   ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   CheckoutSuccessRoute: CheckoutSuccessRoute,
   ProductSlugRoute: ProductSlugRoute,
   CustomPayIdSuccessRoute: CustomPayIdSuccessRoute,

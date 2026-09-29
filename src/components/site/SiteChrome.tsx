@@ -16,7 +16,6 @@ import { useWishlist } from "@/lib/wishlist";
 import { listPublicProducts, PRODUCTS_QUERY_KEY } from "@/lib/catalog";
 import { formatUSD } from "@/lib/cart";
 import { useSiteSettings } from "@/lib/site-settings";
-// import logoMark from "@/assets/logo-mark.png";
 import logoMark from "@/assets/bclogo.jpeg";
 
 export const NAV = [

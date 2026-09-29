@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Check,
   Lock,
@@ -15,7 +16,9 @@ import {
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart, formatUSD } from "@/lib/cart";
 import { startOrderCheckout } from "@/lib/paid-order-checkout";
-import { getCheckoutShippingRates, type ShippingAddress, type ShippoRate } from "@/lib/shippo";
+import { checkShippingAddress, getCheckoutShippingRates, type ShippingAddress, type ShippoRate } from "@/lib/shippo";
+import { previewDiscountCode } from "@/lib/discounts";
+import { resolveTaxRate } from "@/lib/tax";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -46,9 +49,46 @@ function CheckoutPage() {
     state: "",
   });
   const [selectedRate, setSelectedRate] = useState<ShippoRate | null>(null);
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; amount: number } | null>(null);
+  const [discountError, setDiscountError] = useState("");
+  const [checkingDiscount, setCheckingDiscount] = useState(false);
 
   const shippingCost = selectedRate ? Number(selectedRate.amount) : 0;
-  const total = subtotal + shippingCost;
+  const discountAmount = appliedDiscount?.amount ?? 0;
+  const taxRate = resolveTaxRate(shipping.state);
+  // Mirrors the server's math exactly (same taxRate table, same rounding)
+  // so what's shown here matches what startOrderCheckout actually charges —
+  // but the server always recomputes this itself rather than trusting it.
+  const taxAmount = Math.round((subtotal - discountAmount) * taxRate * 100) / 100;
+  const total = subtotal - discountAmount + taxAmount + shippingCost;
+
+  async function applyDiscountCode() {
+    if (!discountCode.trim()) return;
+    setCheckingDiscount(true);
+    setDiscountError("");
+    try {
+      const result = await previewDiscountCode({ code: discountCode, email: shipping.email, subtotal });
+      if (result.ok) {
+        setAppliedDiscount({ code: result.code, amount: result.amount });
+        toast.success(`Code ${result.code} applied — ${formatUSD(result.amount)} off.`);
+      } else {
+        setAppliedDiscount(null);
+        setDiscountError(result.error);
+      }
+    } catch (err) {
+      setAppliedDiscount(null);
+      setDiscountError(err instanceof Error ? err.message : "Could not check that code. Please try again.");
+    } finally {
+      setCheckingDiscount(false);
+    }
+  }
+
+  function removeDiscountCode() {
+    setAppliedDiscount(null);
+    setDiscountCode("");
+    setDiscountError("");
+  }
 
   function continueFromShipping() {
     const phoneDigits = shipping.phone.replace(/\D/g, "");
@@ -76,6 +116,7 @@ function CheckoutPage() {
           // there. subtotal/shippingCost above are for the summary display
           // only.
           shippingRateId: selectedRate?.object_id ?? null,
+          discountCode: appliedDiscount?.code ?? null,
         },
       });
       window.location.href = result.url;
@@ -112,7 +153,7 @@ function CheckoutPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <section className="mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-14">
+      <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-14">
         <div className="mb-10">
           <p className="text-[11px] uppercase tracking-[0.32em] text-gold">Secure Checkout</p>
           <h1 className="mt-2 font-display text-4xl text-ink md:text-5xl">Complete your order</h1>
@@ -120,7 +161,7 @@ function CheckoutPage() {
 
         <Steps step={step} />
 
-        <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-[1.4fr_1fr]">
+        <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-[1.7fr_1fr]">
           <div>
             {step === 1 && (
               <StepShipping
@@ -150,7 +191,7 @@ function CheckoutPage() {
             )}
           </div>
 
-          <div className="flex h-fit flex-col gap-6">
+          <div className="flex h-fit flex-col gap-6 lg:sticky lg:top-6">
             <aside className="rounded-sm border border-border bg-cream/50 p-6 md:p-8">
               <h2 className="font-display text-xl text-ink">Order Summary</h2>
               <ul className="mt-5 divide-y divide-border">
@@ -183,15 +224,69 @@ function CheckoutPage() {
                   </li>
                 ))}
               </ul>
+              <div className="mt-5 border-t border-border pt-5">
+                {appliedDiscount ? (
+                  <div className="flex items-center justify-between gap-2 rounded-sm border border-gold/40 bg-gold/10 px-3 py-2 text-xs">
+                    <span className="text-ink">
+                      Code <strong>{appliedDiscount.code}</strong> applied
+                    </span>
+                    <button
+                      type="button"
+                      onClick={removeDiscountCode}
+                      className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground hover:text-destructive"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          applyDiscountCode();
+                        }
+                      }}
+                      disabled={!shipping.email}
+                      placeholder={shipping.email ? "Promo code" : "Enter your email above first"}
+                      className="h-10 w-full rounded-sm border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-gold focus:outline-none disabled:opacity-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={applyDiscountCode}
+                      disabled={checkingDiscount || !discountCode.trim() || !shipping.email}
+                      className="shrink-0 rounded-full bg-ink px-5 text-xs font-medium uppercase tracking-wide text-background transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {checkingDiscount ? "Checking..." : "Apply"}
+                    </button>
+                  </div>
+                )}
+                {discountError && <p className="mt-2 text-xs text-destructive">{discountError}</p>}
+              </div>
+
               <dl className="mt-5 space-y-2 border-t border-border pt-5 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-foreground/75">Subtotal</dt>
                   <dd className="text-ink">{formatUSD(subtotal)}</dd>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-foreground/75">Discount ({appliedDiscount?.code})</dt>
+                    <dd className="text-gold">-{formatUSD(discountAmount)}</dd>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <dt className="text-foreground/75">Shipping</dt>
                   <dd className="text-ink">{selectedRate ? formatUSD(shippingCost) : "—"}</dd>
                 </div>
+                {taxAmount > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-foreground/75">Sales Tax</dt>
+                    <dd className="text-ink">{formatUSD(taxAmount)}</dd>
+                  </div>
+                )}
                 {selectedRate && (
                   <div className="flex justify-between">
                     <dt className="text-foreground/75">Delivery</dt>
@@ -311,6 +406,41 @@ function StepShipping({
   onChange: (v: typeof data) => void;
   onNext: () => void;
 }) {
+  const [addressCheck, setAddressCheck] = useState<{
+    checking: boolean;
+    valid: boolean | null;
+    messages: string[];
+  }>({ checking: false, valid: null, messages: [] });
+
+  function updateField(patch: Partial<typeof data>) {
+    onChange({ ...data, ...patch });
+    // Any edit to the address itself invalidates the last check — don't
+    // leave a stale warning showing once they've changed something.
+    if ("address" in patch || "city" in patch || "state" in patch || "zip" in patch) {
+      setAddressCheck({ checking: false, valid: null, messages: [] });
+    }
+  }
+
+  async function handleAddressBlur() {
+    if (!data.address || !data.city || data.state.length !== 2 || !data.zip) return;
+    setAddressCheck({ checking: true, valid: null, messages: [] });
+    try {
+      const result = await checkShippingAddress({
+        name: data.name,
+        email: data.email,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+      });
+      setAddressCheck({ checking: false, valid: result.valid, messages: result.messages });
+    } catch {
+      // This check is a courtesy, not a requirement — never block checkout
+      // just because the validation call itself failed.
+      setAddressCheck({ checking: false, valid: null, messages: [] });
+    }
+  }
+
   return (
     <form
       onSubmit={(e) => {
@@ -356,7 +486,8 @@ function StepShipping({
           <input
             required
             value={data.address}
-            onChange={(e) => onChange({ ...data, address: e.target.value })}
+            onChange={(e) => updateField({ address: e.target.value })}
+            onBlur={handleAddressBlur}
             className={inputCls}
           />
         </Field>
@@ -366,7 +497,8 @@ function StepShipping({
           <input
             required
             value={data.city}
-            onChange={(e) => onChange({ ...data, city: e.target.value })}
+            onChange={(e) => updateField({ city: e.target.value })}
+            onBlur={handleAddressBlur}
             className={inputCls}
           />
         </Field>
@@ -375,7 +507,8 @@ function StepShipping({
             required
             maxLength={2}
             value={data.state}
-            onChange={(e) => onChange({ ...data, state: e.target.value.toUpperCase() })}
+            onChange={(e) => updateField({ state: e.target.value.toUpperCase() })}
+            onBlur={handleAddressBlur}
             className={inputCls}
           />
         </Field>
@@ -383,11 +516,21 @@ function StepShipping({
           <input
             required
             value={data.zip}
-            onChange={(e) => onChange({ ...data, zip: e.target.value })}
+            onChange={(e) => updateField({ zip: e.target.value })}
+            onBlur={handleAddressBlur}
             className={inputCls}
           />
         </Field>
       </div>
+      {addressCheck.checking && (
+        <p className="mt-3 text-xs text-muted-foreground">Checking address...</p>
+      )}
+      {addressCheck.valid === false && (
+        <p className="mt-3 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-xs text-ink" role="alert">
+          {addressCheck.messages[0] ||
+            "We couldn't fully verify this address. Please double-check it before continuing."}
+        </p>
+      )}
       {error && (
         <p className="mt-3 text-xs text-destructive" role="alert">
           {error}
@@ -445,7 +588,9 @@ function StepDelivery({
         {rates.isError && (
           <div className="flex flex-col items-center gap-3 rounded-sm border border-destructive/30 bg-destructive/5 p-6 text-center">
             <p className="text-sm text-destructive">
-              Couldn't fetch shipping rates. Double-check your address, or try again.
+              {rates.error instanceof Error && rates.error.message
+                ? rates.error.message
+                : "Couldn't fetch shipping rates. Double-check your address, or try again."}
             </p>
             <button
               type="button"

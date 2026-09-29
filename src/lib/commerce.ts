@@ -189,22 +189,34 @@ const upsertNewsletterSubscriber = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data, error } = await supabaseAdmin
+    // Explicit select-then-branch rather than a single ignoreDuplicates
+    // upsert: with ignoreDuplicates, an existing row of any status is
+    // silently left alone on conflict, which meant someone who unsubscribed
+    // could never resubscribe through this form again (it would just report
+    // "already subscribed" while quietly leaving them unsubscribed).
+    const { data: existing, error: lookupError } = await supabaseAdmin
       .from("newsletter_subscribers")
-      .upsert(
-        {
-          email: input.email,
-          full_name: input.fullName,
-          source: input.source,
-          status: "subscribed",
-        },
-        { onConflict: "email", ignoreDuplicates: true },
-      )
-      .select("id");
+      .select("id, status")
+      .eq("email", input.email)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
 
-    if (error) throw error;
-    const alreadySubscribed = !data || data.length === 0;
-    if (alreadySubscribed) return { alreadySubscribed: true as const };
+    if (existing?.status === "subscribed") {
+      return { alreadySubscribed: true as const };
+    }
+
+    if (existing) {
+      const { error: updateError } = await supabaseAdmin
+        .from("newsletter_subscribers")
+        .update({ full_name: input.fullName, source: input.source, status: "subscribed" })
+        .eq("id", existing.id);
+      if (updateError) throw updateError;
+    } else {
+      const { error: insertError } = await supabaseAdmin
+        .from("newsletter_subscribers")
+        .insert({ email: input.email, full_name: input.fullName, source: input.source, status: "subscribed" });
+      if (insertError) throw insertError;
+    }
 
     const emailResult = await sendNewsletterWelcomeEmail({
       email: input.email,
