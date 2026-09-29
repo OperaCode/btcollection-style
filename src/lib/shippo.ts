@@ -178,6 +178,41 @@ export async function verifyShippingRate(
   }
 }
 
+type ShippoAddressResponse = {
+  validation_results?: {
+    is_valid?: boolean;
+    messages?: Array<{ text?: string; code?: string }>;
+  };
+};
+
+// Address-only validation (Shippo's lighter /addresses/ endpoint, not a full
+// shipment/rate request) — used to catch a bad street/city/state/zip combo
+// while the customer is still filling out the shipping form, before they
+// ever get to the rates step.
+const validateShippingAddress = createServerFn({ method: "POST" })
+  .validator((data: { address: ShippingAddress }) => data)
+  .handler(async ({ data }) => {
+    const result = await shippoRequest<ShippoAddressResponse>("/addresses/", {
+      name: data.address.name || data.address.email || "Customer",
+      street1: data.address.address,
+      city: data.address.city,
+      state: data.address.state,
+      zip: data.address.zip,
+      country: "US",
+      validate: true,
+    });
+
+    const validation = result.validation_results;
+    return {
+      valid: validation?.is_valid ?? true,
+      messages: (validation?.messages ?? []).map((m) => m.text).filter((t): t is string => Boolean(t)),
+    };
+  });
+
+export async function checkShippingAddress(address: ShippingAddress) {
+  return validateShippingAddress({ data: { address } });
+}
+
 function orderAddressToShippo(address: ShippingAddress, fallbackEmail: string, validate = false) {
   return {
     name: address.name || fallbackEmail,
@@ -221,7 +256,10 @@ const createShipmentRates = createServerFn({ method: "POST" })
     const shippingAddress = (order.shipping_address ?? {}) as ShippingAddress;
     const shipment = await shippoRequest<ShippoShipmentResponse>("/shipments/", {
       address_from: getFromAddress(settings),
-      address_to: orderAddressToShippo(shippingAddress, order.email),
+      // validate: true here — this is the step right before a real label
+      // gets bought for real money, so it's worth catching a bad address
+      // even though the customer already saw an advisory check at checkout.
+      address_to: orderAddressToShippo(shippingAddress, order.email, true),
       parcels: [resolveParcel(settings, data.parcel)],
       async: false,
       metadata: `Order ${order.id}`,
@@ -232,7 +270,13 @@ const createShipmentRates = createServerFn({ method: "POST" })
       .update({ shippo_shipment_id: shipment.object_id })
       .eq("id", order.id);
 
-    return { shipmentId: shipment.object_id, rates: mapShippoRates(shipment.rates) };
+    const validation = shipment.address_to?.validation_results;
+    return {
+      shipmentId: shipment.object_id,
+      rates: mapShippoRates(shipment.rates),
+      addressValid: validation?.is_valid ?? true,
+      addressMessages: (validation?.messages ?? []).map((m) => m.text).filter((t): t is string => Boolean(t)),
+    };
   });
 
 // Unauthenticated on purpose: this only requests free rate quotes from

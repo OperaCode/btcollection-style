@@ -22,6 +22,9 @@ type OrderEmailInput = {
   items: OrderEmailItem[];
   subtotal: number;
   shipping: number;
+  tax: number;
+  discountCode?: string | null;
+  discountAmount: number;
   total: number;
   deliveryMethod?: string | null;
 };
@@ -90,10 +93,26 @@ export const sendOrderConfirmation = createServerOnlyFn(
             <td style="padding:2px 0; font-size:13px; color:#6f675f;">Subtotal</td>
             <td style="padding:2px 0; font-size:13px; color:#3a3630; text-align:right;">${formatUSD(data.subtotal)}</td>
           </tr>
+          ${
+            data.discountAmount > 0
+              ? `<tr>
+            <td style="padding:2px 0; font-size:13px; color:#6f675f;">Discount${data.discountCode ? ` (${escapeHtml(data.discountCode)})` : ""}</td>
+            <td style="padding:2px 0; font-size:13px; color:#3a3630; text-align:right;">-${formatUSD(data.discountAmount)}</td>
+          </tr>`
+              : ""
+          }
           <tr>
             <td style="padding:2px 0; font-size:13px; color:#6f675f;">Shipping${data.deliveryMethod ? ` (${escapeHtml(data.deliveryMethod)})` : ""}</td>
             <td style="padding:2px 0; font-size:13px; color:#3a3630; text-align:right;">${formatUSD(data.shipping)}</td>
           </tr>
+          ${
+            data.tax > 0
+              ? `<tr>
+            <td style="padding:2px 0; font-size:13px; color:#6f675f;">Sales Tax</td>
+            <td style="padding:2px 0; font-size:13px; color:#3a3630; text-align:right;">${formatUSD(data.tax)}</td>
+          </tr>`
+              : ""
+          }
           <tr>
             <td style="padding:8px 0 0; font-size:15px; font-weight:bold; color:#1f1d2b;">Total</td>
             <td style="padding:8px 0 0; font-size:15px; font-weight:bold; color:#1f1d2b; text-align:right;">${formatUSD(data.total)}</td>
@@ -111,7 +130,9 @@ export const sendOrderConfirmation = createServerOnlyFn(
       itemsText(data.items),
       "",
       `Subtotal: ${formatUSD(data.subtotal)}`,
+      ...(data.discountAmount > 0 ? [`Discount${data.discountCode ? ` (${data.discountCode})` : ""}: -${formatUSD(data.discountAmount)}`] : []),
       `Shipping: ${formatUSD(data.shipping)}`,
+      ...(data.tax > 0 ? [`Sales Tax: ${formatUSD(data.tax)}`] : []),
       `Total: ${formatUSD(data.total)}`,
       "",
       `Order reference: ${reference}`,
@@ -135,7 +156,9 @@ export const sendOrderNotification = createServerOnlyFn(
           ${itemsHtml(data.items)}
         </table>
         <p><strong>Subtotal:</strong> ${formatUSD(data.subtotal)}</p>
+        ${data.discountAmount > 0 ? `<p><strong>Discount${data.discountCode ? ` (${escapeHtml(data.discountCode)})` : ""}:</strong> -${formatUSD(data.discountAmount)}</p>` : ""}
         <p><strong>Shipping:</strong> ${formatUSD(data.shipping)}${data.deliveryMethod ? ` (${escapeHtml(data.deliveryMethod)})` : ""}</p>
+        ${data.tax > 0 ? `<p><strong>Sales Tax:</strong> ${formatUSD(data.tax)}</p>` : ""}
         <p><strong>Total:</strong> ${formatUSD(data.total)}</p>
         <p style="margin-top:24px; font-size:12px; color:#6f675f;">Order ID: ${escapeHtml(data.orderId)}</p>
       </div>

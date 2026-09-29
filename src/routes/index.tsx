@@ -700,9 +700,7 @@ function Newsletter() {
       return;
     }
 
-    toast.error(
-      "Your signup was saved on this device, but it could not reach Supabase yet. Please try again in a moment.",
-    );
+    toast.error("Something went wrong. Please try again in a moment.");
   }
 
   return (

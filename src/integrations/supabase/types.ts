@@ -178,6 +178,8 @@ export type Database = {
         Row: {
           created_at: string
           delivery_method: string | null
+          discount_amount: number
+          discount_code: string | null
           email: string
           id: string
           items: Json
@@ -187,11 +189,14 @@ export type Database = {
           square_checkout_order_id: string | null
           square_payment_id: string | null
           subtotal: number
+          tax: number
           total: number
         }
         Insert: {
           created_at?: string
           delivery_method?: string | null
+          discount_amount?: number
+          discount_code?: string | null
           email: string
           id?: string
           items: Json
@@ -201,11 +206,14 @@ export type Database = {
           square_checkout_order_id?: string | null
           square_payment_id?: string | null
           subtotal: number
+          tax?: number
           total: number
         }
         Update: {
           created_at?: string
           delivery_method?: string | null
+          discount_amount?: number
+          discount_code?: string | null
           email?: string
           id?: string
           items?: Json
@@ -215,7 +223,44 @@ export type Database = {
           square_checkout_order_id?: string | null
           square_payment_id?: string | null
           subtotal?: number
+          tax?: number
           total?: number
+        }
+        Relationships: []
+      }
+      discount_codes: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          min_subtotal: number
+          percent_off: number
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          min_subtotal?: number
+          percent_off: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          min_subtotal?: number
+          percent_off?: number
+          starts_at?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -401,6 +446,8 @@ export type Database = {
         Row: {
           created_at: string
           delivery_method: string | null
+          discount_amount: number
+          discount_code: string | null
           email: string
           id: string
           label_purchased_at: string | null
@@ -424,6 +471,8 @@ export type Database = {
         Insert: {
           created_at?: string
           delivery_method?: string | null
+          discount_amount?: number
+          discount_code?: string | null
           email: string
           id?: string
           label_purchased_at?: string | null
@@ -447,6 +496,8 @@ export type Database = {
         Update: {
           created_at?: string
           delivery_method?: string | null
+          discount_amount?: number
+          discount_code?: string | null
           email?: string
           id?: string
           label_purchased_at?: string | null

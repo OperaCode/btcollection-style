@@ -54,6 +54,16 @@ type CreateCheckoutInput = {
   buyerName?: string;
   buyerPhone?: string;
   buyerAddress?: { address: string; city: string; state: string; zip: string };
+  // Extra *positive* line items beyond products/shipping — currently just
+  // tax. Square rejects a negative base_price_money on a line item ("Money
+  // amount must be non-negative"), so a discount can't be represented this
+  // way — see `discount` below instead.
+  extraLines?: Array<{ label: string; amount: number }>;
+  // A discount code's dollar-off amount, applied via Square's own
+  // order-level discount object (amount_money, not a percentage) so the
+  // exact amount charged always matches what we already computed and
+  // stored server-side.
+  discount?: { label: string; amount: number };
 };
 
 function splitName(name: string) {
@@ -81,6 +91,27 @@ const createCheckoutLink = createServerFn({ method: "POST" })
         base_price_money: { amount: Math.round(data.shippingAmount * 100), currency: "USD" },
       });
     }
+
+    for (const line of data.extraLines ?? []) {
+      if (line.amount <= 0) continue;
+      lineItems.push({
+        name: line.label.slice(0, 500),
+        quantity: "1",
+        base_price_money: { amount: Math.round(line.amount * 100), currency: "USD" },
+      });
+    }
+
+    const discounts =
+      data.discount && data.discount.amount > 0
+        ? [
+            {
+              name: data.discount.label.slice(0, 500),
+              type: "FIXED_AMOUNT",
+              amount_money: { amount: Math.round(data.discount.amount * 100), currency: "USD" },
+              scope: "ORDER",
+            },
+          ]
+        : undefined;
 
     const { firstName, lastName } = data.buyerName ? splitName(data.buyerName) : { firstName: undefined, lastName: undefined };
 
@@ -111,8 +142,14 @@ const createCheckoutLink = createServerFn({ method: "POST" })
           location_id: locationId,
           reference_id: data.orderId,
           line_items: lineItems,
+          discounts,
         },
-        checkout_options: { redirect_url: data.redirectUrl },
+        // enable_coupon: false hides Square's own native coupon field —
+        // we already have our own discount-code system (src/lib/discounts.ts)
+        // applied before the order ever reaches Square, and leaving Square's
+        // built-in one visible would let a customer type our promo code into
+        // the wrong box and have it silently do nothing.
+        checkout_options: { redirect_url: data.redirectUrl, enable_coupon: false },
         pre_populated_data: prePopulatedData,
       }),
     });
