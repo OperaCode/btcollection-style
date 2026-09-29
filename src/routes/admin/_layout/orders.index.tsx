@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ChevronDown, ExternalLink, ImageIcon, Loader2, PackageCheck, Truck, X } from "lucide-react";
+import { ChevronDown, Download, ExternalLink, ImageIcon, Loader2, PackageCheck, Truck, X } from "lucide-react";
 import { listOrders, listOrderItems, updateOrderStatus, type AdminOrder } from "@/lib/admin-data";
 import { getCustomizationPhotoUrl } from "@/lib/admin-storage";
 import { formatUSD } from "@/lib/cart";
 import {
   buyShippoLabel,
   getDefaultParcelValues,
+  getShippingLabelDownloadUrl,
   getShippoRates,
   type ParcelInput,
   type ShippoRate,
@@ -27,13 +28,12 @@ export const Route = createFileRoute("/admin/_layout/orders/")({
 
 const STATUS_STYLES: Record<string, string> = {
   paid: "border-gold/50 bg-gold/10 text-ink",
-  processing: "border-gold/50 bg-gold/10 text-ink",
   shipped: "border-ink bg-ink text-background",
   delivered: "border-ink bg-ink text-background",
   cancelled: "border-destructive/40 bg-destructive/10 text-destructive",
 };
 
-const ORDER_STATUSES = ["All", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
+const ORDER_STATUSES = ["All", "paid", "shipped", "delivered", "cancelled"] as const;
 
 function AdminOrdersPage() {
   const queryClient = useQueryClient();
@@ -108,7 +108,7 @@ function AdminOrdersPage() {
                     <PackageCheck className="h-3.5 w-3.5" /> Mark Delivered
                   </button>
                 )}
-                {(o.status === "paid" || o.status === "processing") && (
+                {o.status === "paid" && (
                   <button
                     type="button"
                     onClick={() => {
@@ -151,6 +151,10 @@ function OrderItemsPanel({ order }: { order: AdminOrder }) {
   const [shippoError, setShippoError] = useState<string | null>(null);
   const [addressWarning, setAddressWarning] = useState<string | null>(null);
   const [parcel, setParcel] = useState<ParcelInput>({ length: "", width: "", height: "", weight: "" });
+  // A label already exists on this order by default whenever
+  // order.shipping_label_url is set — buying a second one needs this
+  // explicit opt-in first, so a stray click can't charge for a duplicate.
+  const [wantsReplacement, setWantsReplacement] = useState(false);
 
   const items = useQuery({
     queryKey: ["admin", "order-items", order.id],
@@ -186,11 +190,12 @@ function OrderItemsPanel({ order }: { order: AdminOrder }) {
   });
 
   const labelMutation = useMutation({
-    mutationFn: () => buyShippoLabel(order.id, selectedRate),
+    mutationFn: () => buyShippoLabel(order.id, selectedRate, wantsReplacement),
     onSuccess: () => {
       setShippoError(null);
       setRates([]);
       setSelectedRate("");
+      setWantsReplacement(false);
       queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
     },
     onError: (error) => {
@@ -244,6 +249,8 @@ function OrderItemsPanel({ order }: { order: AdminOrder }) {
         buyingLabel={labelMutation.isPending}
         error={shippoError}
         addressWarning={addressWarning}
+        wantsReplacement={wantsReplacement}
+        setWantsReplacement={setWantsReplacement}
       />
     </div>
   );
@@ -262,6 +269,8 @@ function ShippingLabelPanel({
   buyingLabel,
   error,
   addressWarning,
+  wantsReplacement,
+  setWantsReplacement,
 }: {
   order: AdminOrder;
   rates: ShippoRate[];
@@ -275,8 +284,12 @@ function ShippingLabelPanel({
   buyingLabel: boolean;
   error: string | null;
   addressWarning: string | null;
+  wantsReplacement: boolean;
+  setWantsReplacement: (value: boolean) => void;
 }) {
   const parcelReady = parcel.length && parcel.width && parcel.height && parcel.weight;
+  const hasExistingLabel = Boolean(order.shipping_label_url);
+  const showPurchaseFlow = !hasExistingLabel || wantsReplacement;
 
   return (
     <div className="mt-5 rounded-sm border border-border bg-background p-4">
@@ -284,57 +297,25 @@ function ShippingLabelPanel({
         <Truck className="h-4 w-4 text-gold" />
         Shipping label
       </h2>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Weigh and measure the packed box, enter it below, then get real rates for that package.
-      </p>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <ParcelField
-          label="Length (in)"
-          value={parcel.length}
-          onChange={(v) => setParcel({ ...parcel, length: v })}
-        />
-        <ParcelField
-          label="Width (in)"
-          value={parcel.width}
-          onChange={(v) => setParcel({ ...parcel, width: v })}
-        />
-        <ParcelField
-          label="Height (in)"
-          value={parcel.height}
-          onChange={(v) => setParcel({ ...parcel, height: v })}
-        />
-        <ParcelField
-          label="Weight (lb)"
-          value={parcel.weight}
-          onChange={(v) => setParcel({ ...parcel, weight: v })}
-        />
-      </div>
-
-      <button
-        type="button"
-        onClick={onLoadRates}
-        disabled={loadingRates || buyingLabel || !parcelReady}
-        className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-ink transition hover:border-gold hover:bg-gold/20 disabled:opacity-60"
-      >
-        {loadingRates ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Truck className="h-3.5 w-3.5" />}
-        {loadingRates ? "Loading rates" : "Get rates for this package"}
-      </button>
-
-      {(order.shipping_label_url || order.tracking_number) && (
-        <div className="mt-4 grid gap-2 rounded-sm border border-gold/30 bg-gold/5 p-3 text-xs text-foreground/80">
-          {order.shipping_label_url && (
-            <a
-              href={order.shipping_label_url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 text-gold hover:underline"
-            >
-              <PackageCheck className="h-3.5 w-3.5" />
-              Open purchased label
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
+      {hasExistingLabel && (
+        <div className="mt-3 grid gap-2 rounded-sm border border-gold/30 bg-gold/5 p-3 text-xs text-foreground/80">
+          <div className="flex flex-wrap items-center gap-3">
+            {order.shipping_label_path ? (
+              <DownloadLabelButton orderId={order.id} />
+            ) : order.shipping_label_url ? (
+              <a
+                href={order.shipping_label_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 text-gold hover:underline"
+              >
+                <PackageCheck className="h-3.5 w-3.5" />
+                Open purchased label
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            ) : null}
+          </div>
           {order.tracking_number && (
             <div>
               Tracking:{" "}
@@ -347,10 +328,77 @@ function ShippingLabelPanel({
               )}
             </div>
           )}
+          {order.label_purchased_at && (
+            <div className="text-muted-foreground">
+              Purchased {new Date(order.label_purchased_at).toLocaleString()}
+            </div>
+          )}
         </div>
       )}
 
-      {rates.length > 0 && (
+      {!showPurchaseFlow ? (
+        <button
+          type="button"
+          onClick={() => setWantsReplacement(true)}
+          className="mt-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground hover:text-destructive"
+        >
+          Buy a replacement label
+        </button>
+      ) : (
+        <>
+          {hasExistingLabel && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+              <span>A label was already bought for this order — this buys and charges for another one.</span>
+              <button
+                type="button"
+                onClick={() => setWantsReplacement(false)}
+                className="shrink-0 uppercase tracking-[0.16em] text-muted-foreground hover:text-ink"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          <p className="mt-3 text-xs text-muted-foreground">
+            Weigh and measure the packed box, enter it below, then get real rates for that package.
+          </p>
+
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <ParcelField
+              label="Length (in)"
+              value={parcel.length}
+              onChange={(v) => setParcel({ ...parcel, length: v })}
+            />
+            <ParcelField
+              label="Width (in)"
+              value={parcel.width}
+              onChange={(v) => setParcel({ ...parcel, width: v })}
+            />
+            <ParcelField
+              label="Height (in)"
+              value={parcel.height}
+              onChange={(v) => setParcel({ ...parcel, height: v })}
+            />
+            <ParcelField
+              label="Weight (lb)"
+              value={parcel.weight}
+              onChange={(v) => setParcel({ ...parcel, weight: v })}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={onLoadRates}
+            disabled={loadingRates || buyingLabel || !parcelReady}
+            className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-ink transition hover:border-gold hover:bg-gold/20 disabled:opacity-60"
+          >
+            {loadingRates ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Truck className="h-3.5 w-3.5" />}
+            {loadingRates ? "Loading rates" : "Get rates for this package"}
+          </button>
+        </>
+      )}
+
+      {showPurchaseFlow && rates.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <select
             value={selectedRate}
@@ -370,7 +418,7 @@ function ShippingLabelPanel({
             className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-background transition hover:bg-gold hover:text-ink disabled:opacity-60"
           >
             {buyingLabel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PackageCheck className="h-3.5 w-3.5" />}
-            {buyingLabel ? "Buying label" : "Buy label"}
+            {buyingLabel ? "Buying label" : hasExistingLabel ? "Buy replacement label" : "Buy label"}
           </button>
         </div>
       )}
@@ -416,6 +464,35 @@ function formatShippoRate(rate: ShippoRate) {
   }).format(Number(rate.amount));
   const days = rate.estimated_days ? `, ${rate.estimated_days} day${rate.estimated_days === 1 ? "" : "s"}` : "";
   return `${rate.provider} ${rate.service} - ${amount}${days}`;
+}
+
+function DownloadLabelButton({ orderId }: { orderId: string }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <button
+      type="button"
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const result = await getShippingLabelDownloadUrl(orderId);
+          window.open(result.url, "_blank", "noopener,noreferrer");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not load the label.");
+        } finally {
+          setLoading(false);
+        }
+      }}
+      className="inline-flex items-center gap-1.5 text-gold hover:underline disabled:opacity-60"
+    >
+      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+      {loading ? "Loading label..." : "Download Label (PDF)"}
+      {error && <span className="text-destructive">{error}</span>}
+    </button>
+  );
 }
 
 function CustomizationPhotoLink({ path }: { path: string }) {

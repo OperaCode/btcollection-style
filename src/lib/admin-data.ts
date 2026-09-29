@@ -69,7 +69,6 @@ export async function listOrders() {
   const { data, error } = await supabase
     .from("orders")
     .select("*")
-    .neq("status", "pending")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;
@@ -182,8 +181,8 @@ export async function getDashboardStats() {
     { count: subscriberCount },
     { count: customRequestCount },
   ] = await Promise.all([
-    supabase.from("orders").select("id", { count: "exact", head: true }).neq("status", "pending"),
-    supabase.from("orders").select("total").neq("status", "cancelled").neq("status", "pending"),
+    supabase.from("orders").select("id", { count: "exact", head: true }),
+    supabase.from("orders").select("total").neq("status", "cancelled"),
     supabase.from("products").select("id", { count: "exact", head: true }).eq("in_stock", true),
     supabase.from("products").select("id", { count: "exact", head: true }).eq("in_stock", false),
     supabase.from("newsletter_subscribers").select("id", { count: "exact", head: true }),
