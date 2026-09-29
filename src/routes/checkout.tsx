@@ -509,7 +509,7 @@ function StepShipping({
             value={data.address}
             onChange={(e) => updateField({ address: e.target.value })}
             onBlur={handleAddressBlur}
-            placeholder="1324 Forest Ave, Suite 108"
+            placeholder=" 742 Evergreen Terrace"
             className={inputCls}
           />
         </Field>
@@ -521,7 +521,7 @@ function StepShipping({
             value={data.city}
             onChange={(e) => updateField({ city: e.target.value })}
             onBlur={handleAddressBlur}
-            placeholder="Staten Island"
+            placeholder="Los Angeles"
             className={inputCls}
           />
         </Field>
@@ -532,7 +532,7 @@ function StepShipping({
             value={data.state}
             onChange={(e) => updateField({ state: e.target.value.toUpperCase() })}
             onBlur={handleAddressBlur}
-            placeholder="NY"
+            placeholder="CA"
             className={inputCls}
           />
         </Field>
@@ -542,7 +542,7 @@ function StepShipping({
             value={data.zip}
             onChange={(e) => updateField({ zip: e.target.value })}
             onBlur={handleAddressBlur}
-            placeholder="10302"
+            placeholder="90001"
             className={inputCls}
           />
         </Field>

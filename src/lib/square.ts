@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createServerFn } from "@tanstack/react-start";
+import { createServerOnlyFn } from "@tanstack/react-start";
 import type { CartItem } from "@/lib/cart";
 
 function requireEnv(name: string) {
@@ -73,9 +73,17 @@ function splitName(name: string) {
   return { firstName: trimmed.slice(0, spaceIndex), lastName: trimmed.slice(spaceIndex + 1) };
 }
 
-const createCheckoutLink = createServerFn({ method: "POST" })
-  .validator((data: CreateCheckoutInput) => data)
-  .handler(async ({ data }) => {
+// createServerOnlyFn, not createServerFn: this is only ever called from
+// inside another server function's handler (startOrderCheckout,
+// createCustomRequestCheckoutUrl), never directly as a client-facing RPC
+// target. That nesting — a createServerFn calling another createServerFn —
+// turned out not to make it into the production server-function manifest
+// reliably (worked fine in dev, where resolution is dynamic rather than a
+// pre-built table), causing "Server function info not found" in production
+// only. createServerOnlyFn compiles as a plain function call instead of an
+// RPC dispatch, which sidesteps the whole problem — matches the same
+// pattern already used for sendOrderConfirmation, sendCustomRequestNotification, etc.
+const createCheckoutLink = createServerOnlyFn(async (data: CreateCheckoutInput) => {
     const locationId = requireEnv("VITE_SQUARE_LOCATION_ID");
 
     const lineItems = data.items.map((item) => ({
@@ -156,10 +164,10 @@ const createCheckoutLink = createServerFn({ method: "POST" })
 
     if (!result.payment_link) throw new Error("Square did not return a checkout link.");
     return { url: result.payment_link.url, squareOrderId: result.payment_link.order_id };
-  });
+});
 
 export async function createSquareCheckout(input: CreateCheckoutInput) {
-  return createCheckoutLink({ data: input });
+  return createCheckoutLink(input);
 }
 
 type SquareOrderResponse = {
@@ -172,9 +180,10 @@ type SquareOrderResponse = {
   };
 };
 
-const fetchSquareOrder = createServerFn({ method: "POST" })
-  .validator((data: { squareOrderId: string }) => data)
-  .handler(async ({ data }) => {
+// createServerOnlyFn — same reasoning as createCheckoutLink above: only
+// ever called from confirmOrderPayment/confirmCustomRequestPayment's own
+// server-side handlers, never directly from the client.
+const fetchSquareOrder = createServerOnlyFn(async (data: { squareOrderId: string }) => {
     const result = await squareRequest<SquareOrderResponse>(`/v2/orders/${data.squareOrderId}`, {
       method: "GET",
     });
@@ -191,8 +200,8 @@ const fetchSquareOrder = createServerFn({ method: "POST" })
     const paid = order?.state === "COMPLETED" || hasTender || nothingOwed;
 
     return { paid, paymentId: tender?.payment_id || tender?.id || order?.id || null };
-  });
+});
 
 export async function getSquareOrderStatus(squareOrderId: string) {
-  return fetchSquareOrder({ data: { squareOrderId } });
+  return fetchSquareOrder({ squareOrderId });
 }
