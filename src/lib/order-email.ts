@@ -67,7 +67,7 @@ function itemsText(items: OrderEmailItem[]) {
 }
 
 // Both of these are createServerOnlyFn (not createServerFn) on purpose:
-// they're only ever invoked from other server code right after Square
+// they're only ever invoked from other server code right after Stripe
 // confirms a payment (see paid-order-checkout.ts), so keeping them out of
 // the client-callable RPC surface means nobody can trigger an arbitrary
 // "your order is confirmed" email to any address by hand.

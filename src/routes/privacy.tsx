@@ -54,7 +54,7 @@ function PrivacyPage() {
 
           <Section title="Service Providers">
             We share the minimum information needed with the vendors that help us run the shop:{" "}
-            <strong>Square</strong> to process payments, <strong>Shippo</strong> to generate
+            <strong>Stripe</strong> to process payments, <strong>Shippo</strong> to generate
             shipping quotes and labels, <strong>Resend</strong> to deliver order and account
             emails, and <strong>Supabase</strong> to securely store order and account data. Each
             handles your information under its own privacy policy and only for the purpose of
@@ -62,7 +62,7 @@ function PrivacyPage() {
           </Section>
 
           <Section title="Payment Information">
-            Payments are processed securely by Square. We never see or store your full card
+            Payments are processed securely by Stripe. We never see or store your full card
             number on our servers.
           </Section>
 

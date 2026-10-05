@@ -2,10 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import type { CartItem } from "@/lib/cart";
 import type { Database, Json } from "@/integrations/supabase/types";
-import { createSquareCheckout, getSquareOrderStatus } from "@/lib/square";
+import { calculateStripeTax, createStripeCheckout, getStripeSessionStatus } from "@/lib/stripe";
+import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
 import { verifyShippingRate } from "@/lib/shippo";
 import { resolveDiscount } from "@/lib/discounts";
-import { resolveTaxRate } from "@/lib/tax";
 import { sendOrderConfirmation, sendOrderNotification } from "@/lib/order-email";
 
 type ShippingAddress = { name: string; email: string; phone: string; address: string; city: string; zip: string; state: string };
@@ -22,6 +22,7 @@ type StartCheckoutInput = {
   items: Array<Pick<CartItem, "id" | "slug" | "img" | "qty" | "customization">>;
   shippingRateId: string | null;
   discountCode: string | null;
+  gateway: "stripe" | "paypal";
 };
 type CheckoutSession = {
   id: string;
@@ -35,7 +36,9 @@ type CheckoutSession = {
   discount_amount: number;
   total: number;
   delivery_method: string | null;
-  square_checkout_order_id: string | null;
+  payment_gateway: string;
+  stripe_checkout_session_id: string | null;
+  paypal_order_id: string | null;
 };
 
 export const startOrderCheckout = createServerFn({ method: "POST" })
@@ -48,7 +51,7 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
     const productIds = [...new Set(input.items.map((item) => item.id))];
     const { data: products, error: productsError } = await supabaseAdmin
       .from("products")
-      .select("id, name, base_price, text_addon_price, image_addon_price, in_stock")
+      .select("id, name, category, base_price, text_addon_price, image_addon_price, in_stock")
       .in("id", productIds);
     if (productsError) throw productsError;
     const productById = new Map((products ?? []).map((p) => [p.id, p]));
@@ -72,6 +75,10 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
         price,
         img: item.img,
         qty: item.qty,
+        // Apparel is eligible for the NY clothing rules in Stripe Tax;
+        // drinkware and every other physical product use the standard
+        // tangible-goods code. Never infer this from client-provided data.
+        taxCode: /apparel/i.test(product.category) ? "txcd_30011000" : "txcd_99999999",
         customization: item.customization,
       };
     });
@@ -90,15 +97,23 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
       discountAmount = resolution.amount;
     }
 
-    const taxRate = resolveTaxRate(input.shippingAddress.state);
-    const taxAmount = Math.round((subtotal - discountAmount) * taxRate * 100) / 100;
-
     const shippingRate = input.shippingRateId ? await verifyShippingRate(input.shippingRateId) : null;
     if (input.shippingRateId && !shippingRate) {
       throw new Error("Your selected shipping option has expired. Please choose delivery again.");
     }
     const shipping = shippingRate?.amount ?? 0;
     const deliveryMethod = shippingRate?.label;
+    // Stripe Checkout calculates tax itself. PayPal uses this same Stripe
+    // Tax calculation instead of the old flat NY rate, which overcharged
+    // eligible clothing below $110.
+    const taxAmount = input.gateway === "paypal"
+      ? await calculateStripeTax({
+          items,
+          shippingAmount: shipping,
+          shippingAddress: input.shippingAddress,
+          discountAmount,
+        })
+      : 0;
     const total = subtotal - discountAmount + taxAmount + shipping;
     if (total <= 0) {
       throw new Error("This discount brings your order to $0 — please contact us directly to place it.");
@@ -117,47 +132,105 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
         discount_amount: discountAmount,
         total,
         delivery_method: deliveryMethod ?? null,
+        payment_gateway: input.gateway,
       })
       .select("id")
       .single();
     if (error || !session) throw error ?? new Error("Checkout could not be started.");
 
+    // PayPal has no equivalent of Stripe Tax, so it still needs tax handed
+    // to it as a plain amount. Stripe gets automaticTax instead (below) and
+    // calculates its own, more accurate, address-exact figure — so it must
+    // NOT also get this as a line item, or the customer would be taxed
+    // twice.
     const extraLines: Array<{ label: string; amount: number }> = [];
-    if (taxAmount > 0) extraLines.push({ label: "Sales Tax", amount: taxAmount });
+    if (input.gateway === "paypal" && taxAmount > 0) {
+      extraLines.push({ label: "Sales Tax", amount: taxAmount });
+    }
 
     // Dynamic import, not top-level: this file is reachable from client
     // code (checkout.tsx), and @tanstack/react-start/server is server-only.
     const { getRequestUrl } = await import("@tanstack/react-start/server");
+    const origin = getRequestUrl().origin;
+    const discount =
+      discountAmount > 0 ? { label: `Discount (${discountCode})`, amount: discountAmount } : undefined;
+    const successUrl = `${origin}/checkout/success?orderId=${session.id}`;
+    const cancelUrl = `${origin}/cart`;
 
-    const checkout = await createSquareCheckout({
+    if (input.gateway === "paypal") {
+      const checkout = await createPayPalOrder({
+        orderId: session.id,
+        items,
+        shippingLabel: deliveryMethod ?? null,
+        shippingAmount: shipping,
+        extraLines,
+        discount,
+        successUrl,
+        cancelUrl,
+      });
+      const { error: updateError } = await supabaseAdmin
+        .from("checkout_sessions")
+        .update({ paypal_order_id: checkout.paypalOrderId })
+        .eq("id", session.id);
+      if (updateError) throw updateError;
+      return { orderId: session.id as string, url: checkout.url };
+    }
+
+    const checkout = await createStripeCheckout({
       orderId: session.id,
       items,
       shippingLabel: deliveryMethod ?? null,
       shippingAmount: shipping,
       extraLines,
-      discount: discountAmount > 0 ? { label: `Discount (${discountCode})`, amount: discountAmount } : undefined,
+      discount,
       buyerEmail: input.email,
-      buyerName: input.shippingAddress.name,
-      buyerPhone: input.shippingAddress.phone,
-      buyerAddress: { address: input.shippingAddress.address, city: input.shippingAddress.city, state: input.shippingAddress.state, zip: input.shippingAddress.zip },
-      redirectUrl: `${getRequestUrl().origin}/checkout/success?orderId=${session.id}`,
+      shippingAddress: input.shippingAddress,
+      automaticTax: true,
+      successUrl,
+      cancelUrl,
     });
-    const { error: updateError } = await supabaseAdmin.from("checkout_sessions").update({ square_checkout_order_id: checkout.squareOrderId }).eq("id", session.id);
+    const { error: updateError } = await supabaseAdmin
+      .from("checkout_sessions")
+      .update({ stripe_checkout_session_id: checkout.stripeSessionId })
+      .eq("id", session.id);
     if (updateError) throw updateError;
     return { orderId: session.id as string, url: checkout.url };
   });
 
-async function createPaidOrder(supabaseAdmin: SupabaseClient<Database>, session: CheckoutSession, paymentId: string | null) {
+// `actualTax`, when provided, is the real tax Stripe Tax calculated and
+// charged on the completed session — more accurate than (and sometimes
+// slightly different from) this app's own pre-checkout estimate stored on
+// the session row, since Stripe computes it from the exact address rather
+// than a flat per-state rate. When present, it overrides the session's
+// estimate for the actual order record and receipt, so what's recorded
+// matches what the customer was really charged.
+async function createPaidOrder(
+  supabaseAdmin: SupabaseClient<Database>,
+  session: CheckoutSession,
+  paymentId: string | null,
+  actualTax?: number | null,
+) {
   const { data: existing, error: existingError } = await supabaseAdmin.from("orders").select("id").eq("id", session.id).maybeSingle();
   if (existingError) throw existingError;
   if (existing) return { paid: true as const, orderId: existing.id };
-  const { error: sessionError } = await supabaseAdmin.from("checkout_sessions").update({ square_payment_id: paymentId, paid_at: new Date().toISOString() }).eq("id", session.id);
+  const isPayPal = session.payment_gateway === "paypal";
+  const paidAt = new Date().toISOString();
+  const { error: sessionError } = isPayPal
+    ? await supabaseAdmin.from("checkout_sessions").update({ paypal_capture_id: paymentId, paid_at: paidAt }).eq("id", session.id)
+    : await supabaseAdmin.from("checkout_sessions").update({ stripe_payment_id: paymentId, paid_at: paidAt }).eq("id", session.id);
   if (sessionError) throw sessionError;
-  const { error: orderError } = await supabaseAdmin.from("orders").insert({
+
+  const tax = actualTax != null ? actualTax : Number(session.tax);
+  const total = Number(session.subtotal) - Number(session.discount_amount) + tax + Number(session.shipping);
+
+  const orderBase = {
     id: session.id, email: session.email, shipping_address: session.shipping_address, subtotal: session.subtotal, shipping: session.shipping,
-    tax: session.tax, discount_code: session.discount_code, discount_amount: session.discount_amount,
-    total: session.total, status: "paid", delivery_method: session.delivery_method, square_payment_id: paymentId,
-  });
+    tax, discount_code: session.discount_code, discount_amount: session.discount_amount,
+    total, status: "paid" as const, delivery_method: session.delivery_method,
+  };
+  const { error: orderError } = isPayPal
+    ? await supabaseAdmin.from("orders").insert({ ...orderBase, payment_gateway: "paypal", paypal_capture_id: paymentId })
+    : await supabaseAdmin.from("orders").insert({ ...orderBase, payment_gateway: "stripe", stripe_payment_id: paymentId });
   if (orderError) {
     if (orderError.code === "23505") return { paid: true as const, orderId: session.id };
     throw orderError;
@@ -171,10 +244,10 @@ async function createPaidOrder(supabaseAdmin: SupabaseClient<Database>, session:
     items: items.map((item) => ({ name: item.name, price: item.price, qty: item.qty })),
     subtotal: Number(session.subtotal),
     shipping: Number(session.shipping),
-    tax: Number(session.tax),
+    tax,
     discountCode: session.discount_code,
     discountAmount: Number(session.discount_amount),
-    total: Number(session.total),
+    total,
     deliveryMethod: session.delivery_method,
   };
   await Promise.all([sendOrderConfirmation(emailInput), sendOrderNotification(emailInput)]);
@@ -189,15 +262,32 @@ export const confirmOrderPayment = createServerFn({ method: "POST" })
     if (error || !session) return { paid: false, error: "Checkout session not found." };
     const { data: existing } = await supabaseAdmin.from("orders").select("id").eq("id", session.id).maybeSingle();
     if (existing) return { paid: true as const, orderId: existing.id };
-    if (!session.square_checkout_order_id) return { paid: false, error: "This checkout has no payment attached yet." };
-    const status = await getSquareOrderStatus(session.square_checkout_order_id);
+
+    if (session.payment_gateway === "paypal") {
+      if (!session.paypal_order_id) return { paid: false, error: "This checkout has no payment attached yet." };
+      const status = await capturePayPalOrder(session.paypal_order_id);
+      if (!status.paid) return { paid: false, error: "Payment has not completed yet. If you just paid, please refresh in a moment." };
+      return createPaidOrder(supabaseAdmin, session, status.paymentId);
+    }
+
+    if (!session.stripe_checkout_session_id) return { paid: false, error: "This checkout has no payment attached yet." };
+    const status = await getStripeSessionStatus(session.stripe_checkout_session_id);
     if (!status.paid) return { paid: false, error: "Payment has not completed yet. If you just paid, please refresh in a moment." };
-    return createPaidOrder(supabaseAdmin, session, status.paymentId);
+    return createPaidOrder(supabaseAdmin, session, status.paymentId, status.taxAmount);
   });
 
-export const markOrderPaidBySquareOrderId = createServerOnlyFn(async (squareOrderId: string, paymentId: string | null) => {
+export const markOrderPaidByStripeSessionId = createServerOnlyFn(
+  async (stripeSessionId: string, paymentId: string | null, taxAmount?: number | null) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: session, error } = await supabaseAdmin.from("checkout_sessions").select("*").eq("stripe_checkout_session_id", stripeSessionId).single();
+    if (error || !session) return;
+    await createPaidOrder(supabaseAdmin, session, paymentId, taxAmount);
+  },
+);
+
+export const markOrderPaidByPayPalOrderId = createServerOnlyFn(async (paypalOrderId: string, paymentId: string | null) => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: session, error } = await supabaseAdmin.from("checkout_sessions").select("*").eq("square_checkout_order_id", squareOrderId).single();
+  const { data: session, error } = await supabaseAdmin.from("checkout_sessions").select("*").eq("paypal_order_id", paypalOrderId).single();
   if (error || !session) return;
   await createPaidOrder(supabaseAdmin, session, paymentId);
 });

@@ -105,10 +105,12 @@ export type Database = {
           quote_note: string | null
           quoted_price: number | null
           sample_image_path: string | null
-          square_checkout_order_id: string | null
-          square_payment_id: string | null
           status: string
-          stripe_session_id: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_id: string | null
+          payment_gateway: string
+          paypal_capture_id: string | null
+          paypal_order_id: string | null
           timeline: string | null
           updated_at: string
         }
@@ -135,10 +137,12 @@ export type Database = {
           quote_note?: string | null
           quoted_price?: number | null
           sample_image_path?: string | null
-          square_checkout_order_id?: string | null
-          square_payment_id?: string | null
           status?: string
-          stripe_session_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_id?: string | null
+          payment_gateway?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
           timeline?: string | null
           updated_at?: string
         }
@@ -165,10 +169,12 @@ export type Database = {
           quote_note?: string | null
           quoted_price?: number | null
           sample_image_path?: string | null
-          square_checkout_order_id?: string | null
-          square_payment_id?: string | null
           status?: string
-          stripe_session_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_id?: string | null
+          payment_gateway?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
           timeline?: string | null
           updated_at?: string
         }
@@ -186,8 +192,11 @@ export type Database = {
           paid_at: string | null
           shipping: number
           shipping_address: Json
-          square_checkout_order_id: string | null
-          square_payment_id: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_id: string | null
+          payment_gateway: string
+          paypal_capture_id: string | null
+          paypal_order_id: string | null
           subtotal: number
           tax: number
           total: number
@@ -203,8 +212,11 @@ export type Database = {
           paid_at?: string | null
           shipping?: number
           shipping_address: Json
-          square_checkout_order_id?: string | null
-          square_payment_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_id?: string | null
+          payment_gateway?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
           subtotal: number
           tax?: number
           total: number
@@ -220,8 +232,11 @@ export type Database = {
           paid_at?: string | null
           shipping?: number
           shipping_address?: Json
-          square_checkout_order_id?: string | null
-          square_payment_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_id?: string | null
+          payment_gateway?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
           subtotal?: number
           tax?: number
           total?: number
@@ -459,8 +474,11 @@ export type Database = {
           shipping_label_url: string | null
           shippo_rate_id: string | null
           shippo_shipment_id: string | null
-          square_checkout_order_id: string | null
-          square_payment_id: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_id: string | null
+          payment_gateway: string
+          paypal_capture_id: string | null
+          paypal_order_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           tax: number
@@ -486,8 +504,11 @@ export type Database = {
           shipping_label_url?: string | null
           shippo_rate_id?: string | null
           shippo_shipment_id?: string | null
-          square_checkout_order_id?: string | null
-          square_payment_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_id?: string | null
+          payment_gateway?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tax?: number
@@ -513,8 +534,11 @@ export type Database = {
           shipping_label_url?: string | null
           shippo_rate_id?: string | null
           shippo_shipment_id?: string | null
-          square_checkout_order_id?: string | null
-          square_payment_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_id?: string | null
+          payment_gateway?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tax?: number

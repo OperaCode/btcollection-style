@@ -231,9 +231,14 @@ function OrderItemsPanel({ order }: { order: AdminOrder }) {
         })}
       </ul>
       {items.data?.length === 0 && <p className="text-xs text-muted-foreground">No line items.</p>}
-      {order.square_payment_id && (
+      {order.stripe_payment_id && (
         <p className="mt-3 text-xs text-muted-foreground">
-          Square payment: <span className="text-foreground/80">{order.square_payment_id}</span>
+          Stripe payment: <span className="text-foreground/80">{order.stripe_payment_id}</span>
+        </p>
+      )}
+      {order.paypal_capture_id && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          PayPal payment: <span className="text-foreground/80">{order.paypal_capture_id}</span>
         </p>
       )}
       <ShippingLabelPanel

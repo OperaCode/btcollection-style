@@ -236,13 +236,13 @@ export const sendCustomRequestQuote = createServerFn({ method: "POST" })
     const price = formatUSD(data.quotedPrice);
     const quoteNote = data.quoteNote ? escapeHtml(data.quoteNote) : null;
 
-    const { isSquareConfigured } = await import("@/lib/square");
-    const squareConfigured = isSquareConfigured();
+    const { isStripeConfigured } = await import("@/lib/stripe");
+    const stripeConfigured = isStripeConfigured();
 
     let cta: { label: string; url: string } | undefined;
     let actionCopy: string;
 
-    if (squareConfigured) {
+    if (stripeConfigured) {
       const { getRequestUrl } = await import("@tanstack/react-start/server");
       const origin = getRequestUrl().origin;
       cta = { label: `Pay ${price} to Approve`, url: `${origin}/custom/pay/${data.id}` };
@@ -336,7 +336,7 @@ async function buildAndSendStatusUpdate(rawData: StatusUpdateInput): Promise<Cus
   });
 }
 
-// Fired automatically the moment Square confirms payment (see
+// Fired automatically the moment Stripe confirms payment (see
 // custom-request-payment.ts) — there's no admin session at that point, just
 // a webhook or the customer's own browser returning from checkout, so this
 // stays a createServerOnlyFn with no auth gate rather than an RPC.

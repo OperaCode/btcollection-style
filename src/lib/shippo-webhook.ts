@@ -2,7 +2,7 @@
 // automatically once the carrier reports it, instead of relying on the
 // admin to notice and click "Mark Delivered" by hand.
 //
-// Unlike Square, Shippo doesn't sign webhook payloads (no HMAC header to
+// Unlike Stripe, Shippo doesn't sign webhook payloads (no HMAC header to
 // verify against), so this endpoint is unauthenticated by design. The blast
 // radius of a forged call is small and self-limiting: it can only ever flip
 // a real order that's already "shipped" (matched by tracking_number) to

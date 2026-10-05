@@ -1,4 +1,4 @@
-// Raw HTTP endpoint (wired up in server.ts, same pattern as the Square
+// Raw HTTP endpoint (wired up in server.ts, same pattern as the Stripe
 // webhook), triggered daily by Vercel Cron (see the "crons" entry in
 // vercel.json) — no GitHub Actions / billing dependency involved. Vercel
 // automatically sends "Authorization: Bearer $CRON_SECRET" when it invokes

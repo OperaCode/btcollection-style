@@ -30,7 +30,7 @@ function PaySuccessPage() {
           return;
         }
 
-        // Square may take a moment to finalize the order after redirecting
+        // Stripe may take a moment to finalize the order after redirecting
         // back — retry a few times before treating it as a real failure.
         attempt += 1;
         if (attempt < 4) {

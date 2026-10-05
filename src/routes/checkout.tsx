@@ -12,13 +12,14 @@ import {
   User,
   MapPin,
   Phone,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart, formatUSD } from "@/lib/cart";
 import { startOrderCheckout } from "@/lib/paid-order-checkout";
 import { checkShippingAddress, getCheckoutShippingRates, type ShippingAddress, type ShippoRate } from "@/lib/shippo";
 import { previewDiscountCode } from "@/lib/discounts";
-import { resolveTaxRate } from "@/lib/tax";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -36,7 +37,8 @@ type Step = 1 | 2 | 3;
 function CheckoutPage() {
   const { items, subtotal } = useCart();
   const [step, setStep] = useState<Step>(1);
-  const [submitting, setSubmitting] = useState(false);
+  const [submittingGateway, setSubmittingGateway] = useState<"stripe" | "paypal" | null>(null);
+  const submitting = submittingGateway !== null;
   const [payError, setPayError] = useState<string | null>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [shipping, setShipping] = useState({
@@ -55,17 +57,17 @@ function CheckoutPage() {
   const [checkingDiscount, setCheckingDiscount] = useState(false);
 
   // If someone hits Pay, then navigates back before window.location.href
-  // finishes redirecting them to Square, the browser can restore this page
+  // finishes redirecting them to Stripe, the browser can restore this page
   // from its back-forward cache with "submitting" frozen at true — the
   // button looks stuck on "Redirecting..." forever. No payment or charge
-  // is at risk here (Square only charges once a card is actually submitted
+  // is at risk here (Stripe only charges once a card is actually submitted
   // on their page, which never happened), but the page itself is dead until
   // this resets. pageshow with event.persisted is exactly this "restored
   // from bfcache" signal.
   useEffect(() => {
     function handlePageShow(event: PageTransitionEvent) {
       if (event.persisted) {
-        setSubmitting(false);
+        setSubmittingGateway(null);
         setPayError(null);
       }
     }
@@ -75,12 +77,10 @@ function CheckoutPage() {
 
   const shippingCost = selectedRate ? Number(selectedRate.amount) : 0;
   const discountAmount = appliedDiscount?.amount ?? 0;
-  const taxRate = resolveTaxRate(shipping.state);
-  // Mirrors the server's math exactly (same taxRate table, same rounding)
-  // so what's shown here matches what startOrderCheckout actually charges —
-  // but the server always recomputes this itself rather than trusting it.
-  const taxAmount = Math.round((subtotal - discountAmount) * taxRate * 100) / 100;
-  const total = subtotal - discountAmount + taxAmount + shippingCost;
+  // Stripe Tax calculates from the validated delivery address when payment
+  // starts. Avoid showing the old flat NY estimate here: it overcharged
+  // clothing that Stripe correctly marks tax-exempt.
+  const total = subtotal - discountAmount + shippingCost;
 
   async function applyDiscountCode() {
     if (!discountCode.trim()) return;
@@ -120,8 +120,8 @@ function CheckoutPage() {
     setStep(2);
   }
 
-  async function handlePay() {
-    setSubmitting(true);
+  async function handlePay(gateway: "stripe" | "paypal") {
+    setSubmittingGateway(gateway);
     setPayError(null);
     try {
       const phoneDigits = shipping.phone.replace(/\D/g, "");
@@ -136,6 +136,7 @@ function CheckoutPage() {
           // only.
           shippingRateId: selectedRate?.object_id ?? null,
           discountCode: appliedDiscount?.code ?? null,
+          gateway,
         },
       });
       window.location.href = result.url;
@@ -143,7 +144,7 @@ function CheckoutPage() {
       setPayError(
         err instanceof Error ? err.message : "Could not start checkout. Please try again.",
       );
-      setSubmitting(false);
+      setSubmittingGateway(null);
     }
   }
 
@@ -172,7 +173,7 @@ function CheckoutPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <section className="mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-10">
+      <section className="mx-auto max-w-7xl px-5 py-8 sm:px-6 md:py-10 lg:px-8">
         <div className="mb-6">
           <p className="text-[11px] uppercase tracking-[0.32em] text-gold">Secure Checkout</p>
           <h1 className="mt-2 font-display text-3xl text-ink md:text-4xl">Complete your order</h1>
@@ -180,7 +181,7 @@ function CheckoutPage() {
 
         <Steps step={step} />
 
-        <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-[1.5fr_1fr]">
+        <div className="mt-6 grid grid-cols-1 gap-7 lg:grid-cols-[minmax(22rem,0.9fr)_minmax(34rem,1.4fr)] lg:items-start lg:gap-8">
           <div>
             {step === 1 && (
               <StepShipping
@@ -210,7 +211,7 @@ function CheckoutPage() {
             )}
           </div>
 
-          <div className="flex h-fit flex-col gap-6 lg:sticky lg:top-6">
+          <div className="flex h-fit flex-col gap-5 lg:sticky lg:top-6">
             <aside className="rounded-sm border border-border bg-cream/50 p-5 md:p-6">
               <h2 className="font-display text-xl text-ink">Order Summary</h2>
               <ul className="mt-5 divide-y divide-border">
@@ -300,12 +301,10 @@ function CheckoutPage() {
                   <dt className="text-foreground/75">Shipping</dt>
                   <dd className="text-ink">{selectedRate ? formatUSD(shippingCost) : "—"}</dd>
                 </div>
-                {taxAmount > 0 && (
-                  <div className="flex justify-between">
-                    <dt className="text-foreground/75">Sales Tax</dt>
-                    <dd className="text-ink">{formatUSD(taxAmount)}</dd>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <dt className="text-foreground/75">Sales Tax</dt>
+                  <dd className="text-right text-muted-foreground">Calculated at payment</dd>
+                </div>
                 {selectedRate && (
                   <div className="flex justify-between">
                     <dt className="text-foreground/75">Delivery</dt>
@@ -344,27 +343,50 @@ function CheckoutPage() {
             {step === 3 && (
               <div className="flex flex-col gap-3">
                 {payError && <p className="text-xs text-destructive">{payError}</p>}
-                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                <div className="mx-auto grid w-full max-w-xl grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setStep(2)}
+                    onClick={() => handlePay("stripe")}
                     disabled={submitting}
-                    className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-gold disabled:opacity-50"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-ink px-3 text-[10px] uppercase tracking-[0.16em] text-background transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 sm:text-[11px]"
                   >
-                    <ArrowLeft className="h-4 w-4" /> Back
+                    <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+                    {submittingGateway === "stripe" ? "Redirecting..." : "Pay with Card"}
                   </button>
+
+                  {/* Styled after PayPal's own gold checkout button (brand
+                      colors #FFC439 fill, #003087/#009cde two-tone "PayPal"
+                      wordmark) so it reads as PayPal at a glance rather than
+                      just another pill button in our site's own colors. */}
                   <button
                     type="button"
-                    onClick={handlePay}
+                    onClick={() => handlePay("paypal")}
                     disabled={submitting}
-                    className="inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background transition hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#FFC439] px-3 transition hover:bg-[#f0b429] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <Lock className="h-3.5 w-3.5" />
-                    {submitting
-                      ? "Redirecting to secure payment..."
-                      : `Complete Payment · ${formatUSD(total)}`}
+                    <Lock className="h-3.5 w-3.5 flex-shrink-0 text-[#003087]" />
+                    {submittingGateway === "paypal" ? (
+                      <span className="text-[11px] uppercase tracking-[0.18em] text-[#003087]">
+                        Redirecting...
+                      </span>
+                    ) : (
+                      <span className="text-lg font-bold italic tracking-tight">
+                        <span className="text-[#003087]">Pay</span>
+                        <span className="text-[#009cde]">Pal</span>
+                      </span>
+                    )}
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  disabled={submitting}
+                  className="mx-auto inline-flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-gold disabled:opacity-50"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
               </div>
             )}
           </div>
@@ -537,19 +559,33 @@ function StepShipping({
           />
         </Field>
         <Field label="ZIP">
-          <input
-            required
-            value={data.zip}
-            onChange={(e) => updateField({ zip: e.target.value })}
-            onBlur={handleAddressBlur}
-            placeholder="90001"
-            className={inputCls}
-          />
+          <div className="relative">
+            <input
+              required
+              value={data.zip}
+              onChange={(e) => updateField({ zip: e.target.value })}
+              onBlur={handleAddressBlur}
+              placeholder="90001"
+              className={`${inputCls} pr-9`}
+            />
+            {addressCheck.checking && (
+              <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+            {!addressCheck.checking && addressCheck.valid === true && (
+              <Check
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600"
+                aria-label="Address verified"
+              />
+            )}
+            {!addressCheck.checking && addressCheck.valid === false && (
+              <X
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-destructive"
+                aria-label="Address could not be verified"
+              />
+            )}
+          </div>
         </Field>
       </div>
-      {addressCheck.checking && (
-        <p className="mt-3 text-xs text-muted-foreground">Checking address...</p>
-      )}
       {addressCheck.valid === false && (
         <p className="mt-3 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-xs text-ink" role="alert">
           {addressCheck.messages[0] ||

@@ -41,7 +41,7 @@ function TermsPage() {
           </Section>
 
           <Section title="Payment">
-            Payment is collected securely through Square at checkout. Orders are not confirmed or
+            Payment is collected securely through Stripe at checkout. Orders are not confirmed or
             produced until payment is successfully received.
           </Section>
 

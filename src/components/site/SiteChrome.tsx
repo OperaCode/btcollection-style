@@ -16,6 +16,7 @@ import { useWishlist } from "@/lib/wishlist";
 import { listPublicProducts, PRODUCTS_QUERY_KEY } from "@/lib/catalog";
 import { formatUSD } from "@/lib/cart";
 import { useSiteSettings } from "@/lib/site-settings";
+import { getActiveDiscountBanner } from "@/lib/discounts";
 import logoMark from "@/assets/bclogo.jpeg";
 
 export const NAV = [
@@ -28,10 +29,26 @@ export const NAV = [
 ];
 
 export function Announcement() {
+  // Restores the strip's original purpose — advertising whatever discount
+  // is currently active — falling back to the standard message when
+  // there's no live promo to show. Query, not a prop: this renders in the
+  // root layout above every route, so it needs its own data source.
+  const promo = useQuery({
+    queryKey: ["active-discount-banner"],
+    queryFn: getActiveDiscountBanner,
+    staleTime: 60_000,
+  });
+
   return (
     <div className="bg-primary text-primary-foreground text-[10px] uppercase leading-relaxed tracking-[0.14em] sm:text-[12px] sm:tracking-[0.18em]">
       <div className="mx-auto max-w-7xl px-3 py-2 text-center sm:px-4 sm:py-2.5">
-        Now Booking Custom Embroidery &amp; Engraving Gifts · Ships Nationwide
+        {promo.data ? (
+          <>
+            {promo.data.percentOff}% Off Your Order · Use Code <strong>{promo.data.code}</strong> at Checkout
+          </>
+        ) : (
+          "Now Booking Custom Embroidery & Engraving Gifts · Ships Nationwide"
+        )}
       </div>
     </div>
   );

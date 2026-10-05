@@ -70,8 +70,8 @@
 :root {
   --radius: 0.25rem;
   /* Warm ivory background */
-  --background: oklch(0.985 0.012 85);
-  --cream: oklch(0.97 0.018 82);
+  --background: #fefaf1;
+  --cream: #fbf4e8;
   --foreground: oklch(0.18 0.04 260);
   --ink: oklch(0.18 0.04 260);
   --card: oklch(1 0 0);

@@ -2,7 +2,8 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { handleSquareWebhook } from "./lib/square-webhook";
+import { handleStripeWebhook } from "./lib/stripe-webhook";
+import { handlePayPalWebhook } from "./lib/paypal-webhook";
 import { handleShippoWebhook } from "./lib/shippo-webhook";
 import { handleOrderReminderRequest } from "./lib/order-reminder";
 import { handleSitemapRequest } from "./lib/sitemap";
@@ -44,12 +45,21 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     // Raw webhook receiver, handled before the TanStack Start/Router
-    // pipeline — this is a plain server-to-server POST from Square, not an
+    // pipeline — this is a plain server-to-server POST from Stripe, not an
     // RPC call from our own client, so it doesn't go through createServerFn.
     const url = new URL(request.url);
-    if (url.pathname === "/webhooks/square" && request.method === "POST") {
+    if (url.pathname === "/webhooks/stripe" && request.method === "POST") {
       try {
-        return await handleSquareWebhook(request);
+        return await handleStripeWebhook(request);
+      } catch (error) {
+        console.error(error);
+        return new Response("Internal error", { status: 500 });
+      }
+    }
+
+    if (url.pathname === "/webhooks/paypal" && request.method === "POST") {
+      try {
+        return await handlePayPalWebhook(request);
       } catch (error) {
         console.error(error);
         return new Response("Internal error", { status: 500 });

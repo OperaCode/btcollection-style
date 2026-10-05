@@ -76,6 +76,32 @@ export async function previewDiscountCode(input: { code: string; email: string; 
   return previewDiscount({ data: input });
 }
 
+// The homepage announcement strip wants to advertise "the" current promo,
+// not validate a specific code someone typed in — different question from
+// resolveDiscount above. Unauthenticated: a code + percent-off is meant to
+// be publicly advertised, that's the whole point of a banner.
+const getActivePromoBanner = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("discount_codes")
+    .select("code, percent_off, starts_at, expires_at")
+    .eq("active", true)
+    .order("created_at", { ascending: false });
+  if (error || !data) return null;
+
+  const now = Date.now();
+  const live = data.find((d) => {
+    if (d.starts_at && new Date(d.starts_at).getTime() > now) return false;
+    if (d.expires_at && new Date(d.expires_at).getTime() < now) return false;
+    return true;
+  });
+  return live ? { code: live.code, percentOff: Number(live.percent_off) } : null;
+});
+
+export async function getActiveDiscountBanner() {
+  return getActivePromoBanner();
+}
+
 // --- Admin CRUD (mirrors src/lib/categories.ts's pattern: plain RLS-bound
 // client, gated by the "Admins manage discount codes" policy) ---
 
@@ -90,7 +116,20 @@ export async function listDiscountCodes() {
   return data;
 }
 
+// Safety net for running one promo at a time: activating a code
+// auto-deactivates every other one, rather than letting "active" codes pile
+// up silently (the banner only ever shows one anyway — this just makes the
+// data match what's actually advertised, and avoids an old forgotten code
+// still being redeemable at checkout).
+async function deactivateOtherDiscountCodes(exceptId?: string) {
+  let query = supabase.from("discount_codes").update({ active: false }).eq("active", true);
+  if (exceptId) query = query.neq("id", exceptId);
+  const { error } = await query;
+  if (error) throw error;
+}
+
 export async function createDiscountCode(input: TablesInsert<"discount_codes">) {
+  if (input.active) await deactivateOtherDiscountCodes();
   const { data, error } = await supabase
     .from("discount_codes")
     .insert({ ...input, code: input.code.trim().toUpperCase() })
@@ -101,6 +140,7 @@ export async function createDiscountCode(input: TablesInsert<"discount_codes">) 
 }
 
 export async function updateDiscountCode(id: string, input: TablesUpdate<"discount_codes">) {
+  if (input.active) await deactivateOtherDiscountCodes(id);
   const payload = input.code ? { ...input, code: input.code.trim().toUpperCase() } : input;
   const { error } = await supabase.from("discount_codes").update(payload).eq("id", id);
   if (error) throw error;
