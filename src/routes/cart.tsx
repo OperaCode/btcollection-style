@@ -51,7 +51,10 @@ function CartPage() {
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.6fr_1fr]">
             <ul className="divide-y divide-border border-y border-border">
               {items.map((it) => (
-                <li key={`${it.id}-${JSON.stringify(it.customization ?? {})}`} className="flex gap-4 py-6 md:gap-6">
+                <li
+                  key={`${it.id}-${JSON.stringify(it.customization ?? {})}`}
+                  className="flex gap-4 py-6 md:gap-6"
+                >
                   <Link to="/product/$slug" params={{ slug: it.slug }} className="shrink-0">
                     <img
                       src={it.img}
@@ -61,11 +64,11 @@ function CartPage() {
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <Link
                           to="/product/$slug"
                           params={{ slug: it.slug }}
-                          className="truncate font-display text-xl text-ink hover:text-gold"
+                          className="block max-w-full break-words font-display text-xl text-ink hover:text-gold"
                         >
                           {it.name}
                         </Link>
@@ -74,14 +77,16 @@ function CartPage() {
                             Size · {it.customization.size}
                           </p>
                         )}
-                        {(it.customization?.text || it.customization?.photoPath || it.customization?.note) && (
+                        {(it.customization?.text ||
+                          it.customization?.photoPath ||
+                          it.customization?.note) && (
                           <p className="mt-1 text-[11px] uppercase tracking-[0.22em] text-gold">
                             Personalized
                           </p>
                         )}
                         <p className="mt-1 text-sm text-foreground/75">{formatUSD(it.price)}</p>
                       </div>
-                      <span className="text-sm font-medium text-ink">
+                      <span className="shrink-0 whitespace-nowrap text-sm font-medium text-ink">
                         {formatUSD(it.price * it.qty)}
                       </span>
                     </div>
