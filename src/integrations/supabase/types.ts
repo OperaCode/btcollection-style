@@ -186,6 +186,7 @@ export type Database = {
           delivery_method: string | null
           discount_amount: number
           discount_code: string | null
+          fulfillment_method: string
           email: string
           id: string
           items: Json
@@ -206,6 +207,7 @@ export type Database = {
           delivery_method?: string | null
           discount_amount?: number
           discount_code?: string | null
+          fulfillment_method?: string
           email: string
           id?: string
           items: Json
@@ -226,6 +228,7 @@ export type Database = {
           delivery_method?: string | null
           discount_amount?: number
           discount_code?: string | null
+          fulfillment_method?: string
           email?: string
           id?: string
           items?: Json
@@ -464,6 +467,7 @@ export type Database = {
           delivery_method: string | null
           discount_amount: number
           discount_code: string | null
+          fulfillment_method: string
           email: string
           id: string
           label_purchased_at: string | null
@@ -494,6 +498,7 @@ export type Database = {
           delivery_method?: string | null
           discount_amount?: number
           discount_code?: string | null
+          fulfillment_method?: string
           email: string
           id?: string
           label_purchased_at?: string | null
@@ -524,6 +529,7 @@ export type Database = {
           delivery_method?: string | null
           discount_amount?: number
           discount_code?: string | null
+          fulfillment_method?: string
           email?: string
           id?: string
           label_purchased_at?: string | null

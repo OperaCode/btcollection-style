@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ChevronDown, Download, ExternalLink, ImageIcon, Loader2, PackageCheck, Truck, X } from "lucide-react";
+import { ChevronDown, Download, ExternalLink, ImageIcon, Loader2, PackageCheck, Store, Truck, X } from "lucide-react";
 import { listOrders, listOrderItems, updateOrderStatus, type AdminOrder } from "@/lib/admin-data";
 import { getCustomizationPhotoUrl } from "@/lib/admin-storage";
 import { formatUSD } from "@/lib/cart";
@@ -84,7 +84,14 @@ function AdminOrdersPage() {
               className="flex w-full cursor-pointer flex-wrap items-center justify-between gap-3 px-5 py-4 text-left"
             >
               <div className="min-w-0">
-                <div className="text-sm text-ink">{o.email}</div>
+                <div className="flex items-center gap-2 text-sm text-ink">
+                  {o.email}
+                  {o.fulfillment_method === "pickup" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-gold/50 bg-gold/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-ink">
+                      <Store className="h-3 w-3" /> Pickup
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(o.created_at).toLocaleString()} · {o.id.slice(0, 8)}
                 </div>
@@ -96,8 +103,19 @@ function AdminOrdersPage() {
                     STATUS_STYLES[o.status] ?? "border-border text-muted-foreground"
                   }`}
                 >
-                  {o.status}
+                  {/* Pickup orders reuse "delivered" to mean collected in person. */}
+                  {o.fulfillment_method === "pickup" && o.status === "delivered" ? "picked up" : o.status}
                 </span>
+                {o.status === "paid" && o.fulfillment_method === "pickup" && (
+                  <button
+                    type="button"
+                    onClick={() => setStatus.mutate({ id: o.id, status: "delivered" })}
+                    disabled={setStatus.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-ink transition hover:border-gold hover:bg-gold/20 disabled:opacity-60"
+                  >
+                    <PackageCheck className="h-3.5 w-3.5" /> Mark Picked Up
+                  </button>
+                )}
                 {o.status === "shipped" && (
                   <button
                     type="button"
@@ -241,22 +259,42 @@ function OrderItemsPanel({ order }: { order: AdminOrder }) {
           PayPal payment: <span className="text-foreground/80">{order.paypal_capture_id}</span>
         </p>
       )}
-      <ShippingLabelPanel
-        order={order}
-        rates={rates}
-        selectedRate={selectedRate}
-        setSelectedRate={setSelectedRate}
-        parcel={parcel}
-        setParcel={setParcel}
-        onLoadRates={() => ratesMutation.mutate()}
-        onBuyLabel={() => labelMutation.mutate()}
-        loadingRates={ratesMutation.isPending}
-        buyingLabel={labelMutation.isPending}
-        error={shippoError}
-        addressWarning={addressWarning}
-        wantsReplacement={wantsReplacement}
-        setWantsReplacement={setWantsReplacement}
-      />
+      {order.fulfillment_method === "pickup" ? (
+        <PickupPanel order={order} />
+      ) : (
+        <ShippingLabelPanel
+          order={order}
+          rates={rates}
+          selectedRate={selectedRate}
+          setSelectedRate={setSelectedRate}
+          parcel={parcel}
+          setParcel={setParcel}
+          onLoadRates={() => ratesMutation.mutate()}
+          onBuyLabel={() => labelMutation.mutate()}
+          loadingRates={ratesMutation.isPending}
+          buyingLabel={labelMutation.isPending}
+          error={shippoError}
+          addressWarning={addressWarning}
+          wantsReplacement={wantsReplacement}
+          setWantsReplacement={setWantsReplacement}
+        />
+      )}
+    </div>
+  );
+}
+
+function PickupPanel({ order }: { order: AdminOrder }) {
+  const contact = (order.shipping_address ?? {}) as { name?: string; phone?: string };
+  return (
+    <div className="mt-4 flex items-start gap-2 rounded-sm border border-gold/40 bg-gold/10 px-3 py-2.5 text-xs text-ink">
+      <Store className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+      <div>
+        <div className="font-medium">Local pickup — no shipping label needed.</div>
+        <div className="mt-0.5 text-foreground/75">
+          Contact {contact.name || order.email}
+          {contact.phone ? ` at ${contact.phone}` : ""} when it's ready, then mark it picked up.
+        </div>
+      </div>
     </div>
   );
 }

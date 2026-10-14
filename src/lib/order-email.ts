@@ -27,6 +27,7 @@ type OrderEmailInput = {
   discountAmount: number;
   total: number;
   deliveryMethod?: string | null;
+  isPickup?: boolean;
 };
 
 type OrderEmailResult = { sent: boolean; error?: string };
@@ -61,6 +62,18 @@ function itemsHtml(items: OrderEmailItem[]) {
     )
     .join("");
 }
+
+// One line for how the order reaches the customer: the carrier and price
+// when shipped, or "Local Pickup — Free" when collected in person.
+function fulfillmentLine(data: OrderEmailInput) {
+  if (data.isPickup) return { label: "Local Pickup", value: "Free" };
+  return {
+    label: `Shipping${data.deliveryMethod ? ` (${data.deliveryMethod})` : ""}`,
+    value: formatUSD(data.shipping),
+  };
+}
+
+const PICKUP_NOTE = "You chose local pickup. We'll reach out with pickup details as soon as your order is ready.";
 
 function itemsText(items: OrderEmailItem[]) {
   return items.map((it) => `${it.qty}x ${it.name} — ${formatUSD(it.price * it.qty)}`).join("\n");
@@ -102,8 +115,8 @@ export const sendOrderConfirmation = createServerOnlyFn(
               : ""
           }
           <tr>
-            <td style="padding:2px 0; font-size:13px; color:#6f675f;">Shipping${data.deliveryMethod ? ` (${escapeHtml(data.deliveryMethod)})` : ""}</td>
-            <td style="padding:2px 0; font-size:13px; color:#3a3630; text-align:right;">${formatUSD(data.shipping)}</td>
+            <td style="padding:2px 0; font-size:13px; color:#6f675f;">${escapeHtml(fulfillmentLine(data).label)}</td>
+            <td style="padding:2px 0; font-size:13px; color:#3a3630; text-align:right;">${fulfillmentLine(data).value}</td>
           </tr>
           ${
             data.tax > 0
@@ -118,6 +131,11 @@ export const sendOrderConfirmation = createServerOnlyFn(
             <td style="padding:8px 0 0; font-size:15px; font-weight:bold; color:#1f1d2b; text-align:right;">${formatUSD(data.total)}</td>
           </tr>
         </table>
+        ${
+          data.isPickup
+            ? `<p style="margin:0 0 16px; font-size:14px; line-height:1.7; color:#3a3630;">${escapeHtml(PICKUP_NOTE)}</p>`
+            : ""
+        }
         <p style="margin:0; font-size:12px; color:#8c8579;">Order reference: ${escapeHtml(reference)}</p>
       `,
     });
@@ -131,9 +149,10 @@ export const sendOrderConfirmation = createServerOnlyFn(
       "",
       `Subtotal: ${formatUSD(data.subtotal)}`,
       ...(data.discountAmount > 0 ? [`Discount${data.discountCode ? ` (${data.discountCode})` : ""}: -${formatUSD(data.discountAmount)}`] : []),
-      `Shipping: ${formatUSD(data.shipping)}`,
+      `${fulfillmentLine(data).label}: ${fulfillmentLine(data).value}`,
       ...(data.tax > 0 ? [`Sales Tax: ${formatUSD(data.tax)}`] : []),
       `Total: ${formatUSD(data.total)}`,
+      ...(data.isPickup ? ["", PICKUP_NOTE] : []),
       "",
       `Order reference: ${reference}`,
     ].join("\n");
@@ -157,7 +176,11 @@ export const sendOrderNotification = createServerOnlyFn(
         </table>
         <p><strong>Subtotal:</strong> ${formatUSD(data.subtotal)}</p>
         ${data.discountAmount > 0 ? `<p><strong>Discount${data.discountCode ? ` (${escapeHtml(data.discountCode)})` : ""}:</strong> -${formatUSD(data.discountAmount)}</p>` : ""}
-        <p><strong>Shipping:</strong> ${formatUSD(data.shipping)}${data.deliveryMethod ? ` (${escapeHtml(data.deliveryMethod)})` : ""}</p>
+        ${
+          data.isPickup
+            ? `<p><strong>Fulfillment:</strong> LOCAL PICKUP — no shipping label needed. Contact the customer when it's ready.</p>`
+            : `<p><strong>Shipping:</strong> ${formatUSD(data.shipping)}${data.deliveryMethod ? ` (${escapeHtml(data.deliveryMethod)})` : ""}</p>`
+        }
         ${data.tax > 0 ? `<p><strong>Sales Tax:</strong> ${formatUSD(data.tax)}</p>` : ""}
         <p><strong>Total:</strong> ${formatUSD(data.total)}</p>
         <p style="margin-top:24px; font-size:12px; color:#6f675f;">Order ID: ${escapeHtml(data.orderId)}</p>
@@ -166,6 +189,7 @@ export const sendOrderNotification = createServerOnlyFn(
     const text = [
       `New paid order — ${reference}`,
       `Customer: ${data.email}`,
+      ...(data.isPickup ? ["Fulfillment: LOCAL PICKUP"] : []),
       "",
       itemsText(data.items),
       "",
@@ -173,6 +197,6 @@ export const sendOrderNotification = createServerOnlyFn(
       `Order ID: ${data.orderId}`,
     ].join("\n");
 
-    return sendEmail({ to, subject: `New paid order from ${data.email}`, html, text });
+    return sendEmail({ to, subject: `New paid ${data.isPickup ? "pickup " : ""}order from ${data.email}`, html, text });
   },
 );

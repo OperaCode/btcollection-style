@@ -79,6 +79,9 @@ type CreateOrderInput = {
   cancelUrl: string;
   extraLines?: Array<{ label: string; amount: number }>;
   discount?: { label: string; amount: number };
+  // Local pickup orders have nothing to ship, so PayPal must not ask the
+  // buyer for (or show) a shipping address.
+  noShipping?: boolean;
 };
 
 // Unlike Stripe Checkout, PayPal's amount.breakdown has to sum EXACTLY to
@@ -122,6 +125,7 @@ const createOrder = createServerOnlyFn(async (data: CreateOrderInput) => {
           experience_context: {
             brand_name: "Breakthrough Collection",
             user_action: "PAY_NOW",
+            ...(data.noShipping ? { shipping_preference: "NO_SHIPPING" } : {}),
             return_url: data.successUrl,
             cancel_url: data.cancelUrl,
           },

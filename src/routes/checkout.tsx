@@ -14,11 +14,18 @@ import {
   Phone,
   Loader2,
   X,
+  Store,
 } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart, formatUSD } from "@/lib/cart";
-import { startOrderCheckout } from "@/lib/paid-order-checkout";
-import { checkShippingAddress, getCheckoutShippingRates, type ShippingAddress, type ShippoRate } from "@/lib/shippo";
+import { startOrderCheckout, type FulfillmentMethod } from "@/lib/paid-order-checkout";
+import {
+  checkShippingAddress,
+  getCheckoutShippingRates,
+  getPickupLocation,
+  type ShippingAddress,
+  type ShippoRate,
+} from "@/lib/shippo";
 import { previewDiscountCode } from "@/lib/discounts";
 
 export const Route = createFileRoute("/checkout")({
@@ -33,6 +40,7 @@ export const Route = createFileRoute("/checkout")({
 });
 
 type Step = 1 | 2 | 3;
+type PickupLocation = { city: string; state: string };
 
 function CheckoutPage() {
   const { items, subtotal } = useCart();
@@ -50,9 +58,14 @@ function CheckoutPage() {
     zip: "",
     state: "",
   });
+  const [fulfillment, setFulfillment] = useState<FulfillmentMethod>("shipping");
+  const isPickup = fulfillment === "pickup";
+  const pickupLocation = useQuery({ queryKey: ["pickup-location"], queryFn: getPickupLocation });
   const [selectedRate, setSelectedRate] = useState<ShippoRate | null>(null);
   const [discountCode, setDiscountCode] = useState("");
-  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; amount: number } | null>(null);
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; amount: number } | null>(
+    null,
+  );
   const [discountError, setDiscountError] = useState("");
   const [checkingDiscount, setCheckingDiscount] = useState(false);
 
@@ -75,7 +88,7 @@ function CheckoutPage() {
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
 
-  const shippingCost = selectedRate ? Number(selectedRate.amount) : 0;
+  const shippingCost = !isPickup && selectedRate ? Number(selectedRate.amount) : 0;
   const discountAmount = appliedDiscount?.amount ?? 0;
   // Stripe Tax calculates from the validated delivery address when payment
   // starts. Avoid showing the old flat NY estimate here: it overcharged
@@ -87,7 +100,11 @@ function CheckoutPage() {
     setCheckingDiscount(true);
     setDiscountError("");
     try {
-      const result = await previewDiscountCode({ code: discountCode, email: shipping.email, subtotal });
+      const result = await previewDiscountCode({
+        code: discountCode,
+        email: shipping.email,
+        subtotal,
+      });
       if (result.ok) {
         setAppliedDiscount({ code: result.code, amount: result.amount });
         toast.success(`Code ${result.code} applied — ${formatUSD(result.amount)} off.`);
@@ -97,7 +114,9 @@ function CheckoutPage() {
       }
     } catch (err) {
       setAppliedDiscount(null);
-      setDiscountError(err instanceof Error ? err.message : "Could not check that code. Please try again.");
+      setDiscountError(
+        err instanceof Error ? err.message : "Could not check that code. Please try again.",
+      );
     } finally {
       setCheckingDiscount(false);
     }
@@ -117,7 +136,8 @@ function CheckoutPage() {
     }
     setShippingError(null);
     setSelectedRate(null);
-    setStep(2);
+    // Pickup has no delivery rates to choose from — straight to review.
+    setStep(isPickup ? 3 : 2);
   }
 
   async function handlePay(gateway: "stripe" | "paypal") {
@@ -128,15 +148,21 @@ function CheckoutPage() {
       const result = await startOrderCheckout({
         data: {
           email: shipping.email,
-          shippingAddress: { ...shipping, phone: `+1${phoneDigits}` },
+          // A pickup order has no delivery address; keep only the contact
+          // details so a half-typed address from before switching to pickup
+          // never ends up stored on the order.
+          shippingAddress: isPickup
+            ? { ...shipping, address: "", city: "", state: "", zip: "", phone: `+1${phoneDigits}` }
+            : { ...shipping, phone: `+1${phoneDigits}` },
           items,
           // The dollar amount is never trusted from the client — the server
           // re-fetches this rate id from Shippo and prices the order from
           // there. subtotal/shippingCost above are for the summary display
           // only.
-          shippingRateId: selectedRate?.object_id ?? null,
+          shippingRateId: isPickup ? null : (selectedRate?.object_id ?? null),
           discountCode: appliedDiscount?.code ?? null,
           gateway,
+          fulfillmentMethod: fulfillment,
         },
       });
       window.location.href = result.url;
@@ -179,13 +205,20 @@ function CheckoutPage() {
           <h1 className="mt-2 font-display text-3xl text-ink md:text-4xl">Complete your order</h1>
         </div>
 
-        <Steps step={step} />
+        <Steps step={step} isPickup={isPickup} />
 
         <div className="mt-6 grid grid-cols-1 gap-7 lg:grid-cols-[minmax(22rem,0.9fr)_minmax(34rem,1.4fr)] lg:items-start lg:gap-8">
           <div>
             {step === 1 && (
               <StepShipping
                 data={shipping}
+                fulfillment={fulfillment}
+                onFulfillmentChange={(next) => {
+                  setFulfillment(next);
+                  setSelectedRate(null);
+                  setShippingError(null);
+                }}
+                pickupLocation={pickupLocation.data ?? null}
                 error={shippingError}
                 onChange={(next) => {
                   setShipping(next);
@@ -204,6 +237,8 @@ function CheckoutPage() {
             {step === 3 && (
               <StepReview
                 shipping={shipping}
+                isPickup={isPickup}
+                pickupLocation={pickupLocation.data ?? null}
                 selectedRate={selectedRate}
                 onEditShipping={() => setStep(1)}
                 onEditDelivery={() => setStep(2)}
@@ -298,14 +333,16 @@ function CheckoutPage() {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <dt className="text-foreground/75">Shipping</dt>
-                  <dd className="text-ink">{selectedRate ? formatUSD(shippingCost) : "—"}</dd>
+                  <dt className="text-foreground/75">{isPickup ? "Local Pickup" : "Shipping"}</dt>
+                  <dd className="text-ink">
+                    {isPickup ? "Free" : selectedRate ? formatUSD(shippingCost) : "—"}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-foreground/75">Sales Tax</dt>
                   <dd className="text-right text-muted-foreground">Calculated at payment</dd>
                 </div>
-                {selectedRate && (
+                {!isPickup && selectedRate && (
                   <div className="flex justify-between">
                     <dt className="text-foreground/75">Delivery</dt>
                     <dd className="text-right text-ink">
@@ -381,7 +418,7 @@ function CheckoutPage() {
 
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(isPickup ? 1 : 2)}
                   disabled={submitting}
                   className="mx-auto inline-flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-gold disabled:opacity-50"
                 >
@@ -398,12 +435,21 @@ function CheckoutPage() {
   );
 }
 
-function Steps({ step }: { step: Step }) {
-  const labels = ["Shipping", "Delivery", "Review"];
+function Steps({ step, isPickup }: { step: Step; isPickup: boolean }) {
+  // Pickup skips the delivery-rate step entirely, so it is a two-step flow.
+  const labels: Array<{ label: string; step: Step }> = isPickup
+    ? [
+        { label: "Details", step: 1 },
+        { label: "Review", step: 3 },
+      ]
+    : [
+        { label: "Shipping", step: 1 },
+        { label: "Delivery", step: 2 },
+        { label: "Review", step: 3 },
+      ];
   return (
     <ol className="flex items-center gap-3 text-[11px] uppercase tracking-[0.22em]">
-      {labels.map((label, i) => {
-        const n = (i + 1) as Step;
+      {labels.map(({ label, step: n }, i) => {
         const active = step === n;
         const done = step > n;
         return (
@@ -417,7 +463,7 @@ function Steps({ step }: { step: Step }) {
                     : "border-border text-muted-foreground"
               }`}
             >
-              {done ? <Check className="h-3 w-3" /> : n}
+              {done ? <Check className="h-3 w-3" /> : i + 1}
             </span>
             <span className={active || done ? "text-ink" : "text-muted-foreground"}>{label}</span>
             {i < labels.length - 1 && <span className="h-px w-8 bg-border" />}
@@ -430,10 +476,16 @@ function Steps({ step }: { step: Step }) {
 
 function StepShipping({
   data,
+  fulfillment,
+  onFulfillmentChange,
+  pickupLocation,
   error,
   onChange,
   onNext,
 }: {
+  fulfillment: FulfillmentMethod;
+  onFulfillmentChange: (next: FulfillmentMethod) => void;
+  pickupLocation: PickupLocation | null;
   data: {
     name: string;
     email: string;
@@ -462,8 +514,10 @@ function StepShipping({
     }
   }
 
+  const isPickup = fulfillment === "pickup";
+
   async function handleAddressBlur() {
-    if (!data.address || !data.city || data.state.length !== 2 || !data.zip) return;
+    if (isPickup || !data.address || !data.city || data.state.length !== 2 || !data.zip) return;
     setAddressCheck({ checking: true, valid: null, messages: [] });
     try {
       const result = await checkShippingAddress({
@@ -490,8 +544,51 @@ function StepShipping({
       }}
       className="rounded-sm border border-border bg-card p-5 md:p-7"
     >
-      <h2 className="font-display text-xl text-ink">Shipping Information</h2>
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <h2 className="font-display text-xl text-ink">Delivery</h2>
+      <div
+        className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"
+        role="radiogroup"
+        aria-label="Delivery method"
+        onKeyDown={(e) => {
+          // Standard radio-group keyboard behaviour: arrows switch options.
+          if (["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"].includes(e.key)) {
+            e.preventDefault();
+            const next = isPickup ? "shipping" : "pickup";
+            onFulfillmentChange(next);
+            e.currentTarget.querySelector<HTMLButtonElement>(`[data-option="${next}"]`)?.focus();
+          }
+        }}
+      >
+        <FulfillmentOption
+          value="shipping"
+          selected={!isPickup}
+          onSelect={() => onFulfillmentChange("shipping")}
+          Icon={Truck}
+          title="Ship to me"
+          detail="Live carrier rates"
+        />
+        <FulfillmentOption
+          value="pickup"
+          selected={isPickup}
+          onSelect={() => onFulfillmentChange("pickup")}
+          Icon={Store}
+          title="Local pickup"
+          detail={
+            pickupLocation ? `${pickupLocation.city}, ${pickupLocation.state}` : "Collect in person"
+          }
+          price="Free"
+        />
+      </div>
+
+      <h2 className="mt-7 font-display text-xl text-ink">
+        {isPickup ? "Contact Information" : "Shipping Information"}
+      </h2>
+      {isPickup && (
+        <p className="mt-2 text-sm text-foreground/70">
+          We'll contact you with pickup details as soon as your order is ready.
+        </p>
+      )}
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Full Name">
           <input
             required
@@ -524,73 +621,80 @@ function StepShipping({
           />
         </Field>
       </div>
-      <div className="mt-4">
-        <Field label="Street Address">
-          <input
-            required
-            value={data.address}
-            onChange={(e) => updateField({ address: e.target.value })}
-            onBlur={handleAddressBlur}
-            placeholder=" 742 Evergreen Terrace"
-            className={inputCls}
-          />
-        </Field>
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field label="City">
-          <input
-            required
-            value={data.city}
-            onChange={(e) => updateField({ city: e.target.value })}
-            onBlur={handleAddressBlur}
-            placeholder="Los Angeles"
-            className={inputCls}
-          />
-        </Field>
-        <Field label="State">
-          <input
-            required
-            maxLength={2}
-            value={data.state}
-            onChange={(e) => updateField({ state: e.target.value.toUpperCase() })}
-            onBlur={handleAddressBlur}
-            placeholder="CA"
-            className={inputCls}
-          />
-        </Field>
-        <Field label="ZIP">
-          <div className="relative">
-            <input
-              required
-              value={data.zip}
-              onChange={(e) => updateField({ zip: e.target.value })}
-              onBlur={handleAddressBlur}
-              placeholder="90001"
-              className={`${inputCls} pr-9`}
-            />
-            {addressCheck.checking && (
-              <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-            )}
-            {!addressCheck.checking && addressCheck.valid === true && (
-              <Check
-                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600"
-                aria-label="Address verified"
+      {!isPickup && (
+        <>
+          <div className="mt-4">
+            <Field label="Street Address">
+              <input
+                required
+                value={data.address}
+                onChange={(e) => updateField({ address: e.target.value })}
+                onBlur={handleAddressBlur}
+                placeholder=" 742 Evergreen Terrace"
+                className={inputCls}
               />
-            )}
-            {!addressCheck.checking && addressCheck.valid === false && (
-              <X
-                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-destructive"
-                aria-label="Address could not be verified"
-              />
-            )}
+            </Field>
           </div>
-        </Field>
-      </div>
-      {addressCheck.valid === false && (
-        <p className="mt-3 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-xs text-ink" role="alert">
-          {addressCheck.messages[0] ||
-            "We couldn't fully verify this address. Please double-check it before continuing."}
-        </p>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label="City">
+              <input
+                required
+                value={data.city}
+                onChange={(e) => updateField({ city: e.target.value })}
+                onBlur={handleAddressBlur}
+                placeholder="Los Angeles"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="State">
+              <input
+                required
+                maxLength={2}
+                value={data.state}
+                onChange={(e) => updateField({ state: e.target.value.toUpperCase() })}
+                onBlur={handleAddressBlur}
+                placeholder="CA"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="ZIP">
+              <div className="relative">
+                <input
+                  required
+                  value={data.zip}
+                  onChange={(e) => updateField({ zip: e.target.value })}
+                  onBlur={handleAddressBlur}
+                  placeholder="90001"
+                  className={`${inputCls} pr-9`}
+                />
+                {addressCheck.checking && (
+                  <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                )}
+                {!addressCheck.checking && addressCheck.valid === true && (
+                  <Check
+                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600"
+                    aria-label="Address verified"
+                  />
+                )}
+                {!addressCheck.checking && addressCheck.valid === false && (
+                  <X
+                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-destructive"
+                    aria-label="Address could not be verified"
+                  />
+                )}
+              </div>
+            </Field>
+          </div>
+          {addressCheck.valid === false && (
+            <p
+              className="mt-3 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 text-xs text-ink"
+              role="alert"
+            >
+              {addressCheck.messages[0] ||
+                "We couldn't fully verify this address. Please double-check it before continuing."}
+            </p>
+          )}
+        </>
       )}
       {error && (
         <p className="mt-3 text-xs text-destructive" role="alert">
@@ -601,7 +705,7 @@ function StepShipping({
         type="submit"
         className="mt-6 inline-flex items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-[12px] uppercase tracking-[0.22em] text-background hover:bg-gold hover:text-ink"
       >
-        Continue to Delivery <ArrowRight className="h-4 w-4" />
+        {isPickup ? "Review Order" : "Continue to Delivery"} <ArrowRight className="h-4 w-4" />
       </button>
     </form>
   );
@@ -705,10 +809,14 @@ function StepDelivery({
 
 function StepReview({
   shipping,
+  isPickup,
+  pickupLocation,
   selectedRate,
   onEditShipping,
   onEditDelivery,
 }: {
+  isPickup: boolean;
+  pickupLocation: PickupLocation | null;
   shipping: {
     name: string;
     email: string;
@@ -754,13 +862,19 @@ function StepReview({
         </div>
 
         <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
-          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+          {isPickup ? (
+            <Store className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+          ) : (
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+          )}
           <div className="min-w-0 flex-1 text-sm">
             <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-              Shipping Address
+              {isPickup ? "Local Pickup" : "Shipping Address"}
             </div>
             <div className="mt-1 text-foreground/75">
-              {shipping.address}, {shipping.city}, {shipping.state} {shipping.zip}
+              {isPickup
+                ? `Free${pickupLocation ? ` · ${pickupLocation.city}, ${pickupLocation.state}` : ""}. We'll contact you with pickup details once your order is ready.`
+                : `${shipping.address}, ${shipping.city}, ${shipping.state} ${shipping.zip}`}
             </div>
           </div>
           <button
@@ -789,7 +903,7 @@ function StepReview({
           </button>
         </div>
 
-        {selectedRate && (
+        {!isPickup && selectedRate && (
           <div className="flex items-start gap-3 rounded-sm border border-border bg-cream/40 p-4">
             <Truck className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
             <div className="min-w-0 flex-1 text-sm">
@@ -811,6 +925,59 @@ function StepReview({
         )}
       </div>
     </div>
+  );
+}
+
+// Styled to match the delivery-rate rows in StepDelivery, so the choice
+// reads as part of the same checkout rather than a separate widget.
+function FulfillmentOption({
+  value,
+  selected,
+  onSelect,
+  Icon,
+  title,
+  detail,
+  price,
+}: {
+  value: FulfillmentMethod;
+  selected: boolean;
+  onSelect: () => void;
+  Icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  detail: string;
+  price?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      data-option={value}
+      // Roving tabindex: only the selected option is a tab stop; arrows move
+      // between options (handled on the radiogroup).
+      tabIndex={selected ? 0 : -1}
+      onClick={onSelect}
+      className={`flex cursor-pointer items-center gap-3 rounded-sm border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 ${
+        selected ? "border-gold bg-gold/10" : "border-border hover:border-gold/60"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border transition ${
+          selected ? "border-gold" : "border-border"
+        }`}
+      >
+        <span
+          className={`h-2 w-2 rounded-full bg-gold transition ${selected ? "scale-100" : "scale-0"}`}
+        />
+      </span>
+      <Icon className="h-4 w-4 shrink-0 text-gold" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-ink">{title}</span>
+        <span className="block truncate text-xs text-muted-foreground">{detail}</span>
+      </span>
+      {price && <span className="shrink-0 text-sm font-medium text-ink">{price}</span>}
+    </button>
   );
 }
 

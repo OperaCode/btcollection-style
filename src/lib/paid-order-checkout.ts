@@ -4,11 +4,13 @@ import type { CartItem } from "@/lib/cart";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { calculateStripeTax, createStripeCheckout, getStripeSessionStatus } from "@/lib/stripe";
 import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
-import { verifyShippingRate } from "@/lib/shippo";
+import { getPickupAddress, verifyShippingRate } from "@/lib/shippo";
 import { resolveDiscount } from "@/lib/discounts";
 import { sendOrderConfirmation, sendOrderNotification } from "@/lib/order-email";
 
 type ShippingAddress = { name: string; email: string; phone: string; address: string; city: string; zip: string; state: string };
+export type FulfillmentMethod = "shipping" | "pickup";
+export const PICKUP_DELIVERY_LABEL = "Local Pickup";
 
 // The client only ever proposes *which* products, quantities, delivery rate
 // and discount code it wants — never their dollar values. Every amount
@@ -23,6 +25,7 @@ type StartCheckoutInput = {
   shippingRateId: string | null;
   discountCode: string | null;
   gateway: "stripe" | "paypal";
+  fulfillmentMethod: FulfillmentMethod;
 };
 type CheckoutSession = {
   id: string;
@@ -36,6 +39,7 @@ type CheckoutSession = {
   discount_amount: number;
   total: number;
   delivery_method: string | null;
+  fulfillment_method: string;
   payment_gateway: string;
   stripe_checkout_session_id: string | null;
   paypal_order_id: string | null;
@@ -97,12 +101,21 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
       discountAmount = resolution.amount;
     }
 
-    const shippingRate = input.shippingRateId ? await verifyShippingRate(input.shippingRateId) : null;
-    if (input.shippingRateId && !shippingRate) {
+    // Pickup orders never pay shipping: any rate id the client sends along is
+    // ignored rather than trusted. Shipping orders must carry a verified rate.
+    const isPickup = input.fulfillmentMethod === "pickup";
+    if (!isPickup && !input.shippingRateId) {
+      throw new Error("Please choose a delivery option before paying.");
+    }
+    const shippingRate = !isPickup && input.shippingRateId ? await verifyShippingRate(input.shippingRateId) : null;
+    if (!isPickup && !shippingRate) {
       throw new Error("Your selected shipping option has expired. Please choose delivery again.");
     }
     const shipping = shippingRate?.amount ?? 0;
-    const deliveryMethod = shippingRate?.label;
+    const deliveryMethod = isPickup ? PICKUP_DELIVERY_LABEL : shippingRate?.label;
+    // Sales tax follows where the customer takes possession: their delivery
+    // address when shipped, the pickup location when collected in person.
+    const taxAddress = isPickup ? await getPickupAddress() : input.shippingAddress;
     // Stripe Checkout calculates tax itself. PayPal uses this same Stripe
     // Tax calculation instead of the old flat NY rate, which overcharged
     // eligible clothing below $110.
@@ -110,7 +123,7 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
       ? await calculateStripeTax({
           items,
           shippingAmount: shipping,
-          shippingAddress: input.shippingAddress,
+          shippingAddress: taxAddress,
           discountAmount,
         })
       : 0;
@@ -132,6 +145,7 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
         discount_amount: discountAmount,
         total,
         delivery_method: deliveryMethod ?? null,
+        fulfillment_method: input.fulfillmentMethod,
         payment_gateway: input.gateway,
       })
       .select("id")
@@ -167,6 +181,7 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
         discount,
         successUrl,
         cancelUrl,
+        noShipping: isPickup,
       });
       const { error: updateError } = await supabaseAdmin
         .from("checkout_sessions")
@@ -184,7 +199,7 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
       extraLines,
       discount,
       buyerEmail: input.email,
-      shippingAddress: input.shippingAddress,
+      shippingAddress: taxAddress,
       automaticTax: true,
       successUrl,
       cancelUrl,
@@ -226,7 +241,7 @@ async function createPaidOrder(
   const orderBase = {
     id: session.id, email: session.email, shipping_address: session.shipping_address, subtotal: session.subtotal, shipping: session.shipping,
     tax, discount_code: session.discount_code, discount_amount: session.discount_amount,
-    total, status: "paid" as const, delivery_method: session.delivery_method,
+    total, status: "paid" as const, delivery_method: session.delivery_method, fulfillment_method: session.fulfillment_method,
   };
   const { error: orderError } = isPayPal
     ? await supabaseAdmin.from("orders").insert({ ...orderBase, payment_gateway: "paypal", paypal_capture_id: paymentId })
@@ -249,6 +264,7 @@ async function createPaidOrder(
     discountAmount: Number(session.discount_amount),
     total,
     deliveryMethod: session.delivery_method,
+    isPickup: session.fulfillment_method === "pickup",
   };
   await Promise.all([sendOrderConfirmation(emailInput), sendOrderNotification(emailInput)]);
   return { paid: true as const, orderId: session.id };

@@ -253,6 +253,9 @@ const createShipmentRates = createServerFn({ method: "POST" })
     if (order.status !== "paid") {
       throw new Error("Shipping labels can only be created for paid orders.");
     }
+    if (order.fulfillment_method === "pickup") {
+      throw new Error("This is a local pickup order — it doesn't need a shipping label.");
+    }
 
     const settings = await getSettingsRow();
     const shippingAddress = (order.shipping_address ?? {}) as ShippingAddress;
@@ -341,12 +344,15 @@ const purchaseLabel = createServerFn({ method: "POST" })
     const supabaseAdmin = await verifyAdmin(data.accessToken);
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("status, shipping_label_url")
+      .select("status, shipping_label_url, fulfillment_method")
       .eq("id", data.orderId)
       .single();
     if (orderError || !order) throw orderError ?? new Error("Order not found.");
     if (order.status !== "paid") {
       throw new Error("Shipping labels can only be purchased for paid orders.");
+    }
+    if (order.fulfillment_method === "pickup") {
+      throw new Error("This is a local pickup order — it doesn't need a shipping label.");
     }
     // A label was already bought for this order — require an explicit
     // confirmation before charging for a second one, so a stray double
@@ -483,4 +489,25 @@ const readDefaultParcel = createServerFn({ method: "POST" })
 
 export async function getDefaultParcelValues() {
   return readDefaultParcel({ data: { accessToken: await getAccessToken() } });
+}
+
+// Local pickup happens at the same business address labels ship from, so
+// this is also the address pickup orders are taxed at (the sale takes place
+// there, not at the customer's home). Server-only in practice: only called
+// from startOrderCheckout.
+export async function getPickupAddress() {
+  const from = getFromAddress(await getSettingsRow());
+  return { address: from.street1, city: from.city, state: from.state, zip: from.zip };
+}
+
+// Unauthenticated on purpose, but deliberately only city/state: the ship-from
+// address may be a home address, so the street is never shown publicly. The
+// customer is contacted with exact pickup details once the order is ready.
+const readPickupLocation = createServerFn({ method: "GET" }).handler(async () => {
+  const from = getFromAddress(await getSettingsRow());
+  return { city: from.city, state: from.state };
+});
+
+export async function getPickupLocation() {
+  return readPickupLocation();
 }
