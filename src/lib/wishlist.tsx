@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { trackTikTok } from "@/lib/tiktok-pixel";
 
 type WishlistCtx = {
   items: string[];
@@ -34,8 +35,10 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       items,
       count: items.length,
       has: (id) => items.includes(id),
-      toggle: (id) =>
-        setItems((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id])),
+      toggle: (id) => {
+        if (!items.includes(id)) trackTikTok("AddToWishlist", { contents: [{ content_id: id }] });
+        setItems((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+      },
     }),
     [items],
   );

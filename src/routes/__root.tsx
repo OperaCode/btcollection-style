@@ -4,10 +4,11 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import logoMark from "@/assets/bclogo.jpeg";
@@ -16,6 +17,9 @@ import { CartProvider } from "@/lib/cart";
 import { WishlistProvider } from "@/lib/wishlist";
 import { CartDrawer } from "@/components/site/CartDrawer";
 import { Toaster } from "@/components/ui/sonner";
+import { tiktokPageView, tiktokPixelSnippet } from "@/lib/tiktok-pixel";
+
+const tiktokSnippet = tiktokPixelSnippet();
 
 function NotFoundComponent() {
   return (
@@ -108,6 +112,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap",
       },
     ],
+    // TikTok Pixel base code — only rendered when VITE_TIKTOK_PIXEL_ID is set.
+    scripts: tiktokSnippet ? [{ children: tiktokSnippet }] : [],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -129,8 +135,24 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+// The pixel snippet fires ttq.page() once on the initial document load; this
+// covers client-side navigations, which never reload the document.
+function useTikTokPageViews() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const lastPath = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastPath.current === null || lastPath.current === pathname) {
+      lastPath.current = pathname;
+      return;
+    }
+    lastPath.current = pathname;
+    if (!pathname.startsWith("/admin")) tiktokPageView();
+  }, [pathname]);
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useTikTokPageViews();
 
   return (
     <QueryClientProvider client={queryClient}>

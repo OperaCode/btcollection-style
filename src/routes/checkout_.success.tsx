@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 import { Loader2, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart } from "@/lib/cart";
 import { confirmOrderPayment } from "@/lib/paid-order-checkout";
+import { toTikTokContents, trackTikTok } from "@/lib/tiktok-pixel";
 
 export const Route = createFileRoute("/checkout_/success")({
   head: () => ({
@@ -44,9 +45,15 @@ function fireConfetti() {
 
 function CheckoutSuccessPage() {
   const { orderId } = Route.useSearch();
-  const { clear } = useCart();
+  const { clear, items, subtotal } = useCart();
   const [state, setState] = useState<"loading" | "paid" | "error">("loading");
   const [error, setError] = useState("");
+
+  // Snapshot of the cart for the purchase event, read once payment confirms
+  // (just before clear()). An already-empty cart means this order was
+  // tracked on an earlier visit — e.g. a refresh — so it isn't re-sent.
+  const cartRef = useRef({ items, subtotal });
+  cartRef.current = { items, subtotal };
 
   useEffect(() => {
     if (!orderId) {
@@ -65,6 +72,14 @@ function CheckoutSuccessPage() {
 
         if (result.paid) {
           setState("paid");
+          const cart = cartRef.current;
+          if (cart.items.length > 0) {
+            trackTikTok("CompletePayment", {
+              contents: toTikTokContents(cart.items),
+              value: cart.subtotal,
+              eventId: orderId,
+            });
+          }
           clear();
           fireConfetti();
           return;

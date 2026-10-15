@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ChevronDown,
@@ -23,6 +23,7 @@ import { getPublicProduct, type Product } from "@/lib/catalog";
 import { useCart, formatUSD } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { uploadCustomizationPhoto } from "@/lib/uploads";
+import { trackTikTok } from "@/lib/tiktok-pixel";
 
 const CATEGORY_COPY: Record<string, { materials: string; care: string; processing: string }> = {
   "Faith Apparel": {
@@ -111,6 +112,13 @@ function ProductPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    trackTikTok("ViewContent", {
+      contents: [{ content_id: product.id, content_name: product.name, price: product.base_price }],
+      value: product.base_price,
+    });
+  }, [product.id, product.name, product.base_price]);
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

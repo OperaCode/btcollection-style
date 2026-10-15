@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -27,6 +27,7 @@ import {
   type ShippoRate,
 } from "@/lib/shippo";
 import { previewDiscountCode } from "@/lib/discounts";
+import { identifyTikTok, toTikTokContents, trackTikTok } from "@/lib/tiktok-pixel";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -88,6 +89,15 @@ function CheckoutPage() {
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
 
+  // The cart hydrates from localStorage after mount, so wait for items
+  // rather than firing on mount — and only once per checkout visit.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || items.length === 0) return;
+    checkoutTracked.current = true;
+    trackTikTok("InitiateCheckout", { contents: toTikTokContents(items), value: subtotal });
+  }, [items, subtotal]);
+
   const shippingCost = !isPickup && selectedRate ? Number(selectedRate.amount) : 0;
   const discountAmount = appliedDiscount?.amount ?? 0;
   // Stripe Tax calculates from the validated delivery address when payment
@@ -145,6 +155,7 @@ function CheckoutPage() {
     setPayError(null);
     try {
       const phoneDigits = shipping.phone.replace(/\D/g, "");
+      void identifyTikTok({ email: shipping.email, phone: `+1${phoneDigits}` });
       const result = await startOrderCheckout({
         data: {
           email: shipping.email,
