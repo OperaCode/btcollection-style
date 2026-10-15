@@ -7,6 +7,7 @@ import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
 import { getPickupAddress, verifyShippingRate } from "@/lib/shippo";
 import { resolveDiscount } from "@/lib/discounts";
 import { sendOrderConfirmation, sendOrderNotification } from "@/lib/order-email";
+import { sendTikTokPurchase, type TikTokContext } from "@/lib/tiktok-events";
 
 type ShippingAddress = { name: string; email: string; phone: string; address: string; city: string; zip: string; state: string };
 export type FulfillmentMethod = "shipping" | "pickup";
@@ -26,6 +27,8 @@ type StartCheckoutInput = {
   discountCode: string | null;
   gateway: "stripe" | "paypal";
   fulfillmentMethod: FulfillmentMethod;
+  // TikTok ad-click id from the landing URL, if the visitor came from an ad.
+  ttclid?: string | null;
 };
 type CheckoutSession = {
   id: string;
@@ -43,6 +46,7 @@ type CheckoutSession = {
   payment_gateway: string;
   stripe_checkout_session_id: string | null;
   paypal_order_id: string | null;
+  tiktok_context?: Json | null;
 };
 
 export const startOrderCheckout = createServerFn({ method: "POST" })
@@ -152,6 +156,28 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
       .single();
     if (error || !session) throw error ?? new Error("Checkout could not be started.");
 
+    // Dynamic import, not top-level: this file is reachable from client
+    // code (checkout.tsx), and @tanstack/react-start/server is server-only.
+    const { getCookie, getRequestHeader, getRequestIP, getRequestUrl } = await import(
+      "@tanstack/react-start/server"
+    );
+
+    // Matching data for the server-side TikTok purchase event, read back in
+    // createPaidOrder. Saved as a separate, error-tolerant write so tracking
+    // can never block a checkout.
+    const tiktokContext: TikTokContext = {
+      ttp: getCookie("_ttp") || undefined,
+      ttclid: input.ttclid?.slice(0, 500) || undefined,
+      ip: getRequestIP({ xForwardedFor: true }) || undefined,
+      userAgent: getRequestHeader("user-agent") || undefined,
+      url: getRequestHeader("referer") || undefined,
+    };
+    const { error: tiktokError } = await supabaseAdmin
+      .from("checkout_sessions")
+      .update({ tiktok_context: tiktokContext as Json })
+      .eq("id", session.id);
+    if (tiktokError) console.error("Could not save TikTok context", tiktokError);
+
     // PayPal has no equivalent of Stripe Tax, so it still needs tax handed
     // to it as a plain amount. Stripe gets automaticTax instead (below) and
     // calculates its own, more accurate, address-exact figure — so it must
@@ -162,9 +188,6 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
       extraLines.push({ label: "Sales Tax", amount: taxAmount });
     }
 
-    // Dynamic import, not top-level: this file is reachable from client
-    // code (checkout.tsx), and @tanstack/react-start/server is server-only.
-    const { getRequestUrl } = await import("@tanstack/react-start/server");
     const origin = getRequestUrl().origin;
     const discount =
       discountAmount > 0 ? { label: `Discount (${discountCode})`, amount: discountAmount } : undefined;
@@ -225,9 +248,9 @@ async function createPaidOrder(
   paymentId: string | null,
   actualTax?: number | null,
 ) {
-  const { data: existing, error: existingError } = await supabaseAdmin.from("orders").select("id").eq("id", session.id).maybeSingle();
+  const { data: existing, error: existingError } = await supabaseAdmin.from("orders").select("id, total").eq("id", session.id).maybeSingle();
   if (existingError) throw existingError;
-  if (existing) return { paid: true as const, orderId: existing.id };
+  if (existing) return { paid: true as const, orderId: existing.id, total: Number(existing.total) };
   const isPayPal = session.payment_gateway === "paypal";
   const paidAt = new Date().toISOString();
   const { error: sessionError } = isPayPal
@@ -247,7 +270,7 @@ async function createPaidOrder(
     ? await supabaseAdmin.from("orders").insert({ ...orderBase, payment_gateway: "paypal", paypal_capture_id: paymentId })
     : await supabaseAdmin.from("orders").insert({ ...orderBase, payment_gateway: "stripe", stripe_payment_id: paymentId });
   if (orderError) {
-    if (orderError.code === "23505") return { paid: true as const, orderId: session.id };
+    if (orderError.code === "23505") return { paid: true as const, orderId: session.id, total };
     throw orderError;
   }
   const items = session.items as unknown as CartItem[];
@@ -266,8 +289,23 @@ async function createPaidOrder(
     deliveryMethod: session.delivery_method,
     isPickup: session.fulfillment_method === "pickup",
   };
-  await Promise.all([sendOrderConfirmation(emailInput), sendOrderNotification(emailInput)]);
-  return { paid: true as const, orderId: session.id };
+  // Reached only by the call that actually created the order (the insert
+  // above is the once-only gate), so the purchase is reported exactly once
+  // however many of success page / webhook / retries get here.
+  const address = session.shipping_address as { phone?: string } | null;
+  await Promise.all([
+    sendOrderConfirmation(emailInput),
+    sendOrderNotification(emailInput),
+    sendTikTokPurchase({
+      orderId: session.id,
+      email: session.email,
+      phone: address?.phone || undefined,
+      items: items.map((item) => ({ id: item.id, name: item.name, price: item.price, qty: item.qty })),
+      value: total,
+      context: session.tiktok_context as TikTokContext | null,
+    }),
+  ]);
+  return { paid: true as const, orderId: session.id, total };
 }
 
 export const confirmOrderPayment = createServerFn({ method: "POST" })
@@ -276,8 +314,8 @@ export const confirmOrderPayment = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: session, error } = await supabaseAdmin.from("checkout_sessions").select("*").eq("id", data.orderId).single();
     if (error || !session) return { paid: false, error: "Checkout session not found." };
-    const { data: existing } = await supabaseAdmin.from("orders").select("id").eq("id", session.id).maybeSingle();
-    if (existing) return { paid: true as const, orderId: existing.id };
+    const { data: existing } = await supabaseAdmin.from("orders").select("id, total").eq("id", session.id).maybeSingle();
+    if (existing) return { paid: true as const, orderId: existing.id, total: Number(existing.total) };
 
     if (session.payment_gateway === "paypal") {
       if (!session.paypal_order_id) return { paid: false, error: "This checkout has no payment attached yet." };

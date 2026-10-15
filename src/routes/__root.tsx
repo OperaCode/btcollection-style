@@ -17,7 +17,7 @@ import { CartProvider } from "@/lib/cart";
 import { WishlistProvider } from "@/lib/wishlist";
 import { CartDrawer } from "@/components/site/CartDrawer";
 import { Toaster } from "@/components/ui/sonner";
-import { tiktokPageView, tiktokPixelSnippet } from "@/lib/tiktok-pixel";
+import { rememberTikTokClickId, tiktokPageView, tiktokPixelSnippet } from "@/lib/tiktok-pixel";
 
 const tiktokSnippet = tiktokPixelSnippet();
 
@@ -140,6 +140,9 @@ function RootShell({ children }: { children: ReactNode }) {
 function useTikTokPageViews() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const lastPath = useRef<string | null>(null);
+  useEffect(() => {
+    rememberTikTokClickId();
+  }, []);
   useEffect(() => {
     if (lastPath.current === null || lastPath.current === pathname) {
       lastPath.current = pathname;

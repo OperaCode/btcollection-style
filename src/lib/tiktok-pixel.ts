@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 // TikTok Pixel. The base snippet is injected into <head> by __root.tsx when
 // VITE_TIKTOK_PIXEL_ID is set; everything here is a silent no-op otherwise
 // (local dev, previews, SSR), so callers never need to guard.
@@ -45,16 +47,19 @@ export type TikTokEvent =
   | "AddToCart"
   | "AddToWishlist"
   | "InitiateCheckout"
-  | "CompletePayment";
+  | "AddPaymentInfo"
+  | "Search"
+  | "Purchase";
 
 export function trackTikTok(
   event: TikTokEvent,
-  data: { contents?: TikTokContent[]; value?: number; eventId?: string } = {},
+  data: { contents?: TikTokContent[]; value?: number; eventId?: string; query?: string } = {},
 ) {
   const t = ttq();
   if (!t) return;
-  const { contents, value, eventId } = data;
+  const { contents, value, eventId, query } = data;
   const params: Record<string, unknown> = {};
+  if (query) params.query = query;
   if (contents?.length) {
     params.contents = contents.map((c) => ({ ...c, content_type: "product" }));
   }
@@ -67,10 +72,50 @@ export function trackTikTok(
   } catch {}
 }
 
+// The site's search boxes filter live as you type, with no submit step, so
+// a search counts once typing pauses — never per keystroke, and never the
+// same term twice in a row.
+export function useTikTokSearchTracking(query: string) {
+  const lastTracked = useRef("");
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2 || q.toLowerCase() === lastTracked.current) return;
+    const timer = setTimeout(() => {
+      lastTracked.current = q.toLowerCase();
+      trackTikTok("Search", { query: q });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [query]);
+}
+
 export function tiktokPageView() {
   try {
     ttq()?.page();
   } catch {}
+}
+
+// TikTok tags ad clicks with ?ttclid=… on the landing URL. It's kept for a
+// week so a purchase made a few visits later is still credited to the ad,
+// and handed to the server at checkout for the Events API purchase event.
+const TTCLID_KEY = "btc.ttclid";
+const TTCLID_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function rememberTikTokClickId() {
+  try {
+    const ttclid = new URLSearchParams(window.location.search).get("ttclid");
+    if (ttclid) localStorage.setItem(TTCLID_KEY, JSON.stringify({ ttclid, at: Date.now() }));
+  } catch {}
+}
+
+export function getTikTokClickId(): string | null {
+  try {
+    const raw = localStorage.getItem(TTCLID_KEY);
+    if (!raw) return null;
+    const { ttclid, at } = JSON.parse(raw) as { ttclid?: string; at?: number };
+    return ttclid && at && Date.now() - at < TTCLID_MAX_AGE_MS ? ttclid : null;
+  } catch {
+    return null;
+  }
 }
 
 async function sha256(value: string) {

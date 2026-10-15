@@ -45,15 +45,15 @@ function fireConfetti() {
 
 function CheckoutSuccessPage() {
   const { orderId } = Route.useSearch();
-  const { clear, items, subtotal } = useCart();
+  const { clear, items } = useCart();
   const [state, setState] = useState<"loading" | "paid" | "error">("loading");
   const [error, setError] = useState("");
 
   // Snapshot of the cart for the purchase event, read once payment confirms
   // (just before clear()). An already-empty cart means this order was
   // tracked on an earlier visit — e.g. a refresh — so it isn't re-sent.
-  const cartRef = useRef({ items, subtotal });
-  cartRef.current = { items, subtotal };
+  const cartRef = useRef({ items });
+  cartRef.current = { items };
 
   useEffect(() => {
     if (!orderId) {
@@ -74,9 +74,11 @@ function CheckoutSuccessPage() {
           setState("paid");
           const cart = cartRef.current;
           if (cart.items.length > 0) {
-            trackTikTok("CompletePayment", {
+            // Same event_id and value as the server-side Events API report
+            // (tiktok-events.ts), so TikTok merges the two into one purchase.
+            trackTikTok("Purchase", {
               contents: toTikTokContents(cart.items),
-              value: cart.subtotal,
+              value: result.total,
               eventId: orderId,
             });
           }

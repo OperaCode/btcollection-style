@@ -15,6 +15,7 @@ import { listPublicProducts, PRODUCTS_QUERY_KEY, type Product } from "@/lib/cata
 import { useCart, formatUSD } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { listCategories, CATEGORIES_QUERY_KEY } from "@/lib/categories";
+import { useTikTokSearchTracking } from "@/lib/tiktok-pixel";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -45,6 +46,7 @@ function ShopPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [query, setQuery] = useState("");
+  useTikTokSearchTracking(query);
   const { add } = useCart();
   const wishlist = useWishlist();
   const products = useQuery({ queryKey: PRODUCTS_QUERY_KEY, queryFn: listPublicProducts });

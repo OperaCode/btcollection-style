@@ -27,7 +27,7 @@ import {
   type ShippoRate,
 } from "@/lib/shippo";
 import { previewDiscountCode } from "@/lib/discounts";
-import { identifyTikTok, toTikTokContents, trackTikTok } from "@/lib/tiktok-pixel";
+import { getTikTokClickId, identifyTikTok, toTikTokContents, trackTikTok } from "@/lib/tiktok-pixel";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -156,6 +156,9 @@ function CheckoutPage() {
     try {
       const phoneDigits = shipping.phone.replace(/\D/g, "");
       void identifyTikTok({ email: shipping.email, phone: `+1${phoneDigits}` });
+      // Card/PayPal details are entered on the gateway's own page, which the
+      // pixel can't see — choosing a payment method here is the closest step.
+      trackTikTok("AddPaymentInfo", { contents: toTikTokContents(items), value: total });
       const result = await startOrderCheckout({
         data: {
           email: shipping.email,
@@ -174,6 +177,7 @@ function CheckoutPage() {
           discountCode: appliedDiscount?.code ?? null,
           gateway,
           fulfillmentMethod: fulfillment,
+          ttclid: getTikTokClickId(),
         },
       });
       window.location.href = result.url;
