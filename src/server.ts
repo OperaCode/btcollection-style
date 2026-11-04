@@ -7,6 +7,7 @@ import { handlePayPalWebhook } from "./lib/paypal-webhook";
 import { handleShippoWebhook } from "./lib/shippo-webhook";
 import { handleOrderReminderRequest } from "./lib/order-reminder";
 import { handleSitemapRequest } from "./lib/sitemap";
+import { handleMetaCatalogRequest } from "./lib/meta-catalog";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -84,6 +85,15 @@ export default {
     if (url.pathname === "/sitemap.xml" && request.method === "GET") {
       try {
         return await handleSitemapRequest(request);
+      } catch (error) {
+        console.error(error);
+        return new Response("Internal error", { status: 500 });
+      }
+    }
+
+    if (url.pathname === "/meta-catalog.xml" && request.method === "GET") {
+      try {
+        return await handleMetaCatalogRequest(request);
       } catch (error) {
         console.error(error);
         return new Response("Internal error", { status: 500 });
