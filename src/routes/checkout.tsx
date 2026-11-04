@@ -28,6 +28,7 @@ import {
 } from "@/lib/shippo";
 import { previewDiscountCode } from "@/lib/discounts";
 import { getTikTokClickId, identifyTikTok, toTikTokContents, trackTikTok } from "@/lib/tiktok-pixel";
+import { identifyMeta, trackMeta } from "@/lib/meta-pixel";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -96,6 +97,7 @@ function CheckoutPage() {
     if (checkoutTracked.current || items.length === 0) return;
     checkoutTracked.current = true;
     trackTikTok("InitiateCheckout", { contents: toTikTokContents(items), value: subtotal });
+    trackMeta("InitiateCheckout", { contents: toTikTokContents(items), value: subtotal });
   }, [items, subtotal]);
 
   const shippingCost = !isPickup && selectedRate ? Number(selectedRate.amount) : 0;
@@ -156,9 +158,11 @@ function CheckoutPage() {
     try {
       const phoneDigits = shipping.phone.replace(/\D/g, "");
       void identifyTikTok({ email: shipping.email, phone: `+1${phoneDigits}` });
+      void identifyMeta({ email: shipping.email, phone: `1${phoneDigits}` });
       // Card/PayPal details are entered on the gateway's own page, which the
       // pixel can't see — choosing a payment method here is the closest step.
       trackTikTok("AddPaymentInfo", { contents: toTikTokContents(items), value: total });
+      trackMeta("AddPaymentInfo", { contents: toTikTokContents(items), value: total });
       const result = await startOrderCheckout({
         data: {
           email: shipping.email,

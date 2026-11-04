@@ -18,8 +18,10 @@ import { WishlistProvider } from "@/lib/wishlist";
 import { CartDrawer } from "@/components/site/CartDrawer";
 import { Toaster } from "@/components/ui/sonner";
 import { rememberTikTokClickId, tiktokPageView, tiktokPixelSnippet } from "@/lib/tiktok-pixel";
+import { metaPageView, metaPixelSnippet } from "@/lib/meta-pixel";
 
 const tiktokSnippet = tiktokPixelSnippet();
+const metaSnippet = metaPixelSnippet();
 
 function NotFoundComponent() {
   return (
@@ -112,8 +114,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap",
       },
     ],
-    // TikTok Pixel base code — only rendered when VITE_TIKTOK_PIXEL_ID is set.
-    scripts: tiktokSnippet ? [{ children: tiktokSnippet }] : [],
+    // TikTok and Meta Pixel base code — each only rendered when its
+    // VITE_*_PIXEL_ID is set.
+    scripts: [tiktokSnippet, metaSnippet].filter((s): s is string => !!s).map((children) => ({ children })),
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -135,9 +138,9 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-// The pixel snippet fires ttq.page() once on the initial document load; this
+// The pixel snippets fire a page view once on the initial document load; this
 // covers client-side navigations, which never reload the document.
-function useTikTokPageViews() {
+function usePixelPageViews() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const lastPath = useRef<string | null>(null);
   useEffect(() => {
@@ -149,13 +152,15 @@ function useTikTokPageViews() {
       return;
     }
     lastPath.current = pathname;
-    if (!pathname.startsWith("/admin")) tiktokPageView();
+    if (pathname.startsWith("/admin")) return;
+    tiktokPageView();
+    metaPageView();
   }, [pathname]);
 }
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useTikTokPageViews();
+  usePixelPageViews();
 
   return (
     <QueryClientProvider client={queryClient}>

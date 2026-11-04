@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { trackTikTok } from "@/lib/tiktok-pixel";
+import { trackMeta } from "@/lib/meta-pixel";
 
 type WishlistCtx = {
   items: string[];
@@ -36,7 +37,10 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       count: items.length,
       has: (id) => items.includes(id),
       toggle: (id) => {
-        if (!items.includes(id)) trackTikTok("AddToWishlist", { contents: [{ content_id: id }] });
+        if (!items.includes(id)) {
+          trackTikTok("AddToWishlist", { contents: [{ content_id: id }] });
+          trackMeta("AddToWishlist", { contents: [{ content_id: id }] });
+        }
         setItems((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
       },
     }),

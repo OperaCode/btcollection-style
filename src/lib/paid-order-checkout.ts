@@ -8,6 +8,7 @@ import { getPickupAddress, verifyShippingRate } from "@/lib/shippo";
 import { resolveDiscount } from "@/lib/discounts";
 import { sendOrderConfirmation, sendOrderNotification } from "@/lib/order-email";
 import { sendTikTokPurchase, type TikTokContext } from "@/lib/tiktok-events";
+import { sendMetaPurchase, type MetaContext } from "@/lib/meta-events";
 
 type ShippingAddress = { name: string; email: string; phone: string; address: string; city: string; zip: string; state: string };
 export type FulfillmentMethod = "shipping" | "pickup";
@@ -47,6 +48,7 @@ type CheckoutSession = {
   stripe_checkout_session_id: string | null;
   paypal_order_id: string | null;
   tiktok_context?: Json | null;
+  meta_context?: Json | null;
 };
 
 export const startOrderCheckout = createServerFn({ method: "POST" })
@@ -178,6 +180,21 @@ export const startOrderCheckout = createServerFn({ method: "POST" })
       .eq("id", session.id);
     if (tiktokError) console.error("Could not save TikTok context", tiktokError);
 
+    // Same for the Meta purchase event. _fbp identifies the browser; _fbc is
+    // set by the pixel when the visitor lands from a Meta ad (?fbclid=…).
+    const metaContext: MetaContext = {
+      fbp: getCookie("_fbp") || undefined,
+      fbc: getCookie("_fbc") || undefined,
+      ip: tiktokContext.ip,
+      userAgent: tiktokContext.userAgent,
+      url: tiktokContext.url,
+    };
+    const { error: metaError } = await supabaseAdmin
+      .from("checkout_sessions")
+      .update({ meta_context: metaContext as Json })
+      .eq("id", session.id);
+    if (metaError) console.error("Could not save Meta context", metaError);
+
     // PayPal has no equivalent of Stripe Tax, so it still needs tax handed
     // to it as a plain amount. Stripe gets automaticTax instead (below) and
     // calculates its own, more accurate, address-exact figure — so it must
@@ -293,17 +310,18 @@ async function createPaidOrder(
   // above is the once-only gate), so the purchase is reported exactly once
   // however many of success page / webhook / retries get here.
   const address = session.shipping_address as { phone?: string } | null;
+  const purchase = {
+    orderId: session.id,
+    email: session.email,
+    phone: address?.phone || undefined,
+    items: items.map((item) => ({ id: item.id, name: item.name, price: item.price, qty: item.qty })),
+    value: total,
+  };
   await Promise.all([
     sendOrderConfirmation(emailInput),
     sendOrderNotification(emailInput),
-    sendTikTokPurchase({
-      orderId: session.id,
-      email: session.email,
-      phone: address?.phone || undefined,
-      items: items.map((item) => ({ id: item.id, name: item.name, price: item.price, qty: item.qty })),
-      value: total,
-      context: session.tiktok_context as TikTokContext | null,
-    }),
+    sendTikTokPurchase({ ...purchase, context: session.tiktok_context as TikTokContext | null }),
+    sendMetaPurchase({ ...purchase, context: session.meta_context as MetaContext | null }),
   ]);
   return { paid: true as const, orderId: session.id, total };
 }

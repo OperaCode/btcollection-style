@@ -6,6 +6,7 @@ import { Header, Footer } from "@/components/site/SiteChrome";
 import { useCart } from "@/lib/cart";
 import { confirmOrderPayment } from "@/lib/paid-order-checkout";
 import { toTikTokContents, trackTikTok } from "@/lib/tiktok-pixel";
+import { trackMeta } from "@/lib/meta-pixel";
 
 export const Route = createFileRoute("/checkout_/success")({
   head: () => ({
@@ -76,11 +77,13 @@ function CheckoutSuccessPage() {
           if (cart.items.length > 0) {
             // Same event_id and value as the server-side Events API report
             // (tiktok-events.ts), so TikTok merges the two into one purchase.
-            trackTikTok("Purchase", {
+            const purchase = {
               contents: toTikTokContents(cart.items),
               value: result.total,
               eventId: orderId,
-            });
+            };
+            trackTikTok("Purchase", purchase);
+            trackMeta("Purchase", purchase);
           }
           clear();
           fireConfetti();

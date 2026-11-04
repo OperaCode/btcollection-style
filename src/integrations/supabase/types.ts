@@ -196,6 +196,7 @@ export type Database = {
           stripe_checkout_session_id: string | null
           stripe_payment_id: string | null
           tiktok_context: Json | null
+          meta_context: Json | null
           payment_gateway: string
           paypal_capture_id: string | null
           paypal_order_id: string | null
@@ -218,6 +219,7 @@ export type Database = {
           stripe_checkout_session_id?: string | null
           stripe_payment_id?: string | null
           tiktok_context?: Json | null
+          meta_context?: Json | null
           payment_gateway?: string
           paypal_capture_id?: string | null
           paypal_order_id?: string | null
@@ -240,6 +242,7 @@ export type Database = {
           stripe_checkout_session_id?: string | null
           stripe_payment_id?: string | null
           tiktok_context?: Json | null
+          meta_context?: Json | null
           payment_gateway?: string
           paypal_capture_id?: string | null
           paypal_order_id?: string | null

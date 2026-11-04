@@ -24,6 +24,7 @@ import { useCart, formatUSD } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { uploadCustomizationPhoto } from "@/lib/uploads";
 import { trackTikTok } from "@/lib/tiktok-pixel";
+import { trackMeta } from "@/lib/meta-pixel";
 
 const CATEGORY_COPY: Record<string, { materials: string; care: string; processing: string }> = {
   "Faith Apparel": {
@@ -114,10 +115,12 @@ function ProductPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
-    trackTikTok("ViewContent", {
+    const viewed = {
       contents: [{ content_id: product.id, content_name: product.name, price: product.base_price }],
       value: product.base_price,
-    });
+    };
+    trackTikTok("ViewContent", viewed);
+    trackMeta("ViewContent", viewed);
   }, [product.id, product.name, product.base_price]);
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {

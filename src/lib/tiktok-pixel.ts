@@ -118,7 +118,7 @@ export function getTikTokClickId(): string | null {
   }
 }
 
-async function sha256(value: string) {
+export async function sha256(value: string) {
   const bytes = new TextEncoder().encode(value.trim().toLowerCase());
   const hash = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, "0")).join("");

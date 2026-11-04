@@ -18,6 +18,7 @@ import { formatUSD } from "@/lib/cart";
 import { useSiteSettings } from "@/lib/site-settings";
 import { getActiveDiscountBanner } from "@/lib/discounts";
 import { useTikTokSearchTracking } from "@/lib/tiktok-pixel";
+import { useMetaSearchTracking } from "@/lib/meta-pixel";
 import logoMark from "@/assets/bclogo.jpeg";
 
 export const NAV = [
@@ -92,6 +93,7 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   useTikTokSearchTracking(query);
+  useMetaSearchTracking(query);
 
   useEffect(() => {
     if (!mobileOpen && !searchOpen) return;

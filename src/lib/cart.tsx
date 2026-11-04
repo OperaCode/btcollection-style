@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { trackTikTok } from "@/lib/tiktok-pixel";
+import { trackMeta } from "@/lib/meta-pixel";
 
 export type CartCustomization = {
   size?: string;
@@ -82,10 +83,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { ...item, qty }];
     });
-    trackTikTok("AddToCart", {
+    const added = {
       contents: [{ content_id: item.id, content_name: item.name, quantity: qty, price: item.price }],
       value: item.price * qty,
-    });
+    };
+    trackTikTok("AddToCart", added);
+    trackMeta("AddToCart", added);
     setOpen(true);
   }, []);
 
