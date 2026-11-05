@@ -100,6 +100,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: defaultOgImage },
       { name: "robots", content: "index, follow" },
+      // Meta Business domain verification for breakthroughcollection.com.
+      { name: "facebook-domain-verification", content: "eznq6myiyrfdn1x87wuhj27wopodts" },
     ],
     links: [
       {
